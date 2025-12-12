@@ -778,21 +778,23 @@ async def main():
     
     # --- Formatting Definitions ---
     # Colors approximated from user screenshot/request
-    format_header = workbook.add_format({'bold': True, 'bottom': 1})
+    # Added 'border': 1 for all cells
+    format_header = workbook.add_format({'bold': True, 'bottom': 1, 'border': 1})
     
     # Category Colors
-    color_green = '#C6EFCE'  # Light Green (User, Role, XP)
-    color_orange = '#FFEB9C' # Light Orange (Messages) - Adjusted to look like screenshot
-    color_yellow = '#FFFFCC' # Light Yellow (Boss Kills)
+    # Also apply Number Format: '#,##0' (Thousands separator, no decimals)
+    # Excel uses system locale for the specific separator char (. or ,)
+    base_fmt = {'border': 1, 'num_format': '#,##0'}
     
-    fmt_green = workbook.add_format({'bg_color': color_green})
-    fmt_orange = workbook.add_format({'bg_color': color_orange})
-    fmt_yellow = workbook.add_format({'bg_color': color_yellow})
+    color_green = '#C6EFCE'  # Light Green
+    color_orange = '#FFEB9C' # Light Orange
+    color_yellow = '#FFFFCC' # Light Yellow
+    
+    fmt_green = workbook.add_format({**base_fmt, 'bg_color': color_green})
+    fmt_orange = workbook.add_format({**base_fmt, 'bg_color': color_orange})
+    fmt_yellow = workbook.add_format({**base_fmt, 'bg_color': color_yellow})
     
     # Format Mapping based on Column Name
-    # We iterate columns and apply format to the whole column (excluding header potentially, but add_format applies to cells)
-    # Actually set_column applied to range.
-    
     for i, col_name in enumerate(df.columns):
         col_lower = col_name.lower()
         target_fmt = None
@@ -806,35 +808,33 @@ async def main():
             # Default to Green (Username, Role, XP)
             target_fmt = fmt_green
             
-        # Write the column with the format (offset by 1 for index if needed, but we use A1 notation or set_column)
-        # set_column(first_col, last_col, width, cell_format)
-        # formatting applied here is the Default for the column. 
-        # Conditional formatting (Red for 0) will override this if valid.
-        
         # Auto-fit Width Calculation
-        # Get max length of data in this column
         max_len = len(str(col_name)) # Header length
         for val in df[col_name]:
+            # For numbers formatted with separators, the string length might inevitably be longer
+            # simple len(str(val)) is a decent approximation for unformatted
             v_len = len(str(val))
             if v_len > max_len:
                 max_len = v_len
         
         # Add a little padding
-        final_width = max_len + 2
-        
-        # Cap width just in case
+        final_width = max_len + 3
         if final_width > 50: final_width = 50
         
         worksheet.set_column(i, i, final_width, target_fmt)
         
     # --- Freeze Panes ---
-    # Freeze Top Row (1) and First Column (A)
     worksheet.freeze_panes(1, 1)
 
     # --- Conditional Formatting (Zeroes) ---
-    # This applies ON TOP of the cell formatting
     if EXCEL_ZERO_HIGHLIGHT:
-        red_format = workbook.add_format({'bg_color': EXCEL_ZERO_BG_COLOR, 'font_color': EXCEL_ZERO_FONT_COLOR})
+        # Must preserve border and num_format in conditional highlight too
+        red_format = workbook.add_format({
+            'bg_color': EXCEL_ZERO_BG_COLOR, 
+            'font_color': EXCEL_ZERO_FONT_COLOR,
+            'border': 1,
+            'num_format': '#,##0'
+        })
         
         # Apply to all data cells
         worksheet.conditional_format(1, 0, max_row, max_col - 1, {
