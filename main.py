@@ -776,18 +776,72 @@ async def main():
     worksheet = writer.sheets['Summary']
     (max_row, max_col) = df.shape
     
-    # Apply conditional formatting if enabled
+    # --- Formatting Definitions ---
+    # Colors approximated from user screenshot/request
+    format_header = workbook.add_format({'bold': True, 'bottom': 1})
+    
+    # Category Colors
+    color_green = '#C6EFCE'  # Light Green (User, Role, XP)
+    color_orange = '#FFEB9C' # Light Orange (Messages) - Adjusted to look like screenshot
+    color_yellow = '#FFFFCC' # Light Yellow (Boss Kills)
+    
+    fmt_green = workbook.add_format({'bg_color': color_green})
+    fmt_orange = workbook.add_format({'bg_color': color_orange})
+    fmt_yellow = workbook.add_format({'bg_color': color_yellow})
+    
+    # Format Mapping based on Column Name
+    # We iterate columns and apply format to the whole column (excluding header potentially, but add_format applies to cells)
+    # Actually set_column applied to range.
+    
+    for i, col_name in enumerate(df.columns):
+        col_lower = col_name.lower()
+        target_fmt = None
+        
+        # Determine Color
+        if 'message' in col_lower:
+            target_fmt = fmt_orange
+        elif 'boss' in col_lower and 'kill' in col_lower:
+            target_fmt = fmt_yellow
+        else:
+            # Default to Green (Username, Role, XP)
+            target_fmt = fmt_green
+            
+        # Write the column with the format (offset by 1 for index if needed, but we use A1 notation or set_column)
+        # set_column(first_col, last_col, width, cell_format)
+        # formatting applied here is the Default for the column. 
+        # Conditional formatting (Red for 0) will override this if valid.
+        
+        # Auto-fit Width Calculation
+        # Get max length of data in this column
+        max_len = len(str(col_name)) # Header length
+        for val in df[col_name]:
+            v_len = len(str(val))
+            if v_len > max_len:
+                max_len = v_len
+        
+        # Add a little padding
+        final_width = max_len + 2
+        
+        # Cap width just in case
+        if final_width > 50: final_width = 50
+        
+        worksheet.set_column(i, i, final_width, target_fmt)
+        
+    # --- Freeze Panes ---
+    # Freeze Top Row (1) and First Column (A)
+    worksheet.freeze_panes(1, 1)
+
+    # --- Conditional Formatting (Zeroes) ---
+    # This applies ON TOP of the cell formatting
     if EXCEL_ZERO_HIGHLIGHT:
         red_format = workbook.add_format({'bg_color': EXCEL_ZERO_BG_COLOR, 'font_color': EXCEL_ZERO_FONT_COLOR})
         
-        for col_idx in range(1, max_col):
-            worksheet.conditional_format(1, col_idx, max_row, col_idx, {
-                'type': 'cell', 'criteria': '==', 'value': 0, 'format': red_format
-            })
+        # Apply to all data cells
+        worksheet.conditional_format(1, 0, max_row, max_col - 1, {
+            'type': 'cell', 'criteria': '==', 'value': 0, 'format': red_format
+        })
         
     worksheet.autofilter(0, 0, max_row, max_col - 1)
-    worksheet.set_column(0, 0, EXCEL_USERNAME_WIDTH)
-    worksheet.set_column(1, max_col - 1, EXCEL_COLUMN_WIDTH)
     
     # Summary Table Construction (Top Lists)
     # Re-calculate Top 3 for XP, Msg, EHP if available
