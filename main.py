@@ -1,5 +1,7 @@
 import asyncio
+from collections import Counter, defaultdict
 import os
+import sqlite3
 import csv
 import shutil
 import logging
@@ -15,7 +17,7 @@ from wom import wom_client
 from bot import run_discord_fetch
 
 # Load environment variables
-load_dotenv()
+load_dotenv(override=True)
 
 # --- Configuration ---
 WOM_GROUP_ID = os.getenv('WOM_GROUP_ID')
@@ -38,14 +40,15 @@ EXCEL_USERNAME_WIDTH = int(os.getenv('EXCEL_USERNAME_WIDTH', 20))
 # Date Ranges (From Env)
 def get_custom_dates():
     start_str = os.getenv('CUSTOM_START_DATE', '2025-02-14')
-    end_str = os.getenv('CUSTOM_END_DATE', '2025-12-08')
+    # End date is always NOW (Dynamic) as per user request
+    # end_str = os.getenv('CUSTOM_END_DATE', '2025-12-08') 
     try:
         s = datetime.fromisoformat(start_str).replace(tzinfo=timezone.utc)
-        e = datetime.fromisoformat(end_str).replace(tzinfo=timezone.utc)
+        e = datetime.now(timezone.utc)
         return s, e
     except:
         # Fallback
-        return datetime(2025, 2, 14, tzinfo=timezone.utc), datetime(2025, 12, 8, tzinfo=timezone.utc)
+        return datetime(2025, 2, 14, tzinfo=timezone.utc), datetime.now(timezone.utc)
 
 CUSTOM_START, CUSTOM_END = get_custom_dates()
 
@@ -88,6 +91,21 @@ def backup_database():
         shutil.copy2(database.DB_FILE, dst)
         logging.info(f"Database backup created: {dst}")
 
+    # Cleanup: Keep only 5 newest files
+    try:
+        files = [os.path.join(BACKUP_DIR, f) for f in os.listdir(BACKUP_DIR) if os.path.isfile(os.path.join(BACKUP_DIR, f))]
+        files.sort(key=os.path.getmtime, reverse=True) # Newest first
+        
+        if len(files) > 5:
+            for f in files[5:]:
+                try:
+                    os.remove(f)
+                    logging.info(f"Deleted old backup: {f}")
+                except Exception as e:
+                    logging.warning(f"Failed to delete old backup {f}: {e}")
+    except Exception as e:
+        logging.warning(f"Error during backup cleanup: {e}")
+
 def archive_last_report():
     if not os.path.exists(ARCHIVE_DIR):
         os.makedirs(ARCHIVE_DIR)
@@ -99,6 +117,21 @@ def archive_last_report():
             dst = os.path.join(ARCHIVE_DIR, f"{name}_{timestamp}{ext}")
             shutil.copy2(f, dst)
             logging.info(f"Archived old report: {dst}")
+
+    # Cleanup: Keep only 10 newest files (approx 5 sets of reports)
+    try:
+        files = [os.path.join(ARCHIVE_DIR, f) for f in os.listdir(ARCHIVE_DIR) if os.path.isfile(os.path.join(ARCHIVE_DIR, f))]
+        files.sort(key=os.path.getmtime, reverse=True) # Newest first
+        
+        if len(files) > 10:
+            for f in files[10:]:
+                try:
+                    os.remove(f)
+                    logging.info(f"Deleted old archive: {f}")
+                except Exception as e:
+                    logging.warning(f"Failed to delete old archive {f}: {e}")
+    except Exception as e:
+        logging.warning(f"Error during archive cleanup: {e}")
 
 def clean_int(val):
     try:
@@ -705,32 +738,239 @@ async def main():
     # --- 8. Reporting (Excel) ---
     logging.info("--- Generating Enhanced Reports ---")
     
-    # Reuse existing Summary Table Logic (Joined/Left/Top 3)
-    # We need to fetch activity logs again? Yes.
+    # --- TEXT ANALYSIS (Questions & Fav Word) ---
+    logging.info("--- Analyzing Text Stats (Questions & Favorite Words) ---")
     
-    joined_30d = []
-    left_30d = []
+    # Define Stop Words (Common + Bot/Jargon + IDs)
+    STOP_WORDS = {
+        # Standard Grammar
+        'the', 'a', 'an', 'and', 'but', 'or', 'if', 'because', 'as', 'what',
+        'when', 'where', 'how', 'who', 'why', 'which', 'this', 'that', 'these', 'those',
+        'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did',
+        'i', 'me', 'my', 'mine', 'you', 'your', 'yours', 'he', 'him', 'his', 'she', 'her', 'hers',
+        'it', 'its', 'we', 'us', 'our', 'ours', 'they', 'them', 'their', 'theirs',
+        'to', 'from', 'in', 'on', 'at', 'by', 'for', 'with', 'about', 'against', 'between', 'into', 'through',
+        'during', 'before', 'after', 'above', 'below', 'to', 'from', 'up', 'down', 'out', 'off', 'over', 'under', 'of',
+        'again', 'further', 'then', 'once', 'here', 'there', 'all', 'any', 'both', 'each', 'few', 'more',
+        'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very',
+        's', 't', 'can', 'will', 'just', 'don', 'should', 'now', 'd', 'll', 'm', 'o', 're', 've', 'y', 'ain', 'aren',
+        'could', 'didn', 'doesn', 'hadn', 'hasn', 'haven', 'isn', 'ma', 'might', 'must', 'need', 'shan', 'shouldn',
+        'wasn', 'weren', 'won', 'wouldn', 'im', 'u', 'dont', 'cant', 'thats', 'didnt', 'whats', 'theres', 'got', 'get',
+        'like', 'one', 'good', 'bad', 'well', 'going', 'know', 'think', 'see', 'say', 'look', 'make', 'go', 'come',
+        'take', 'want', 'give', 'use', 'find', 'tell', 'ask', 'work', 'seem', 'feel', 'try', 'leave', 'call',
+        
+        # Bot & Game Jargon (Specific Exclusions)
+        'bot', 'statsicon', 'combatachievementsicon',
+        'ironman_chat_badge', 'group_ironman_chat_badge', 'bountyhuntertradericon', 'speedrunningshopicon',
+        'gnome_child', 'http', 'https', 'www', 'com', 'scams',
+        
+        # Ranks (User Provided List + Common)
+        'prospector', 'spellcaster', 'astral', 'wintumber', 'therapist', 'saviour', 'wrath', 
+        'apothecary', 'dragonstone', 'tztok', 'slayer', 'owner', 'wild', 'doctor', 'runecrafter', 
+        'bob', 'deputy_owner', 'deputy', 'hellcat', 'short_green_guy', 'artillery', 'smiter', 'zamorakian', 
+        'gamer', 'prodigy', 'zenyte', 'dragon', 'administrator', 'member', 'guest', 'smile', 
+        'recruited', 'role', 'rank', 'score', 'messages', 'gained', 'total', 'unknown',
+        
+        # User Manual Rejections (Names, Game Terms, etc.)
+        'armadylean', 'sir', 'gowi', 'death', 'achiever', 'tzkal', 'imp', 'nachokitty69', 
+        'skulled', 'feeder', 'jbwell', 'grandkingbot', 'baxy', 'docofmed', 'flooggeer',
+        
+        # Numbers/IDs
+        '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '000'
+    }
+
+    # Massive Game Ranks & Terms Blacklist (User Provided)
+    GAME_RANKS_AND_TERMS = {
+        # Army Ranks
+        'dogsbody', 'minion', 'recruit', 'pawn', 'private', 'corporal', 'novice', 'sergeant', 'cadet',
+        'page', 'noble', 'adept', 'legionnaire', 'lieutenant', 'proselyte', 'captain', 'major', 'general', 'master',
+        'officer', 'commander', 'colonel', 'brigadier', 'admiral', 'marshal',
+        # Gemstones
+        'opal', 'jade', 'red', 'topaz', 'sapphire', 'emerald', 'ruby', 'diamond', 'onyx',
+        # Non-human
+        'kitten', 'wily', 'beast', 'gnome', 'child', 'elder', 'short', 'green', 'guy',
+        # Regions
+        'misthalinian', 'karamjan', 'asgarnian', 'kharidian', 'morytanian', 'kandarin', 'fremennik', 'tirannian',
+        # Religions
+        'brassican', 'saradominist', 'guthixian', 'serenist', 'bandosian', 'zarosian', 'xerician',
+        # Rune symbols
+        'air', 'mind', 'water', 'earth', 'fire', 'body', 'cosmic', 'chaos', 'nature', 'law', 'blood', 'soul',
+        # Trees
+        'diseased', 'pine', 'oak', 'willow', 'maple', 'yew', 'blisterwood', 'magic',
+        # Skills & Roles
+        'attacker', 'enforcer', 'defender', 'ranger', 'priest', 'magician', 'medic', 'athlete', 'herbologist',
+        'thief', 'crafter', 'fletcher', 'miner', 'smith', 'fisher', 'cook', 'firemaker', 'lumberjack',
+        'farmer', 'constructor', 'hunter', 'skiller', 'competitor',
+        # Capes
+        'holy', 'unholy', 'natural', 'sage', 'destroyer', 'mediator', 'legend', 'myth', 'maxed',
+        # Skilling-focused
+        'anchor', 'merchant', 'harpoon', 'carry',
+        # Combat-focused
+        'archer', 'battlemage', 'infantry', 'looter', 'sniper', 'crusader',
+        # Misc
+        'mentor', 'prefect', 'leader', 'supervisor', 'superior', 'executive', 'senator', 'monarch',
+        'scavenger', 'labourer', 'worker', 'forager', 'hoarder', 'gatherer', 'collector',
+        'bronze', 'iron', 'steel', 'gold', 'mithril', 'adamant', 'rune',
+        'protector', 'bulwark', 'justiciar', 'sentry', 'guardian', 'warden', 'vanguard', 'templar',
+        'squire', 'duellist', 'striker', 'ninja', 'inquisitor', 'expert', 'knight', 'paladin',
+        'goon', 'brawler', 'bruiser', 'scourge', 'fighter', 'warrior', 'barbarian', 'berserker',
+        'staff', 'crew', 'helper', 'sheriff', 'grey', 'pink', 'purple', 'blue', 'orange', 'yellow',
+        'wizard', 'trickster', 'illusionist', 'summoner', 'necromancer', 'warlock', 'witch', 'seer',
+        'assassin', 'cutpurse', 'bandit', 'scout', 'burglar', 'rogue', 'smuggler', 'brigand',
+        'oracle', 'pure', 'champion', 'epic', 'mystic', 'hero', 'trialist', 'defiler',
+        'scholar', 'councillor', 'recruiter', 'learner', 'scribe', 'assistant', 'teacher', 'coordinator',
+        'walker', 'wanderer', 'pilgrim', 'vagrant', 'racer', 'strider',
+        'druid', 'healer', 'zealot', 'cleric', 'shaman',
+        'adventurer', 'explorer', 'quester', 'raider', 'completionist', 'elite',
+        'firestarter', 'specialist', 'pyromancer', 'ignitor', 'artisan', 'legacy',
+        
+        # Specific Badges/Variables reported
+        'unranked_group_ironman_chat_badge', 'hardcore_ironman_chat_badge'
+    }
     
-    # [Activity Fetch]
-    cutoff_30d = now - timedelta(days=30)
-    # Fetch more at once
+    STOP_WORDS.update(GAME_RANKS_AND_TERMS)
+
+    # "Auto-Announcement" keywords - if message contains these, skip it entirely (it's not user chat)
+    # These often appear in "User has achieved..." or "User received a drop..." messages
+    AUTO_ANNOUNCEMENT_TRIGGERS = [
+        'received', 'completed', 'reached', 'log', 'collection', 'loot', 'burnt', 'level', 
+        'maxed', 'coins', 'xp', 'kill', 'kills', 'kc', 'combat', 'achievements', 'valuable drop', 'achieved'
+    ]
+    
+    # Whitelist to protect slang even if they end up in stop lists somehow (safety)
+    ALLOWED_SLANG = {'lol', 'gz', 'lmao', 'ty', 'haha', 'yeah', 'gzz', 'gzzz', 'tyvm'}
+    
+    # Data structs
+    user_q_counts = defaultdict(int)        # username -> question_count
+    user_word_counts = defaultdict(Counter) # username -> Counter(words)
+    
+    # 1. Normalize "Target" usernames map for fast lookup
+    target_users_map = {}
+    for u in member_usernames:
+        target_users_map[normalize_user_string(u)] = u.lower()
+        
+    # --- DYNAMIC STOP LIST: Block ALL Discord Usernames & OSRS Names ---
+    # This prevents "partymarty94" or "gowi" from being the favorite word
     try:
-        act_logs = await wom_client.get_group_activity(WOM_GROUP_ID, limit=50) 
-        if act_logs:
-            for log in act_logs:
-                try:
-                    ts_str = log['createdAt']
-                    if ts_str.endswith('Z'): ts_str = ts_str[:-1] + '+00:00'
-                    log_date = datetime.fromisoformat(ts_str)
-                    if log_date > cutoff_30d:
-                        p_name = log.get('player', {}).get('displayName', 'Unknown')
-                        if log['type'] == 'member_joined':
-                            joined_30d.append(f"{p_name} ({log_date.strftime('%Y-%m-%d')})")
-                        elif log['type'] == 'member_left':
-                            left_30d.append(f"{p_name} ({log_date.strftime('%Y-%m-%d')})")
-                except: pass
+        conn = sqlite3.connect(database.DB_FILE) 
+        cursor = conn.cursor()
+        
+        # 1. Discord Author Names
+        cursor.execute("SELECT DISTINCT author_name FROM discord_messages")
+        discord_names = [r[0] for r in cursor.fetchall() if r[0]]
+        
+        # 2. WOM/OSRS Usernames (Snapshots)
+        cursor.execute("SELECT DISTINCT username FROM wom_snapshots")
+        osrs_names = [r[0] for r in cursor.fetchall() if r[0]]
+        
+        conn.close()
+        
+        all_names = set(discord_names + osrs_names)
+        logging.info(f"Loaded {len(all_names)} unique usernames to block from analysis.")
+        
+        for name in all_names:
+            norm = name.lower()
+            # Block full name
+            STOP_WORDS.add(norm)
+            # Block parts (e.g. "sir", "gowi" OR "berzerker_rs" -> "berzerker", "rs")
+            # SPLIT ON UNDERSCORE TOO: [\W_] means non-word chars OR underscore
+            parts = re.split(r'[\W_]', norm)
+            for p in parts:
+                if len(p) > 2: 
+                    STOP_WORDS.add(p)
+                    
     except Exception as e:
-        logging.error(f"Error fetching activity logs: {e}")
+        logging.error(f"Failed to load dynamic username blocklist: {e}")
+
+    regex_bridge = re.compile(REGEX_BRIDGE)
+    
+    # 2. Iterate ALL messages
+    all_msgs_gen = database.get_messages_in_range(CUSTOM_START, CUSTOM_END)
+    
+    # 30d Filter
+    cutoff_30d = datetime.now(timezone.utc) - timedelta(days=30)
+    
+    for msg in all_msgs_gen:
+        content = msg['content'] or ""
+        raw_author = msg['author_name'] or ""
+        ts_str = msg['created_at']
+        
+        # Parse timestamp
+        try:
+             msg_dt = datetime.fromisoformat(ts_str.replace('Z', '+00:00')) if ts_str else datetime.min.replace(tzinfo=timezone.utc)
+        except:
+             msg_dt = datetime.min.replace(tzinfo=timezone.utc)
+        
+        real_user_key = None
+        message_body = content # Default to full content
+        
+        # Resolve User
+        norm_author = normalize_user_string(raw_author)
+        if norm_author in target_users_map:
+            real_user_key = target_users_map[norm_author]
+        else:
+            # Check Bridge
+            # Bridge format: "**User** (Rank): Message" OR "**User**: Message"
+            matches = regex_bridge.findall(content)
+            if matches:
+                 m_user = matches[0]
+                 norm_m = normalize_user_string(m_user)
+                 if norm_m in target_users_map:
+                     real_user_key = target_users_map[norm_m]
+                     
+                     # Extract ACTUAL message body (after the first colon)
+                     # This strips "**User** (Rank):" prefix entirely
+                     parts = content.split(':', 1)
+                     if len(parts) > 1:
+                         message_body = parts[1].strip()
+                     else:
+                         message_body = "" # No content after colon?
+        
+        if real_user_key and message_body:
+            # 3. Filter "Auto-Announcements"
+            # If the body looks like a system msg, skip logic
+            msg_lower = message_body.lower()
+            if any(trigger in msg_lower for trigger in AUTO_ANNOUNCEMENT_TRIGGERS):
+                continue
+
+            # A. Question Count (30d Only)
+            q_count = message_body.count('?')
+            if q_count > 0 and msg_dt >= cutoff_30d:
+                user_q_counts[real_user_key] += q_count
+                
+            # B. Word Analysis
+            # 1. Strip Custom Emojis (<:name:id>, <a:name:id>)
+            # This handles "unranked_group_ironman_chat_badg" which comes from emoji text
+            clean_text = re.sub(r'<a?:[^:]+:\d+>', ' ', msg_lower)
+            
+            # 2. Clean punctuation
+            # Replace underscores with space to split snake_case names if typed safely
+            clean_text = re.sub(r'[\W_]', ' ', clean_text)
+            
+            words = clean_text.split()
+            valid_words = []
+            for w in words:
+                # Skip numeric-ish words
+                if w.isdigit(): continue
+                # Skip if stop word (unless allowed slang)
+                if w not in ALLOWED_SLANG and (w in STOP_WORDS or len(w) < 2):
+                    continue
+                valid_words.append(w)
+                
+            if valid_words:
+                user_word_counts[real_user_key].update(valid_words)
+
+    # 3. Add to Results
+    for u_lower in results:
+        # Questions
+        results[u_lower]['Questions Asked (30d)'] = user_q_counts[u_lower]
+        
+        # Fav Word
+        top = user_word_counts[u_lower].most_common(1)
+        if top:
+            results[u_lower]['Favorite Word'] = top[0][0] # The word
+        else:
+            results[u_lower]['Favorite Word'] = "N/A"
 
     # Build DataFrame
     final_data = list(results.values())
@@ -748,6 +988,9 @@ async def main():
     if sort_cols:
         df = df.sort_values(by=sort_cols, ascending=[False] * len(sort_cols))
     
+    # Add new columns to Ordered List
+    ordered_columns.extend(['Questions Asked (30d)', 'Favorite Word'])
+
     # Save CSV
     safe_save(df, OUTPUT_FILE_CSV, index=False)
     
@@ -767,125 +1010,137 @@ async def main():
     # Important: Reorder columns before saving
     # Filter to only include columns that exist in df and are in ordered_columns
     final_cols = [c for c in ordered_columns if c in df.columns]
+    
+    # Save Ordered CSV
     df = df[final_cols]
-
-    df.to_excel(writer, index=False, sheet_name='Summary')
+    df.to_csv(OUTPUT_FILE_CSV, index=False)
     
-    # Formatting
-    workbook = writer.book
-    worksheet = writer.sheets['Summary']
-    (max_row, max_col) = df.shape
-    
-    # --- Formatting Definitions ---
-    # Colors approximated from user screenshot/request
-    # Added 'border': 1 for all cells
-    format_header = workbook.add_format({'bold': True, 'bottom': 1, 'border': 1})
-    
-    # Category Colors
-    # Also apply Number Format: '#,##0' (Thousands separator, no decimals)
-    # Excel uses system locale for the specific separator char (. or ,)
-    base_fmt = {'border': 1, 'num_format': '#,##0'}
-    
-    color_green = '#C6EFCE'  # Light Green
-    color_orange = '#FFEB9C' # Light Orange
-    color_yellow = '#FFFFCC' # Light Yellow
-    
-    fmt_green = workbook.add_format({**base_fmt, 'bg_color': color_green})
-    fmt_orange = workbook.add_format({**base_fmt, 'bg_color': color_orange})
-    fmt_yellow = workbook.add_format({**base_fmt, 'bg_color': color_yellow})
-    
-    # Format Mapping based on Column Name
-    for i, col_name in enumerate(df.columns):
-        col_lower = col_name.lower()
-        target_fmt = None
+    # Save Excel (Ordered & Formatted)
+    try:
+        # Note: 'writer' was initialized above (lines 790-796)
         
-        # Determine Color
-        if 'message' in col_lower:
-            target_fmt = fmt_orange
-        elif 'boss' in col_lower and 'kill' in col_lower:
-            target_fmt = fmt_yellow
-        else:
-            # Default to Green (Username, Role, XP)
-            target_fmt = fmt_green
+        df.to_excel(writer, index=False, sheet_name='Summary')
+        
+        # Access the workbook and worksheet objects
+        workbook  = writer.book
+        worksheet = writer.sheets['Summary']
+        (max_row, max_col) = df.shape
+        
+        # --- Formatting Definitions ---
+        # Colors approximated from user screenshot/request
+        # Added 'border': 1 for all cells
+        format_header = workbook.add_format({'bold': True, 'bottom': 1, 'border': 1})
+        
+        # Category Colors
+        # Also apply Number Format: '#,##0' (Thousands separator, no decimals)
+        base_fmt = {'border': 1, 'num_format': '#,##0'}
+        
+        color_green = '#C6EFCE'  # Light Green
+        color_orange = '#FFEB9C' # Light Orange
+        color_yellow = '#FFFFCC' # Light Yellow
+        color_blue = '#DCE6F1'   # Pastel Blue (Questions)
+        color_purple = '#E4DFEC' # Pastel Purple (Fav Word)
+        
+        fmt_green = workbook.add_format({**base_fmt, 'bg_color': color_green})
+        fmt_orange = workbook.add_format({**base_fmt, 'bg_color': color_orange})
+        fmt_yellow = workbook.add_format({**base_fmt, 'bg_color': color_yellow})
+        fmt_blue = workbook.add_format({**base_fmt, 'bg_color': color_blue})
+        fmt_purple = workbook.add_format({**base_fmt, 'bg_color': color_purple})
+        
+        # Format Mapping based on Column Name
+        for i, col_name in enumerate(df.columns):
+            col_lower = col_name.lower()
+            target_fmt = None
             
-        # Auto-fit Width Calculation
-        max_len = len(str(col_name)) # Header length
-        for val in df[col_name]:
-            # For numbers formatted with separators, the string length might inevitably be longer
-            # simple len(str(val)) is a decent approximation for unformatted
-            v_len = len(str(val))
-            if v_len > max_len:
-                max_len = v_len
-        
-        # Add a little padding
-        final_width = max_len + 3
-        if final_width > 50: final_width = 50
-        
-        worksheet.set_column(i, i, final_width, target_fmt)
-        
-    # --- Freeze Panes ---
-    worksheet.freeze_panes(1, 1)
+            # Determine Color
+            if 'questions' in col_lower:
+                target_fmt = fmt_blue
+            elif 'favorite' in col_lower or 'word' in col_lower:
+                target_fmt = fmt_purple
+            elif 'message' in col_lower:
+                target_fmt = fmt_orange
+            elif 'boss' in col_lower and 'kill' in col_lower:
+                target_fmt = fmt_yellow
+            else:
+                # Default to Green (Username, Role, XP)
+                target_fmt = fmt_green
+                
+            # Auto-fit Width Calculation
+            max_len = len(str(col_name)) # Header length
+            for val in df[col_name]:
+                # For numbers formatted with separators, the string length might inevitably be longer
+                # simple len(str(val)) is a decent approximation for unformatted
+                v_len = len(str(val))
+                if v_len > max_len:
+                    max_len = v_len
+            
+            # Add a little padding
+            final_width = max_len + 3
+            if final_width > 50: final_width = 50
+            
+            worksheet.set_column(i, i, final_width, target_fmt)
+            
+        # --- Freeze Panes ---
+        worksheet.freeze_panes(1, 1)
 
-    # --- Conditional Formatting (Zeroes) ---
-    if EXCEL_ZERO_HIGHLIGHT:
-        # Must preserve border and num_format in conditional highlight too
-        red_format = workbook.add_format({
-            'bg_color': EXCEL_ZERO_BG_COLOR, 
-            'font_color': EXCEL_ZERO_FONT_COLOR,
-            'border': 1,
-            'num_format': '#,##0'
-        })
+        # --- Conditional Formatting (Zeroes) ---
+        if EXCEL_ZERO_HIGHLIGHT:
+            # Must preserve border and num_format in conditional highlight too
+            red_format = workbook.add_format({
+                'bg_color': EXCEL_ZERO_BG_COLOR, 
+                'font_color': EXCEL_ZERO_FONT_COLOR,
+                'border': 1,
+                'num_format': '#,##0'
+            })
+            
+            # Apply to all data cells
+            worksheet.conditional_format(1, 0, max_row, max_col - 1, {
+                'type': 'cell', 'criteria': '==', 'value': 0, 'format': red_format
+            })
+            
+        worksheet.autofilter(0, 0, max_row, max_col - 1)
         
-        # Apply to all data cells
-        worksheet.conditional_format(1, 0, max_row, max_col - 1, {
-            'type': 'cell', 'criteria': '==', 'value': 0, 'format': red_format
-        })
+        # --- SIDEBAR REMOVED AS REQUESTED ---
         
-    worksheet.autofilter(0, 0, max_row, max_col - 1)
-    
-    # Summary Table Construction (Top Lists)
-    # Re-calculate Top 3 for XP, Msg, EHP if available
-    summary_data = [["Usefull Stats (30d)", "Player List"]]
-    
-    # Messages
-    top_msg_key = periods['30d']['msg_key']
-    if top_msg_key in df.columns:
-        top = df.nlargest(3, top_msg_key)[['Username', top_msg_key]]
-        summary_data.append(["Highest Msg Count:", ""])
-        for rank, (_, r) in enumerate(top.iterrows(), 1): summary_data.append(["", f"{rank}. {r['Username']} ({r[top_msg_key]})"])
-    
-    summary_data.append(["", ""])
-    
-    # XP
-    top_xp_key = periods['30d']['xp_key']
-    if top_xp_key in df.columns:
-        top = df.nlargest(3, top_xp_key)[['Username', top_xp_key]]
-        summary_data.append(["Highest XP Gained:", ""])
-        for rank, (_, r) in enumerate(top.iterrows(), 1): summary_data.append(["", f"{rank}. {r['Username']} ({r[top_xp_key]})"])
+        writer.close()
+        logging.info(f"Saved EXCEL: {target_xlsx_file}")
+        
+    except Exception as e:
+         logging.error(f"Failed to save Excel: {e}")
 
-    # Joined/Left
-    summary_data.append(["", ""])
-    summary_data.append(["Players Joined:", ""])
-    for p in (joined_30d or ["None"]): summary_data.append(["", p])
+    logging.info("--- Report Generation Complete ---")
     
-    summary_data.append(["", ""])
-    summary_data.append(["Players Left:", ""])
-    for p in (left_30d or ["None"]): summary_data.append(["", p])
+    # --- 9. Local Drive Sync ---
+    LOCAL_DRIVE_PATH = os.getenv('LOCAL_DRIVE_PATH')
+    if LOCAL_DRIVE_PATH:
+        logging.info(f"--- Syncing to Local Drive: {LOCAL_DRIVE_PATH} ---")
+        try:
+            # 1. Verify Destination exists
+            if not os.path.exists(LOCAL_DRIVE_PATH):
+                logging.warning(f"  [WARN] Destination folder does not exist: {LOCAL_DRIVE_PATH}")
+                logging.warning("  Attempting to create it...")
+                os.makedirs(LOCAL_DRIVE_PATH, exist_ok=True)
+            
+            # 2. Copy Excel
+            dst_xlsx = os.path.join(LOCAL_DRIVE_PATH, OUTPUT_FILE_XLSX)
+            # Use 'target_xlsx_file' in case we renamed it due to permission error
+            shutil.copy2(target_xlsx_file, dst_xlsx)
+            logging.info(f"  [SUCCESS] Copied Excel to: {dst_xlsx}")
+            
+            # 3. Copy CSV (Optional, but good backup)
+            dst_csv = os.path.join(LOCAL_DRIVE_PATH, OUTPUT_FILE_CSV)
+            shutil.copy2(OUTPUT_FILE_CSV, dst_csv)
+            logging.info(f"  [SUCCESS] Copied CSV to: {dst_csv}")
+            
+        except Exception as e:
+            logging.error(f"  Failed to copy to Drive: {e}")
+    else:
+         logging.info("LOCAL_DRIVE_PATH not set. Skipping Drive sync.")
+         
+    if not TEST_MODE:
+        logging.info("All tasks finished. Closing in 5 seconds...")
+        await asyncio.sleep(5)
 
-    # Write Summary
-    start_col = max_col + 2
-    bold_fmt = workbook.add_format({'bold': True})
-    
-    for r, row in enumerate(summary_data):
-        fmt = bold_fmt if row[0] else None
-        worksheet.write(r, start_col, row[0], fmt)
-        worksheet.write(r, start_col+1, row[1])
-        
-    worksheet.set_column(start_col, start_col+1, 25)
-    
-    writer.close()
-    logging.info(f"Saved Excel: {target_xlsx_file}")
-    logging.info("Done!")
 
 async def run_main():
     try:

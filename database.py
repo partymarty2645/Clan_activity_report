@@ -133,7 +133,7 @@ def get_messages_in_range(start_dt, end_dt):
     try:
         # Only select columns actually used in main.py
         c.execute('''
-            SELECT content, author_name FROM discord_messages 
+            SELECT content, author_name, created_at FROM discord_messages 
             WHERE created_at >= ? AND created_at <= ?
         ''', (start_iso, end_iso))
         

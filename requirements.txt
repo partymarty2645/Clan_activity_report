@@ -1,6 +1,6 @@
-aiohttp
-discord.py
 pandas
 python-dotenv
+aiohttp
+discord.py
 tqdm
 xlsxwriter
