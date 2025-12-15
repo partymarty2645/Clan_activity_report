@@ -4,7 +4,10 @@
 This is a Python-based reporting tool for OSRS Clan Statistics. It fetches data from **Wise Old Man (WOM)** and **Discord** to generate comprehensive Excel reports.
 
 ## 🏗️ Core Architecture
-*   **Entry Point**: `run_auto.bat` (calls `harvest.py` -> `report.py`).
+*   **Entry Point**: `main.py` (Orchestrator runs `harvest` -> `report`).
+*   **Configuration**:
+    *   All tunable settings (Colors, Roles, Weights) are in `config.yaml`.
+    *   Secrets remain in `.env`.
 *   **Data Ingestion (`harvest.py`)**:
     *   Uses `services/wom.py` and `services/discord.py`.
     *   Saves raw JSON snapshots (`raw_data`) to `wom_records` in `clan_data.db` (SQLite).
@@ -13,6 +16,9 @@ This is a Python-based reporting tool for OSRS Clan Statistics. It fetches data 
     *   Reads `clan_data.db`.
     *   Uses `reporting/excel.py` for styling.
     *   Implements **Smart Baseline**: If a user joined after the "Period Start Date", use their Earliest Snapshot as the baseline. NEVER assume 0-gains just because old data is missing.
+*   **Database (`Alembic`)**:
+    *   All schema changes MUST use Alembic migrations.
+    *   `models.py` defines the schema; `alembic` applies it.
 
 ## 📝 Coding Standards
 
@@ -34,6 +40,8 @@ This is a Python-based reporting tool for OSRS Clan Statistics. It fetches data 
 *   **Logging**: Use the `app.log` rotator.
 
 ## ⛔ Anti-Patterns (Do Not Do)
-*   **Do NOT** use `main.py` (Deprecated). Use `harvest.py` or `report.py`.
+*   **Do NOT** use monolithic scripts. Use the `main.py` orchestrator.
+*   **Do NOT** hardcode colors or weights. Use `config.yaml`.
+*   **Do NOT** modify DB schema manually. Use `alembic`.
 *   **Do NOT** suggest standard backfills for missing users. Use "Smart Baseline" logic instead.
 *   **Do NOT** hardcode API keys. Use `core/config.py` loading from `.env`.

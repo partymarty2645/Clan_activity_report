@@ -27,10 +27,22 @@ The project follows a modular pipeline design:
     *   The "Analyst". Reads `clan_data.db`.
     *   Calculates gains, activity scores, and text analytics.
     *   Generates `clan_report_summary_merged.xlsx`.
+2.  **Report (`report.py`)**:
+    *   The "Analyst". Reads `clan_data.db`.
+    *   Calculates gains, activity scores, and text analytics.
+    *   Generates `clan_report_summary_merged.xlsx`.
     *   Syncs to Google Drive (if configured).
 
-3.  **Run (`run_auto.bat`)**:
-    *   The entry point. Orchestrates Harvest -> Report automatically.
+3.  **Orchestrator (`main.py`)**:
+    *   The "Conductor". Sequentially runs Harvest followed by Report.
+    *   Ensures a clean execution pipeline.
+
+4.  **Configuration (`config.yaml`)**:
+    *   **Dynamic Settings**: Edit colors, role points, and report settings without touching code.
+    *   Values are loaded by `core/config.py`.
+
+5.  **Migrations (`alembic`)**:
+    *   Manages database schema changes safely and automatically.
 
 ## 📦 Installation & Setup
 
@@ -64,19 +76,22 @@ Create a `.env` file in the root directory with the following keys:
 ### Standard Run
 Double-click **`run_auto.bat`**.
 This will:
-1.  Fetch latest data (Harvest).
-2.  Generate the Excel report.
-3.  Back up previous files.
-4.  Sync to Google Drive (if configured).
+1.  Run the **python orchestrator** (`main.py`).
+2.  Fetch data -> Generate Report.
+3.  Sync to Google Drive (if enabled).
 
-### Manual Run
-```bash
-# Fetch Data Only
-python harvest.py
+### 🛠️ Dedicated Command Guide
+Common operational commands:
 
-# Generate Report Only
-python report.py
-```
+| Action | Command | Description |
+| :--- | :--- | :--- |
+| **Full Pipeline** | `run_auto.bat` | Run Harvest + Report sequentially. |
+| **Pipeline (Manual)** | `python main.py` | Same as above (Python direct). |
+| **Harvest Only** | `python harvest.py` | Just fetch new data (no report). |
+| **Report Only** | `python report.py` | Just generate Excel from local DB. |
+| **Upgrade DB** | `alembic upgrade head` | Apply latest database schema changes. |
+| **New Migration** | `alembic revision --autogenerate -m "msg"` | Create a new schema migration. |
+| **Setup Deps** | `pip install -r requirements.txt`| Install required libraries. |
 
 ## 📊 Output Explaination
 

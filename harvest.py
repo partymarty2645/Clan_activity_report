@@ -204,7 +204,7 @@ async def check_name_changes(members_data):
     finally:
         db.close()
 
-async def main():
+async def run_harvest(close_client=True):
     init_db()
     logger.info("--- Starting Harvest ---")
     
@@ -254,7 +254,8 @@ async def main():
     await wom_task
     
     logger.info("--- Harvest Complete ---")
-    await wom_client.close()
+    if close_client:
+        await wom_client.close()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(run_harvest(True))

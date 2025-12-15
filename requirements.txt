@@ -6,3 +6,5 @@ tqdm
 xlsxwriter
 SQLAlchemy
 rich
+alembic
+PyYAML

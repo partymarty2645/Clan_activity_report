@@ -9,12 +9,8 @@ IF NOT EXIST ".venv\Scripts\python.exe" (
     exit /b 1
 )
 
-echo [1/2] Fetching Data (Harvest)...
-".venv\Scripts\python.exe" harvest.py
-if errorlevel 1 goto error
-
-echo [2/2] Generating Report...
-".venv\Scripts\python.exe" report.py
+echo Running Orchestrator...
+".venv\Scripts\python.exe" main.py
 if errorlevel 1 goto error
 
 echo ========================================

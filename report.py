@@ -214,7 +214,7 @@ async def backfill_missing_history(db, username):
     
     return 0
 
-async def main():
+async def run_report(close_client=True):
     logger.info("==========================================")
     logger.info("       STARTING REPORT GENERATION         ")
     logger.info("==========================================")
@@ -285,10 +285,7 @@ async def main():
         # 4. Calculate Data
         results = {}
         
-        ROLE_WEIGHTS = {
-            'owner': 100, 'deputy_owner': 90, 'zenyte': 80, 'dragonstone': 80,
-            'administrator': 70, 'saviour': 60, 'prospector': 10, 'guest': 0
-        }
+        ROLE_WEIGHTS = Config.ROLE_WEIGHTS
         
         # Init results structure
         for u in member_usernames:
@@ -475,7 +472,8 @@ async def main():
         
     finally:
         db.close()
-        await wom_client.close()
+        if close_client:
+            await wom_client.close()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(run_report(True))
