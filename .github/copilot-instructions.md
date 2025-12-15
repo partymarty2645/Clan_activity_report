@@ -1,43 +1,39 @@
-# Copilot Instructions for WOMDiscord Project
+# Copilot Instructions for ClanStats Project
 
-## Project Overview
-This tool generates advanced RuneScape clan activity reports by correlating Wise Old Man (WOM) XP gains with Discord message activity. It uses a local SQLite database for data persistence and supports complex reporting periods (30-day, 150-day, custom ranges).
+## 🧠 Project Context
+This is a Python-based reporting tool for OSRS Clan Statistics. It fetches data from **Wise Old Man (WOM)** and **Discord** to generate comprehensive Excel reports.
 
-## Architecture
-- **Orchestration**: `main.py` manages the entire workflow: syncing DB, fetching WOM data, and generating reports.
-- **Database**: `database.py` manages a SQLite `clan_data.db` containing `discord_messages` (raw history) and `wom_records` (snapshots).
-- **Discord Integration**: `bot.py` handles historical message fetching with robust backfilling and gap detection.
-- **WOM Integration**: `wom.py` provides an async client for the Wise Old Man API with rate limiting and pagination.
+## 🏗️ Core Architecture
+*   **Entry Point**: `run_auto.bat` (calls `harvest.py` -> `report.py`).
+*   **Data Ingestion (`harvest.py`)**:
+    *   Uses `services/wom.py` and `services/discord.py`.
+    *   Saves raw JSON snapshots (`raw_data`) to `wom_records` in `clan_data.db` (SQLite).
+    *   MUST persist raw data to avoid re-fetching.
+*   **Reporting (`report.py`)**:
+    *   Reads `clan_data.db`.
+    *   Uses `reporting/excel.py` for styling.
+    *   Implements **Smart Baseline**: If a user joined after the "Period Start Date", use their Earliest Snapshot as the baseline. NEVER assume 0-gains just because old data is missing.
 
-## Key Workflows
-1.  **Discord Sync**:
-    *   **Backfill**: Detects gaps between the configured start date (Feb 14, 2025) and the earliest DB record.
-    *   **Forward Sync**: Fetches new messages since the latest DB record.
-    *   **Activity Tracking**: Logic parses "Bridge Bot" messages (`**Username**:`) and direct user messages.
-2.  **WOM Data Fetching**:
-    *   Triggers a group update via `update_group`.
-    *   Fetches "Gains" for multiple periods: 30 days, 150 days, and Custom (Feb 14 - Dec 8).
-    *   Fetches "Activity" logs (joins/leaves) for the last 30 days.
-3.  **Reporting**:
-    *   **Database Snapshot**: Saves the run's aggregated stats to `wom_records`.
-    *   **Excel Export**: Generates a formatted Excel file (`clan_report_summary_merged.xlsx`) with:
-        *   Conditional formatting (Red text for 0 activity).
-        *   Summary tables (Top 3 XP, Top 3 Chatters, New Members, Left Members).
-    *   **CSV Export**: Raw data dump.
+## 📝 Coding Standards
 
-## Data Schema & Conventions
-- **Database**:
-    *   `discord_messages`: Stores `id`, `author`, `content`, `created_at` (UTC). Indexed on `created_at`.
-    *   `wom_records`: Stores snapshots of calculated stats (`xp_30d`, `msg_30d`, etc.) per user per run.
-- **Dates**: STRICTLY use timezone-aware UTC datetimes for all comparisons and API calls.
-- **Usernames**: Normalized to lowercase for cross-referencing between Discord and WOM.
-- **Configuration**: Managed via `.env` (WOM_GROUP_ID, TOKENS, dates).
+### 1. Data Integrity
+*   **UTC Everywhere**: All timestamps must be timezone-aware UTC.
+*   **Normalization**: Usernames are strictly `lowercase` in code/DB, but capitalized for display.
+*   **Persistence**: Any new API fetch must store the full JSON response in the database.
 
-## Example Commands
-- **Initialize/Update DB & Generate Report**: `python main.py`
-- **Clean Rebuild**: Delete `clan_data.db` and run `python main.py` to trigger a full re-fetch.
-- **Test Mode**: Set `TEST_MODE = True` in `main.py` to limit processing to the first 20 players.
+### 2. Output Formatting
+*   **Dates**: Output dates in **EU Format (`%d-%m-%Y`)**, e.g., `14-02-2025`.
+*   **Excel**:
+    *   Use `openpyxl` via `reporting/excel.py`.
+    *   Columns must preserve the specific order: `Username`, `Joined date`, `Role`, `XP 7d`, `Msg 7d`, etc.
+    *   Apply conditional formatting (Red text for 0).
 
-## Integration Details
-- **Bridge Bots**: The system specifically handles relay bots by parsing `**Username**:` from the message content to attribute the message to the correct RS player.
-- **Rate Limits**: `wom.py` implements smart RPM tracking and automatic backoff for 429 errors.
+### 3. File Handling
+*   **Path Safety**: Use `os.path.join(os.getcwd(), ...)` or absolute paths.
+*   **Concurrency**: Do not lock the database for long periods. Use short transactions.
+*   **Logging**: Use the `app.log` rotator.
+
+## ⛔ Anti-Patterns (Do Not Do)
+*   **Do NOT** use `main.py` (Deprecated). Use `harvest.py` or `report.py`.
+*   **Do NOT** suggest standard backfills for missing users. Use "Smart Baseline" logic instead.
+*   **Do NOT** hardcode API keys. Use `core/config.py` loading from `.env`.

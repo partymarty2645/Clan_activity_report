@@ -5,21 +5,43 @@ echo      WOM Discord MVP - Initial Setup Wizard
 echo ===================================================
 echo.
 
-:: 1. Check for Python
-python --version >nul 2>&1
-IF %ERRORLEVEL% NEQ 0 (
-    echo [ERROR] Python is not installed or not in your PATH.
-    echo Please install Python 3.10+ from python.org and tick "Add to PATH".
-    pause
-    exit /b 1
-)
+:: 1. Find Python executable (supports py, python, python3) - Checks Execution, not just path
+set "PY_EXEC="
 
-:: 2. Create Virtual Environment
+:: Try 'py' launcher first (standard on Windows)
+py -3 --version >nul 2>&1
+if %ERRORLEVEL% EQU 0 set "PY_EXEC=py -3" & goto :PY_FOUND
+
+:: Try 'python' (fallback, checks if it actually runs to avoid broken Store shims)
+python --version >nul 2>&1
+if %ERRORLEVEL% EQU 0 set "PY_EXEC=python" & goto :PY_FOUND
+
+:: Try 'python3' (fallback for some systems)
+python3 --version >nul 2>&1
+if %ERRORLEVEL% EQU 0 set "PY_EXEC=python3" & goto :PY_FOUND
+echo [ERROR] Did not find a usable Python 3 executable (python, py, python3).
+echo Please install Python 3.10+ from https://www.python.org/downloads/ and ensure the installer option to add Python to PATH is enabled.
+echo Alternatively, install the 'py' launcher (usually included) and try running this script again.
+pause
+exit /b 1
+
+:PY_FOUND
+echo [INFO] Using Python: %PY_EXEC%
+
+:: 2. Create or repair Virtual Environment
 if not exist ".venv\" (
-    echo [1/3] Creating virtual environment .venv...
-    python -m venv .venv
+    echo [1/3] Creating virtual environment .venv using %PY_EXEC%...
+    %PY_EXEC% -m venv .venv
 ) else (
-    echo [1/3] Virtual environment already exists.
+    echo [1/3] Virtual environment already exists. Verifying...
+    ".venv\Scripts\python.exe" --version >nul 2>&1
+    IF %ERRORLEVEL% NEQ 0 (
+        echo [WARN] Existing .venv appears broken. Recreating...
+        rmdir /s /q .venv
+        %PY_EXEC% -m venv .venv
+    ) else (
+        echo [1/3] .venv OK.
+    )
 )
 
 :: 3. Install Dependencies
@@ -28,9 +50,16 @@ echo [2/3] Installing dependencies...
 ".venv\Scripts\python.exe" -m pip install -r requirements.txt
 
 IF %ERRORLEVEL% NEQ 0 (
-    echo [ERROR] Failed to install requirements.
-    pause
-    exit /b 1
+    echo [WARN] Installing requirements failed. Attempting to recreate virtualenv and retry...
+    rmdir /s /q .venv
+    %PY_EXEC% -m venv .venv
+    ".venv\Scripts\python.exe" -m pip install --upgrade pip
+    ".venv\Scripts\python.exe" -m pip install -r requirements.txt
+    IF %ERRORLEVEL% NEQ 0 (
+        echo [ERROR] Failed to install requirements after recreating venv.
+        pause
+        exit /b 1
+    )
 )
 
 :: 4. Check .env

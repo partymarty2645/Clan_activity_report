@@ -4,3 +4,5 @@ aiohttp
 discord.py
 tqdm
 xlsxwriter
+SQLAlchemy
+rich

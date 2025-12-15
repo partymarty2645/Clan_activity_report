@@ -1,0 +1,213 @@
+import asyncio
+import logging
+import aiohttp
+import json
+from datetime import datetime
+from core.config import Config
+
+class WOMClient:
+    def __init__(self):
+        self.api_key = Config.WOM_API_KEY
+        self.base_url = Config.WOM_BASE_URL
+        self.rate_limit_delay = float(Config.WOM_RATE_LIMIT_DELAY or 0.67)
+        self.target_rpm = int(Config.WOM_TARGET_RPM or 90)
+        self.max_concurrent = int(Config.WOM_MAX_CONCURRENT or 5)
+        self.user_agent = 'NevrLucky (Contact: partymarty94)'
+        self.logger = logging.getLogger('WOMClient')
+        self._session = None
+        self._cache = {} 
+        self._cache_ttl = 300
+        self._rate_limit_hits = []
+        self._semaphore = None
+        self._last_request_time = 0
+        self._delay_lock = None
+
+    async def _get_session(self):
+        if self._session is None or self._session.closed:
+            timeout = aiohttp.ClientTimeout(total=30)
+            self._session = aiohttp.ClientSession(timeout=timeout)
+        if self._semaphore is None:
+            self._semaphore = asyncio.Semaphore(self.max_concurrent)
+        if self._delay_lock is None:
+            self._delay_lock = asyncio.Lock()
+        return self._session
+
+    async def close(self):
+        if self._session and not self._session.closed:
+            await self._session.close()
+    
+    def _get_cache_key(self, endpoint, params):
+        params_str = json.dumps(params or {}, sort_keys=True)
+        return f"{endpoint}:{params_str}"
+    
+    def _get_cached(self, cache_key):
+        if cache_key in self._cache:
+            timestamp, data = self._cache[cache_key]
+            age = asyncio.get_event_loop().time() - timestamp
+            if age < self._cache_ttl:
+                return data
+            else:
+                del self._cache[cache_key]
+        return None
+    
+    def _set_cache(self, cache_key, data):
+        self._cache[cache_key] = (asyncio.get_event_loop().time(), data)
+
+    def _adjust_rate_limit(self):
+        """Adaptively adjust rate limit based on 429 hits."""
+        now = asyncio.get_event_loop().time()
+        # Clean old hits (>5 minutes)
+        self._rate_limit_hits = [t for t in self._rate_limit_hits if now - t < 300]
+        
+        if len(self._rate_limit_hits) > 3:  # Multiple 429s recently
+            self.rate_limit_delay = min(self.rate_limit_delay * 1.1, 5.0)  # Cap at 5s max
+            self.target_rpm = int(60 / self.rate_limit_delay)
+            self.logger.warning(f"Adaptive rate limit: Slowing to ~{self.target_rpm} RPM (delay={self.rate_limit_delay:.2f}s)")
+        elif len(self._rate_limit_hits) == 0 and self.rate_limit_delay > 0.67:
+            self.rate_limit_delay *= 0.9
+            self.target_rpm = int(60 / self.rate_limit_delay)
+            # self.logger.info(f"Adaptive rate limit: Speeding up to ~{self.target_rpm} RPM")
+
+    async def _request(self, method, endpoint, data=None, params=None, use_cache=True):
+        if method == 'GET' and use_cache:
+            cache_key = self._get_cache_key(endpoint, params)
+            cached = self._get_cached(cache_key)
+            if cached:
+                return cached
+        
+        headers = {'User-Agent': self.user_agent}
+        if self.api_key:
+            headers['x-api-key'] = self.api_key
+
+        url = f"{self.base_url}{endpoint}"
+        session = await self._get_session()
+        
+        async with self._delay_lock:
+            # Rate Limit Delay
+            now = asyncio.get_event_loop().time()
+            time_since_last = now - self._last_request_time
+            if time_since_last < self.rate_limit_delay:
+                await asyncio.sleep(self.rate_limit_delay - time_since_last)
+            
+            for attempt in range(6):  # Increased attempts to 6
+                try:
+                    async with session.request(method, url, json=data, params=params, headers=headers) as response:
+                        elapsed = asyncio.get_event_loop().time() - now
+                        
+                        if response.status == 429:
+                            self._rate_limit_hits.append(asyncio.get_event_loop().time())
+                            self._adjust_rate_limit()
+                            
+                            wait_time = min((2 ** attempt) * 5.0, 60.0)
+                            self.logger.warning(f"WOM Rate Limit (429). Waiting {wait_time:.2f}s (Attempt {attempt+1})...")
+                            await asyncio.sleep(wait_time)
+                            continue
+
+                        if response.status >= 500:
+                            wait_time = min((2 ** attempt) * 2.0, 30.0)
+                            self.logger.warning(f"WOM Server Error {response.status}. Retrying in {wait_time:.2f}s...")
+                            await asyncio.sleep(wait_time)
+                            continue
+                        
+                        response.raise_for_status()
+                        result = await response.json()
+                        
+                        if method == 'GET' and use_cache:
+                            self._set_cache(self._get_cache_key(endpoint, params), result)
+                        
+                        # Clear old hits on success to allow speedup
+                        self._rate_limit_hits = [t for t in self._rate_limit_hits if asyncio.get_event_loop().time() - t < 300]
+                        self._last_request_time = asyncio.get_event_loop().time()
+                        return result
+
+                except aiohttp.ClientResponseError as e:
+                    if e.status < 500 and e.status != 429:
+                        self.logger.error(f"WOM API Client Error: {e.status} - {e.message}")
+                        raise
+                    self.logger.error(f"Requests Error (Attempt {attempt+1}): {e}")
+                except Exception as e:
+                    self.logger.error(f"Unexpected request error (Attempt {attempt+1}): {e}")
+                    await asyncio.sleep(2)
+        
+        raise Exception(f"Max retries exceeded for WOM API: {endpoint}")
+
+    async def get_group_members(self, group_id):
+        if not group_id or not str(group_id).strip():
+            self.logger.error("WOM Group ID is missing or empty.")
+            return []
+            
+        # Use simple get for group payload which includes members
+        data = await self._request('GET', f'/groups/{group_id}')
+        members = []
+        if data and 'memberships' in data:
+            for m in data['memberships']:
+                player = m.get('player', {})
+                members.append({
+                    'username': player.get('username'),
+                    'displayName': player.get('displayName'),
+                    'role': m.get('role'),
+                    'joined_at': m.get('createdAt')
+                })
+        return members
+
+    async def get_player_details(self, username):
+        return await self._request('GET', f'/players/{username}')
+    
+    async def search_name_changes(self, username, limit=5):
+        params = {'username': username, 'status': 'approved', 'limit': limit}
+        return await self._request('GET', '/names', params=params)
+
+    async def update_group(self, group_id, secret_code):
+        data = {'verificationCode': secret_code}
+        return await self._request('POST', f'/groups/{group_id}/update-all', data=data)
+
+    async def get_player_gains(self, username, period, start_date=None, end_date=None):
+        params = {}
+        if period:
+            params['period'] = period
+        if start_date:
+            params['startDate'] = start_date
+        if end_date:
+            params['endDate'] = end_date
+        return await self._request('GET', f'/players/{username}/gained', params=params)
+
+    async def get_player_snapshots(self, username, period='all', start_date=None, end_date=None):
+        """Fetches snapshot history for a player, handling pagination."""
+        params = {}
+        if period and period != 'all':
+            params['period'] = period
+        if start_date:
+            params['startDate'] = start_date
+        if end_date:
+            params['endDate'] = end_date
+            
+        # Pagination loop
+        all_snapshots = []
+        offset = 0
+        limit = 20 # WOM default/max often 20 or 50. Let's start small.
+        
+        while True:
+            params['offset'] = offset
+            params['limit'] = limit
+            
+            # self.logger.info(f"Fetching snapshots for {username} offset={offset}")
+            batch = await self._request('GET', f'/players/{username}/snapshots', params=params)
+            
+            if not batch:
+                break
+                
+            all_snapshots.extend(batch)
+            
+            if len(batch) < limit:
+                break
+                
+            offset += limit
+            
+            # Safety break to avoid infinite loops if API behaves weirdly
+            if offset > 5000: # 5000 snapshots is years of data
+                break
+                
+        return all_snapshots
+
+# Singleton
+wom_client = WOMClient()

@@ -1,99 +1,101 @@
-# WomDiscordMVP: Clan Statistics & Tracking
+# ClanStats: Advanced OSRS Clan Tracking
 
-A robust tool for tracking Old School RuneScape (OSRS) clan statistics by integrating **Wise Old Man (WOM)** data with **Discord** activity.
+A robust, enterprise-grade tool for tracking Old School RuneScape (OSRS) clan statistics by correlating **Wise Old Man (WOM)** XP data with **Discord** activity.
 
 ## 🚀 Key Features
 
--   **Discord Integration**: accurately tracks message counts and discussion topics for clan members.
--   **Smart Data Fetching**:
-    -   **Lazy Sync**: Only fetches fresh data from Wise Old Man once per day per user to respect API limits.
-    -   **Name Change Detection**: Automatically detects when members change their OSRS names and updates history.
--   **Comprehensive Reporting**:
-    -   **Excel & CSV**: Generates detailed spreadsheets with specific timeframes (7d, 30d, 70d, 150d, Total).
-    -   **Text Analysis**: Includes "Favorite Word" and "Question Count" (30d) for each member.
-    -   **Visuals**: Color-coded columns, auto-sizing, and frozen headers for easy reading.
--   **Automated Sync**:
-    -   **Google Drive**: Can automatically copy the latest report to your Google Drive folder.
-    -   **Resilience**: Handles file permission errors (if Excel is open) by creating backups.
+*   **Integrated Tracking**: Merges game progress (XP/Bosses) with social engagement (Discord messages).
+*   **"Smart Baseline" Logic**: Correctly handles new members joining mid-period by using their first available snapshot as usage baseline (no more "zero data" errors).
+*   **Discord Sync**: Tracks message counts, "questions asked", and "favorite words" via efficient local database caching.
+*   **Name Change Detection**: Automatically detects and handles OSRS name changes.
+*   **Raw Persistence**: Stores full raw JSON responses from APIs to build a comprehensive historical "Data Pool".
+*   **Excel Reporting**: Generates a polished, conditionally formatted Excel report with:
+    *   **Custom Columns**: `7d`, `30d`, `70d`, `150d`, and `Total` periods.
+    *   **Joined Date**: Displayed in EU format (DD-MM-YYYY).
+    *   **Auto-Styling**: Color-coded columns (Identity, XP, Messages, Bosses).
 
----
+## 🛠️ Architecture
 
-## 📦 Fresh Installation (New System)
+The project follows a modular pipeline design:
 
-Follow these steps to set up the project on a new computer.
+1.  **Harvest (`harvest.py`)**:
+    *   The "Heavy Lifter". Fetches data from WOM and Discord.
+    *   Saves everything to `clan_data.db`.
+    *   *Resilient*: Can run while the Excel report is open without crashing.
 
-### 1. Install Prerequisites
--   **Python 3.10+**: Download from [python.org](https://www.python.org/).
-    -   ⚠️ **IMPORTANT**: Check **"Add Python to PATH"** during installation.
--   **Git**: Download from [git-scm.com](https://git-scm.com/).
+2.  **Report (`report.py`)**:
+    *   The "Analyst". Reads `clan_data.db`.
+    *   Calculates gains, activity scores, and text analytics.
+    *   Generates `clan_report_summary_merged.xlsx`.
+    *   Syncs to Google Drive (if configured).
 
-### 2. Get the Code
-Open a terminal (Command Prompt) and run:
+3.  **Run (`run_auto.bat`)**:
+    *   The entry point. Orchestrates Harvest -> Report automatically.
+
+## 📦 Installation & Setup
+
+### Prerequisites
+*   **Python 3.10+**: [Download](https://www.python.org/) (Ensure "Add to PATH" is checked).
+*   **Git**: [Download](https://git-scm.com/).
+
+### 1. Installation
 ```bash
 git clone https://github.com/partymarty2645/clanstats.git
 cd clanstats
+setup.bat
 ```
 
-### 3. One-Click Setup
-Double-click **`setup.bat`**.
-This will:
-1.  Verify Python installation.
-2.  Create a virtual environment (`.venv`).
-3.  Install dependencies.
-4.  Create a `.env` file if missing.
+### 2. Configuration keys (`.env`)
+Create a `.env` file in the root directory with the following keys:
 
-### 4. Configure Keys (`.env`)
-Open `.env` with a text editor:
-```ini
-# --- Discord Configuration ---
-DISCORD_TOKEN=your_bot_token_here
-RELAY_CHANNEL_ID=1234567890
+| Key | Description | Required? |
+| :--- | :--- | :--- |
+| `WOM_API_KEY` | Wise Old Man API Key for group management. | ✅ Yes |
+| `WOM_GROUP_ID` | The ID of your WOM Group (e.g., `11114`). | ✅ Yes |
+| `DISCORD_TOKEN` | Bot token to fetch specific channel history. | ✅ Yes |
+| `RELAY_CHANNEL_ID`| Channel ID to post summary (optional). | ❌ No |
+| `GUILD_ID` | Discord Server ID (optional). | ❌ No |
+| `LOCAL_DRIVE_PATH`| Path to sync Excel file (e.g., `G:\My Drive\...`). | ❌ No |
 
-# --- Wise Old Man Configuration ---
-WOM_API_KEY=your_wom_api_key
-WOM_GROUP_ID=11114
-WOM_GROUP_SECRET=your_group_security_code
+**(Note: This project does not require a Discord Bot to be *running* 24/7, but it needs a valid Token to fetch history via API.)**
 
-# --- Settings ---
-# Start date for "Total" stats
-CUSTOM_START_DATE=2025-02-14
+## 🏃 Usage
 
-# Safe test mode (True = Limit fetch to 5 players, no waiting)
-WOM_TEST_MODE=False
-
-# --- Google Drive (Local Sync) ---
-# Path to your G: Drive folder to auto-copy reports
-LOCAL_DRIVE_PATH=G:\My Drive\Shared_clan_data\Excel_sheet
-```
-
----
-
-## 🏃 Running the Bot
-
-### Automatic (Recommended)
+### Standard Run
 Double-click **`run_auto.bat`**.
--   Updates WOM group data.
--   Syncs Discord messages.
--   Fetches player snapshots (or loads from local cache).
--   Generates `clan_report_summary_merged.xlsx`.
--   Copies to Google Drive (if configured).
+This will:
+1.  Fetch latest data (Harvest).
+2.  Generate the Excel report.
+3.  Back up previous files.
+4.  Sync to Google Drive (if configured).
 
-### Deep Dive: Word Analysis
-To run a standalone text frequency analysis (generating `words_report.txt`):
+### Manual Run
 ```bash
-.\.venv\Scripts\activate
-python analyze_words.py
+# Fetch Data Only
+python harvest.py
+
+# Generate Report Only
+python report.py
 ```
 
----
+## 📊 Output Explaination
 
-## 📂 Troubleshooting
+The final output is **`clan_report_summary_merged.xlsx`**.
 
--   **"File Permission Error"**: You likely have the Excel file open. Close it and try again. The script will attempt to save a timestamped backup instead of crashing.
--   **"Module not found"**: Double-click `setup.bat` to repair the environment.
--   **Test Mode**: If the script runs too fast and minimal data appears, check if `WOM_TEST_MODE=True` in `.env`.
+| Column | Description |
+| :--- | :--- |
+| **Username** | OSRS Player Name. |
+| **Joined date** | Date joined the group (DD-MM-YYYY). |
+| **Role** | Clan Role (Owner, Deputy, Member, etc). |
+| **XP Gained [Period]** | Total XP gained in 7d/30d/70d/150d. |
+| **Messages [Period]** | Discord messages sent in 7d/30d/70d/150d. |
+| **Boss Kills [Period]** | Boss KC gained in 7d/30d/70d/150d. |
+| **Questions (30d)** | Number of questions asked in chat. |
+| **Favorite Word** | Most commonly used non-stopword. |
 
----
-
-## 🔒 Security Note
-This project uses a `.env` file to store secrets. **NEVER** share your `.env` file or commit it to GitHub.
+**Formatting Rules:**
+*   **Cornflower Blue**: Identity Info (Name, Date, Role).
+*   **Green**: XP Gains.
+*   **Orange**: Message Counts.
+*   **Yellow**: Boss Kills.
+*   **Red Text**: Indicates `0` activity/gains.
