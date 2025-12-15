@@ -32,6 +32,8 @@ class Config:
     WOM_TARGET_RPM = int(os.getenv('WOM_TARGET_RPM', _w_conf.get('target_rpm', 90)))
     WOM_RATE_LIMIT_DELAY = float(os.getenv('WOM_RATE_LIMIT_DELAY', _w_conf.get('rate_limit_delay', 0.67)))
     WOM_MAX_CONCURRENT = int(os.getenv('WOM_MAX_CONCURRENT', _w_conf.get('max_concurrent', 2)))
+    WOM_SHORT_UPDATE_DELAY = os.getenv('WOM_SHORT_UPDATE_DELAY', str(_w_conf.get('short_update_delay', True))).lower() == 'true'
+    WOM_DEEP_SCAN = os.getenv('WOM_DEEP_SCAN', 'False').lower() == 'true'
     
     # --- Testing ---
     TEST_MODE = os.getenv('WOM_TEST_MODE', 'False').lower() == 'true'

@@ -52,15 +52,7 @@ async def process_wom_snapshots(group_id, members_list):
     async def fetch_one(username):
         u_clean = username.lower()
         
-        # 1. Check Cache
-        # We query the DB for today's snapshot
-        # Using a fresh session or the shared one? Shared is fine for reads if no async conflict, 
-        # but sqlalchemy async is cleaner. Here we use sync session in async function... careful.
-        # Actually, for Thread safety with async loop, better to check in main loop or use async engine.
-        # For this MVP, we'll blindly fetch or do a quick check? 
-        # Let's check DB efficiently before starting parallel tasks.
-        
-        # 2. Fetch
+        # 1. Fetch
         try:
             p = await wom_client.get_player_details(u_clean)
             
@@ -77,16 +69,36 @@ async def process_wom_snapshots(group_id, members_list):
             ehb = p.get('ehb', 0)
             xp = data_block.get('skills', {}).get('overall', {}).get('experience', 0)
             
-            # Save
-            # We'll return the object and save in main thread to avoid DB locking issues with multithreaded sqlite
             import json
             return (u_clean, xp, total_boss_kills, ehp, ehb, json.dumps(p))
             
         except Exception as e:
-            # logger.warning(f"Failed to fetch {u_clean}: {e}")
             return None
 
-    tasks = [fetch_one(m['username']) for m in members_list]
+    # --- DAILY LOCK OPTIMIZATION ---
+    today_date = datetime.now().date()
+    # Find users who already have a snapshot today
+    from sqlalchemy import func
+    stmt = select(WOMSnapshot.username).where(func.date(WOMSnapshot.timestamp) == str(today_date))
+    already_done = set(db.execute(stmt).scalars().all())
+    
+    target_members = []
+    for m in members_list:
+        if m['username'].lower() in already_done:
+            pass # Skip
+        else:
+            target_members.append(m)
+            
+    skipped_count = len(members_list) - len(target_members)
+    if skipped_count > 0:
+        logger.info(f"Skipping {skipped_count} users (Daily Lock active: Snapshots already exist for today).")
+    
+    if not target_members:
+        logger.info("All members up to date. No API calls needed.")
+        db.close()
+        return
+
+    tasks = [fetch_one(m['username']) for m in target_members]
     results = []
     
     # Rich Progress Bar
@@ -111,11 +123,6 @@ async def process_wom_snapshots(group_id, members_list):
         count = 0 
         timestamp = datetime.now()
         for r in results:
-            # Check duplicate (simple check)
-            # We assume if we ran today, we might be re-running.
-            # Ideally we check existence.
-            
-            # (u_clean, xp, boss, ehp, ehb, raw)
             snapshot = WOMSnapshot(
                 username=r[0],
                 timestamp=timestamp,
@@ -133,6 +140,134 @@ async def process_wom_snapshots(group_id, members_list):
         logger.error(f"Error saving snapshots: {e}")
     finally:
         db.close()
+
+async def process_wom_snapshots_deep(group_id, members_list):
+    """Deep Sync: Fetches full snapshot history for all members."""
+    logger.info(f"Starting DEEP SYNC for {len(members_list)} members...")
+    db = SessionLocal()
+    
+    # We fetch ALL snapshots for each user
+    async def fetch_history(username):
+        try:
+            snaps = await wom_client.get_player_snapshots(username)
+            return (username, snaps)
+        except Exception as e:
+            logger.error(f"Failed deep fetch for {username}: {e}")
+            return (username, [])
+
+    tasks = [fetch_history(m['username']) for m in members_list]
+    
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TextColumn("{task.completed}/{task.total} Users"),
+        TimeRemainingColumn(),
+        console=console
+    ) as progress:
+        task_id = progress.add_task("[magenta]Deep Syncing...", total=len(tasks))
+        
+        for f in asyncio.as_completed(tasks):
+            username, snaps = await f
+            if snaps:
+                # Deduplicate and Save
+                # This could be thousands of records.
+                # Optimization: Get existing timestamps for this user.
+                
+                # Careful with TZ. WOM snaps are ISO8601 string.
+                # DB stores datetime.
+                # We'll parse the incoming ts.
+                
+                new_records = []
+                for s in snaps:
+                    ts_str = s.get('createdAt')
+                    # Parse logic
+                    try:
+                        ts = datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
+                        # Make naive if relying on naive DB or aware if aware.
+                        # Usually DB connector handles conversion if column is DateTime
+                        # But comparing:
+                        # Let's just try to insert? No, excessive unique checks.
+                        # Simple check:
+                        
+                        # We blindly insert? Only if we handle integrity errors.
+                        # Or check existance first.
+                        # This is "Deep Sync", arguably rare.
+                        # Let's check DB efficiently?
+                        # Maybe simply checking latest snapshot isn't enough.
+                        
+                        # Implementation Plan for Deep Sync:
+                        # 1. Just save everything? No, dupes.
+                        # 2. Check if (username, timestamp) exists.
+                        # We'll rely on a basic SELECT count or just timestamp check.
+                        
+                        # Check existance query
+                        # stmt = select(1).where(WOMSnapshot.username==username, WOMSnapshot.timestamp==ts)
+                        # We'll assume if we haven't seen this TS, save it.
+                        
+                        # Optimization: Fetch all TS for user in one query
+                        # existing_ts = set(db.scalars(select(WOMSnapshot.timestamp).where(WOMSnapshot.username==username)).all())
+                        # This works.
+                        pass
+                    except:
+                        continue
+                        
+                # Actually, implementing full deep sync logic is complex in one go.
+                # Let's simplify:
+                # Just fetch and invoke backfill logic!
+                # We essentially have `backfill_missing_history` in REPORT.PY.
+                # We are in HARVEST. 
+                # Let's replicate strict insert logic here.
+                
+                import json
+                
+                # Get existing TS for user
+                stmt = select(WOMSnapshot.timestamp).where(WOMSnapshot.username == username.lower())
+                existing_ts_raw = db.execute(stmt).scalars().all()
+                # Create a set of ISO strings or datetimes for rough comparison
+                # Note: Existing DB TS might be microsecond precise or not.
+                # WOM API usually is.
+                # Let's map existing to set of timestamps.
+                existing_set = {t.replace(tzinfo=timezone.utc) if t.tzinfo is None else t for t in existing_ts_raw}
+
+                count_added = 0
+                for s in snaps:
+                    ts_str = s.get('createdAt')
+                    ts = datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
+                    
+                    # Fuzzy match check (same second)
+                    is_dupe = False
+                    for ex in existing_set:
+                         if abs((ex - ts).total_seconds()) < 1:
+                             is_dupe = True
+                             break
+                    
+                    if is_dupe:
+                        continue
+
+                    data = s.get('data', {})
+                    bosses = data.get('bosses', {})
+                    total_boss_kills = sum(b.get('kills', 0) for b in bosses.values() if b.get('kills', 0) > 0)
+                    
+                    snap = WOMSnapshot(
+                        username=username.lower(),
+                        timestamp=ts,
+                        total_xp=data.get('skills', {}).get('overall', {}).get('experience', 0),
+                        total_boss_kills=total_boss_kills,
+                        ehp=s.get('ehp', 0),
+                        ehb=s.get('ehb', 0),
+                        raw_data=json.dumps(s)
+                    )
+                    db.add(snap)
+                    count_added += 1
+                
+                if count_added > 0:
+                    db.commit()
+            
+            progress.advance(task_id)
+            
+    db.close()
+    logger.info("Deep Sync Complete.")
 
 async def check_name_changes(members_data):
     """Detects if users have changed names since last run."""
@@ -214,8 +349,12 @@ async def run_harvest(close_client=True):
             logger.info("Triggering WOM Group Update...")
             await wom_client.update_group(Config.WOM_GROUP_ID, Config.WOM_GROUP_SECRET)
             if not Config.TEST_MODE:
-                logger.info("Waiting 10s for propagation (Script usually waits 5m, shortened for refactor test)...")
-                await asyncio.sleep(10) 
+                if Config.WOM_SHORT_UPDATE_DELAY:
+                    logger.info("Waiting 10s for propagation (Short Wait Enabled)...")
+                    await asyncio.sleep(10)
+                else:
+                    logger.info("Waiting 5 minutes for propagation (Full Wait)...")
+                    await asyncio.sleep(300) 
         except Exception as e:
             logger.error(f"Group update failed: {e}")
 
@@ -247,8 +386,16 @@ async def run_harvest(close_client=True):
     if latest and latest[0]:
         start_dt = latest[0].replace(tzinfo=timezone.utc)
     
+    
     discord_task = asyncio.create_task(discord_service.fetch(start_date=start_dt))
-    wom_task = asyncio.create_task(process_wom_snapshots(Config.WOM_GROUP_ID, members))
+    
+    if Config.WOM_DEEP_SCAN:
+        logger.warning(">>> DEEP SCAN ENABLED: Fetching full history for all members. This may take a while. <<<")
+        wom_task = asyncio.create_task(process_wom_snapshots_deep(Config.WOM_GROUP_ID, members))
+    else:
+        wom_task = asyncio.create_task(process_wom_snapshots(Config.WOM_GROUP_ID, members))
+    
+    await discord_task
     
     await discord_task
     await wom_task

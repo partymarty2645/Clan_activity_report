@@ -11,7 +11,6 @@ report:
     member: 20
   
   aesthetics:
-    prospector_color: '#4bacc6'
     excel_dark_mode: true
     excel_bg_color: '#2b2b2b'
     excel_font_color: '#ffffff'
@@ -21,8 +20,6 @@ report:
       xp: '#366e4a'
       messages: '#538dd5'
       boss: '#3f634c'
-      questions: '#538dd5'
-      fav_word: '#538dd5'
       
     zero_values:
       highlight: true
@@ -34,6 +31,7 @@ wom:
   rate_limit_delay: 0.67
   max_concurrent: 2
   cache_ttl: 300
+  short_update_delay: true
 
 discord:
   batch_size: 100

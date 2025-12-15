@@ -28,7 +28,6 @@ from core.utils import load_json_list, normalize_user_string
 from database.connector import SessionLocal, init_db
 from database.models import WOMSnapshot, DiscordMessage
 from services.wom import wom_client
-from reporting.analysis import analyzer
 from reporting.excel import reporter
 
 # Setup Logging
@@ -410,15 +409,6 @@ async def run_report(close_client=True):
             if count_api_fallback > 0:
                 logger.info(f"   -> Triggered auto-backfill for {count_api_fallback} users.")
 
-        # 5. Text Stats (30d)
-        logger.info("--- Analyzing Text Stats (30d) ---")
-        text_stats = analyzer.analyze_30d(member_usernames)
-        for u, stats in text_stats.items():
-            if u in results:
-                results[u]['Questions Asked (30d)'] = stats['questions']
-                results[u]['Favorite Word'] = stats['fav_word']
-        logger.info("Text analysis complete.")
-        
         
         # 6. Generate Excel
         logger.info("--- Generating Excel Report ---")

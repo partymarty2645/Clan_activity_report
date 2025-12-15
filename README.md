@@ -105,8 +105,6 @@ The final output is **`clan_report_summary_merged.xlsx`**.
 | **XP Gained [Period]** | Total XP gained in 7d/30d/70d/150d. |
 | **Messages [Period]** | Discord messages sent in 7d/30d/70d/150d. |
 | **Boss Kills [Period]** | Boss KC gained in 7d/30d/70d/150d. |
-| **Questions (30d)** | Number of questions asked in chat. |
-| **Favorite Word** | Most commonly used non-stopword. |
 
 **Formatting Rules:**
 *   **Cornflower Blue**: Identity Info (Name, Date, Role).

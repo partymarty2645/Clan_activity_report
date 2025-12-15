@@ -26,8 +26,7 @@ class ExcelReporter:
             'Username', 'Joined date', 'Role',
             'XP Gained 7d', 'XP Gained 30d', 'XP Gained 70d', 'XP Gained 150d', 'Total xp gained',
             'Messages 7d', 'Messages 30d', 'Messages 70d', 'Messages 150d', 'Total Messages',
-            'Boss kills 7d', 'Boss kills 30d', 'Boss kills 70d', 'Boss kills 150d', 'Total boss kills',
-            'Questions Asked (30d)', 'Favorite Word'
+            'Boss kills 7d', 'Boss kills 30d', 'Boss kills 70d', 'Boss kills 150d', 'Total boss kills'
         ]
         
         # Filter/Sort
@@ -121,17 +120,9 @@ class ExcelReporter:
             'xp': workbook.add_format({'border': 1, 'border_color': border_color, 'bg_color': Config.COLOR_XP, 'font_color': '#FFFFFF', 'num_format': '#,##0'}),
             'messages': workbook.add_format({'border': 1, 'border_color': border_color, 'bg_color': Config.COLOR_MESSAGES, 'font_color': '#FFFFFF', 'num_format': '#,##0'}),
             'boss': workbook.add_format({'border': 1, 'border_color': border_color, 'bg_color': Config.COLOR_BOSS, 'font_color': '#FFFFFF', 'num_format': '#,##0'}),
-            'questions': workbook.add_format({'border': 1, 'border_color': border_color, 'bg_color': Config.COLOR_QUESTIONS, 'font_color': '#FFFFFF', 'num_format': '#,##0'}),
-            'fav_word': workbook.add_format({'border': 1, 'border_color': border_color, 'bg_color': Config.COLOR_FAV_WORD, 'font_color': '#FFFFFF', 'num_format': '#,##0'}),
         }
         
-        prospector_fmt = workbook.add_format({
-            'bg_color': Config.PROSPECTOR_COLOR,
-            'font_color': '#000000', 
-            'border': 1,
-            'border_color': border_color,
-            'bold': True
-        })
+
         
         # Apply Column Formats
         for i, col_name in enumerate(df.columns):
@@ -146,10 +137,6 @@ class ExcelReporter:
                 f = formats['boss']
             elif 'messages' in c:
                 f = formats['messages']
-            elif 'questions' in c:
-                f = formats['questions']
-            elif 'favorite' in c or 'word' in c:
-                f = formats['fav_word']
             else:
                 f = fmt_base 
             
@@ -172,20 +159,6 @@ class ExcelReporter:
                 'type': 'cell', 'criteria': '==', 'value': 0, 'format': red_fmt
             })
             
-        # --- PROSPECTOR HIGHLIGHTING ---
-        try:
-            col_map = {name: i for i, name in enumerate(df.columns)}
-            role_idx = col_map.get('Role')
-            user_idx = col_map.get('Username')
-            
-            if role_idx is not None and user_idx is not None:
-                for row_num, row_data in df.iterrows():
-                    # Check Role (case insensitive)
-                    role_val = str(row_data.iloc[role_idx]).lower()
-                    if role_val == 'prospector':
-                        user_val = row_data.iloc[user_idx]
-                        worksheet.write(row_num + 1, user_idx, user_val, prospector_fmt)
-        except Exception as e:
-            logger.error(f"Error applying prospector format: {e}")
+
 
 reporter = ExcelReporter()
