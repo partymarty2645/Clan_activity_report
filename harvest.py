@@ -16,6 +16,7 @@ Core Functions:
 import asyncio
 import logging
 import sys
+import json
 from datetime import datetime, timezone, timedelta
 from sqlalchemy import select, desc
 from logging.handlers import RotatingFileHandler
@@ -142,14 +143,43 @@ async def process_wom_snapshots(group_id, members_list):
         db.close()
 
 async def process_wom_snapshots_deep(group_id, members_list):
-    """Deep Sync: Fetches full snapshot history for all members."""
-    logger.info(f"Starting DEEP SYNC for {len(members_list)} members...")
+    """Deep Sync: Fetches full snapshot history for all members (Incremental)."""
+    logger.info(f"Starting SMART DEEP SYNC for {len(members_list)} members...")
     db = SessionLocal()
     
+    # helper to find latest timestamp for a user (Thread Safe)
+    def get_latest_timestamp_thread_safe(username):
+        db_local = SessionLocal()
+        try:
+            stmt = select(WOMSnapshot.timestamp).where(WOMSnapshot.username == username.lower()).order_by(desc(WOMSnapshot.timestamp)).limit(1)
+            result = db_local.execute(stmt).scalar()
+            return result
+        finally:
+            db_local.close()
+
     # We fetch ALL snapshots for each user
     async def fetch_history(username):
         try:
-            snaps = await wom_client.get_player_snapshots(username)
+            # Smart Sync: Get latest DB entry (Non-blocking)
+            latest_ts = await asyncio.to_thread(get_latest_timestamp_thread_safe, username)
+            start_date_str = None
+            
+            if latest_ts:
+                # Add 1 second to avoid fetching the exact same snapshot again
+                # Convert to ISO format for API
+                # WOM API expects ISO string. We need to be careful with TZ.
+                # Assuming DB stores naive UTC or aware UTC.
+                # Let's ensure it's treated as UTC.
+                ts = latest_ts.replace(tzinfo=timezone.utc) if latest_ts.tzinfo is None else latest_ts
+                # Add 1 sec buffer
+                ts = ts + timedelta(seconds=1)
+                start_date_str = ts.isoformat()
+                start_date_str = ts.isoformat()
+                # logger.info(f"[{username}] Incremental fetch from {start_date_str}")
+            else:
+                logger.info(f"[{username}] FULL HISTORY FETCH (No previous data found)")
+            
+            snaps = await wom_client.get_player_snapshots(username, start_date=start_date_str)
             return (username, snaps)
         except Exception as e:
             logger.error(f"Failed deep fetch for {username}: {e}")
@@ -170,104 +200,84 @@ async def process_wom_snapshots_deep(group_id, members_list):
         for f in asyncio.as_completed(tasks):
             username, snaps = await f
             if snaps:
-                # Deduplicate and Save
-                # This could be thousands of records.
-                # Optimization: Get existing timestamps for this user.
+                # 1. Fetch existing timestamps to prevent duplicates
+                existing_ts = await asyncio.to_thread(get_all_timestamps_thread_safe, username)
                 
-                # Careful with TZ. WOM snaps are ISO8601 string.
-                # DB stores datetime.
-                # We'll parse the incoming ts.
-                
-                new_records = []
-                for s in snaps:
-                    ts_str = s.get('createdAt')
-                    # Parse logic
-                    try:
-                        ts = datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
-                        # Make naive if relying on naive DB or aware if aware.
-                        # Usually DB connector handles conversion if column is DateTime
-                        # But comparing:
-                        # Let's just try to insert? No, excessive unique checks.
-                        # Simple check:
-                        
-                        # We blindly insert? Only if we handle integrity errors.
-                        # Or check existance first.
-                        # This is "Deep Sync", arguably rare.
-                        # Let's check DB efficiently?
-                        # Maybe simply checking latest snapshot isn't enough.
-                        
-                        # Implementation Plan for Deep Sync:
-                        # 1. Just save everything? No, dupes.
-                        # 2. Check if (username, timestamp) exists.
-                        # We'll rely on a basic SELECT count or just timestamp check.
-                        
-                        # Check existance query
-                        # stmt = select(1).where(WOMSnapshot.username==username, WOMSnapshot.timestamp==ts)
-                        # We'll assume if we haven't seen this TS, save it.
-                        
-                        # Optimization: Fetch all TS for user in one query
-                        # existing_ts = set(db.scalars(select(WOMSnapshot.timestamp).where(WOMSnapshot.username==username)).all())
-                        # This works.
-                        pass
-                    except:
-                        continue
-                        
-                # Actually, implementing full deep sync logic is complex in one go.
-                # Let's simplify:
-                # Just fetch and invoke backfill logic!
-                # We essentially have `backfill_missing_history` in REPORT.PY.
-                # We are in HARVEST. 
-                # Let's replicate strict insert logic here.
-                
-                import json
-                
-                # Get existing TS for user
-                stmt = select(WOMSnapshot.timestamp).where(WOMSnapshot.username == username.lower())
-                existing_ts_raw = db.execute(stmt).scalars().all()
-                # Create a set of ISO strings or datetimes for rough comparison
-                # Note: Existing DB TS might be microsecond precise or not.
-                # WOM API usually is.
-                # Let's map existing to set of timestamps.
-                existing_set = {t.replace(tzinfo=timezone.utc) if t.tzinfo is None else t for t in existing_ts_raw}
-
                 count_added = 0
                 for s in snaps:
                     ts_str = s.get('createdAt')
-                    ts = datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
-                    
-                    # Fuzzy match check (same second)
-                    is_dupe = False
-                    for ex in existing_set:
-                         if abs((ex - ts).total_seconds()) < 1:
-                             is_dupe = True
-                             break
-                    
-                    if is_dupe:
+                    try:
+                        # Parse TS
+                        ts = datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
+                        
+                        # DEDUPLICATION CHECK
+                        # Ensure TS is aware UTC for comparison
+                        if ts.tzinfo is None:
+                            ts = ts.replace(tzinfo=timezone.utc)
+                            
+                        if ts in existing_ts:
+                            continue # Skip duplicate
+                            
+                        data = s.get('data', {})
+                        bosses = data.get('bosses', {})
+                        total_boss_kills = sum(b.get('kills', 0) for b in bosses.values() if b.get('kills', 0) > 0)
+                        
+                        snap = WOMSnapshot(
+                            username=username.lower(),
+                            timestamp=ts,
+                            total_xp=data.get('skills', {}).get('overall', {}).get('experience', 0),
+                            total_boss_kills=total_boss_kills,
+                            ehp=s.get('ehp', 0),
+                            ehb=s.get('ehb', 0),
+                            raw_data=json.dumps(s)
+                        )
+                        db.add(snap)
+                        count_added += 1
+                    except Exception as e:
+                        logger.error(f"Error duplicate/parse snapshot for {username}: {e}")
                         continue
-
-                    data = s.get('data', {})
-                    bosses = data.get('bosses', {})
-                    total_boss_kills = sum(b.get('kills', 0) for b in bosses.values() if b.get('kills', 0) > 0)
-                    
-                    snap = WOMSnapshot(
-                        username=username.lower(),
-                        timestamp=ts,
-                        total_xp=data.get('skills', {}).get('overall', {}).get('experience', 0),
-                        total_boss_kills=total_boss_kills,
-                        ehp=s.get('ehp', 0),
-                        ehb=s.get('ehb', 0),
-                        raw_data=json.dumps(s)
-                    )
-                    db.add(snap)
-                    count_added += 1
                 
-                if count_added > 0:
+                # Batch Commit Logic Loop handled outside or implicitly by session accumulation
+                # We just let the loop continue.
+            
+            # Commit every 10 users
+            
+            # Commit every 10 users
+            if progress.tasks[task_id].completed % 10 == 0:
+                try:
                     db.commit()
+                except Exception as e:
+                    logger.error(f"Batch DB Commit failed: {e}")
+                    db.rollback()
             
             progress.advance(task_id)
+
+    # Final Commit
+    try:
+        db.commit()
+    except Exception as e:
+        logger.error(f"Final DB Commit failed: {e}")
             
     db.close()
-    logger.info("Deep Sync Complete.")
+    logger.info("Smart Deep Sync Complete.")
+
+def get_all_timestamps_thread_safe(username):
+    db_local = SessionLocal()
+    try:
+        stmt = select(WOMSnapshot.timestamp).where(WOMSnapshot.username == username.lower())
+        results = db_local.execute(stmt).scalars().all()
+        # Return as set of aware UTC datetimes (assuming DB stores naive UTC)
+        # We need to standardize on UTC aware for comparison
+        cleaned = set()
+        for t in results:
+             if t:
+                # Force UTC aware
+                if t.tzinfo is None:
+                    t = t.replace(tzinfo=timezone.utc)
+                cleaned.add(t)
+        return cleaned
+    finally:
+        db_local.close()
 
 async def check_name_changes(members_data):
     """Detects if users have changed names since last run."""
@@ -314,8 +324,8 @@ async def check_name_changes(members_data):
                     logger.info(f"Name Change Detected: {old_name} -> {new_name}")
                     
                     if new_name.lower() in recent_db_users:
-                        logger.warning(f"Skipping merge: {new_name} already exists in DB.")
-                        continue
+                        logger.info(f"Merging history: {new_name} already exists in DB. Consolidating records...")
+                        # Proceed with update instead of skipping
                         
                     # Perform Rename in DB
                     # 1. Update Snapshots

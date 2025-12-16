@@ -82,52 +82,57 @@ class WOMClient:
         url = f"{self.base_url}{endpoint}"
         session = await self._get_session()
         
+        # Rate Limit Pacing
         async with self._delay_lock:
-            # Rate Limit Delay
             now = asyncio.get_event_loop().time()
             time_since_last = now - self._last_request_time
             if time_since_last < self.rate_limit_delay:
                 await asyncio.sleep(self.rate_limit_delay - time_since_last)
             
-            for attempt in range(6):  # Increased attempts to 6
-                try:
-                    async with session.request(method, url, json=data, params=params, headers=headers) as response:
-                        elapsed = asyncio.get_event_loop().time() - now
+            # Reset time to NOW (start of this virtual slot)
+            self._last_request_time = asyncio.get_event_loop().time()
+            
+        # Perform Request (Outside Serial Lock)
+        for attempt in range(6): 
+            try:
+                # Re-check session inside retry loop just in case
+                session = await self._get_session()
+                async with session.request(method, url, json=data, params=params, headers=headers) as response:
+                    
+                    if response.status == 429:
+                        self._rate_limit_hits.append(asyncio.get_event_loop().time())
+                        self._adjust_rate_limit()
                         
-                        if response.status == 429:
-                            self._rate_limit_hits.append(asyncio.get_event_loop().time())
-                            self._adjust_rate_limit()
-                            
-                            wait_time = min((2 ** attempt) * 5.0, 60.0)
-                            self.logger.warning(f"WOM Rate Limit (429). Waiting {wait_time:.2f}s (Attempt {attempt+1})...")
-                            await asyncio.sleep(wait_time)
-                            continue
+                        wait_time = min((2 ** attempt) * 5.0, 60.0)
+                        self.logger.warning(f"WOM Rate Limit (429). Waiting {wait_time:.2f}s (Attempt {attempt+1})...")
+                        await asyncio.sleep(wait_time)
+                        continue
 
-                        if response.status >= 500:
-                            wait_time = min((2 ** attempt) * 2.0, 30.0)
-                            self.logger.warning(f"WOM Server Error {response.status}. Retrying in {wait_time:.2f}s...")
-                            await asyncio.sleep(wait_time)
-                            continue
-                        
-                        response.raise_for_status()
-                        result = await response.json()
-                        
-                        if method == 'GET' and use_cache:
-                            self._set_cache(self._get_cache_key(endpoint, params), result)
-                        
-                        # Clear old hits on success to allow speedup
-                        self._rate_limit_hits = [t for t in self._rate_limit_hits if asyncio.get_event_loop().time() - t < 300]
-                        self._last_request_time = asyncio.get_event_loop().time()
-                        return result
+                    if response.status >= 500:
+                        wait_time = min((2 ** attempt) * 2.0, 30.0)
+                        self.logger.warning(f"WOM Server Error {response.status}. Retrying in {wait_time:.2f}s...")
+                        await asyncio.sleep(wait_time)
+                        continue
+                    
+                    response.raise_for_status()
+                    result = await response.json()
+                    
+                    if method == 'GET' and use_cache:
+                        self._set_cache(self._get_cache_key(endpoint, params), result)
+                    
+                    # Clear old hits on success to allow speedup
+                    self._rate_limit_hits = [t for t in self._rate_limit_hits if asyncio.get_event_loop().time() - t < 300]
+                    return result
 
-                except aiohttp.ClientResponseError as e:
-                    if e.status < 500 and e.status != 429:
-                        self.logger.error(f"WOM API Client Error: {e.status} - {e.message}")
-                        raise
-                    self.logger.error(f"Requests Error (Attempt {attempt+1}): {e}")
-                except Exception as e:
-                    self.logger.error(f"Unexpected request error (Attempt {attempt+1}): {e}")
-                    await asyncio.sleep(2)
+            except aiohttp.ClientResponseError as e:
+                if e.status < 500 and e.status != 429:
+                    self.logger.error(f"WOM API Client Error: {e.status} - {e.message}")
+                    raise
+                self.logger.error(f"Requests Error (Attempt {attempt+1}): {e}")
+                await asyncio.sleep(2)
+            except Exception as e:
+                self.logger.error(f"Unexpected request error (Attempt {attempt+1}): {e}")
+                await asyncio.sleep(2)
         
         raise Exception(f"Max retries exceeded for WOM API: {endpoint}")
 
@@ -184,7 +189,7 @@ class WOMClient:
         # Pagination loop
         all_snapshots = []
         offset = 0
-        limit = 20 # WOM default/max often 20 or 50. Let's start small.
+        limit = 100 # Increased from 20 to 100 to reduce volume of requests
         
         while True:
             params['offset'] = offset
