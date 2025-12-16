@@ -47,51 +47,54 @@ The project follows a modular pipeline design:
 ## 📦 Installation & Setup
 
 ### Prerequisites
-*   **Python 3.10+**: [Download](https://www.python.org/) (Ensure "Add to PATH" is checked).
-*   **Git**: [Download](https://git-scm.com/).
+*   **Python 3.10+**: [Download](https://www.python.org/downloads/) (IMPORTANT: Check the box **"Add Python to PATH"** during installation).
 
-### 1. Installation
-```bash
-git clone https://github.com/partymarty2645/clanstats.git
-cd clanstats
-setup.bat
-```
+### 1. Setup
+1.  Unzip the project folder to your desired location (e.g. Desktop).
+2.  Double-click `setup.bat`.
+    *   This will verify Python is installed.
+    *   It will create a virtual environment and install necessary libraries.
+    *   It will generate a `config.yaml` and `.env` file if they don't exist.
 
-### 2. Configuration keys (`.env`)
-Create a `.env` file in the root directory with the following keys:
+### 2. Configuration (`.env`)
+The first time you run `setup.bat`, it creates a `.env` file. Open this file with Notepad and fill in your keys:
 
 | Key | Description | Required? |
 | :--- | :--- | :--- |
-| `WOM_API_KEY` | Wise Old Man API Key for group management. | ✅ Yes |
-| `WOM_GROUP_ID` | The ID of your WOM Group (e.g., `11114`). | ✅ Yes |
-| `DISCORD_TOKEN` | Bot token to fetch specific channel history. | ✅ Yes |
-| `RELAY_CHANNEL_ID`| Channel ID to post summary (optional). | ❌ No |
-| `GUILD_ID` | Discord Server ID (optional). | ❌ No |
-| `LOCAL_DRIVE_PATH`| Path to sync Excel file (e.g., `G:\My Drive\...`). | ❌ No |
+| `WOM_API_KEY` | Wise Old Man API Key. | ✅ Yes |
+| `WOM_GROUP_ID` | Your WOM Group ID (e.g. `11114`). | ✅ Yes |
+| `WOM_GROUP_SECRET`| Verification Code (needed to trigger auto-updates). | ✅ Yes |
+| `DISCORD_TOKEN` | Discord Bot Token (Requires "Message Content Intent" enabled). | ✅ Yes |
+| `RELAY_CHANNEL_ID`| (Optional) Stats will be posted to this Discord Channel ID. | ❌ No |
+| `LOCAL_DRIVE_PATH`| (Optional) Full path to a Google Drive folder to auto-copy reports to. | ❌ No |
 
-**(Note: This project does not require a Discord Bot to be *running* 24/7, but it needs a valid Token to fetch history via API.)**
+### 3. Advanced Settings (Optional)
+These settings are also in `.env` but can usually be left at default:
+
+| Key | Description | Default |
+| :--- | :--- | :--- |
+| `CUSTOM_START_DATE` | Date to start calculating "Total" stats from. | `2025-02-14` |
+| `WOM_TEST_MODE` | Set to `true` to only fetch 5 members (for debugging). | `false` |
+| `DAYS_LOOKBACK` | How far back to scan Discord messages. | `30` |
+
+### 4. Visual Customization (`config.yaml`)
+You can customize the look of the report in `config.yaml`:
+*   **Role Weights**: Change how many points each role gets for ranking.
+*   **Colors**: Change the Hex codes for the Excel columns (Identity, XP, Messages, Bosses).
+*   **Aesthetics**: Toggle "Excel Dark Mode".
+*   **WOM Settings**: Adjust update speeds and delays.
 
 ## 🏃 Usage
 
-### Standard Run
-Double-click **`run_auto.bat`**.
-This will:
-1.  Run the **python orchestrator** (`main.py`).
-2.  Fetch data -> Generate Report.
-3.  Sync to Google Drive (if enabled).
+### Generate Report
+Double-click **`run_auto.bat`**. 
+This script will:
+1.  Trigger a group update on Wise Old Man.
+2.  Fetch the latest snapshots and Discord messages.
+3.  Calculate gains based on your configured periods (7d, 30d, etc).
+4.  Generate `clan_report_summary_merged.xlsx`.
+5.  (Optional) Copy the file to your Google Drive folder.
 
-### 🛠️ Dedicated Command Guide
-Common operational commands:
-
-| Action | Command | Description |
-| :--- | :--- | :--- |
-| **Full Pipeline** | `run_auto.bat` | Run Harvest + Report sequentially. |
-| **Pipeline (Manual)** | `python main.py` | Same as above (Python direct). |
-| **Harvest Only** | `python harvest.py` | Just fetch new data (no report). |
-| **Report Only** | `python report.py` | Just generate Excel from local DB. |
-| **Upgrade DB** | `alembic upgrade head` | Apply latest database schema changes. |
-| **New Migration** | `alembic revision --autogenerate -m "msg"` | Create a new schema migration. |
-| **Setup Deps** | `pip install -r requirements.txt`| Install required libraries. |
 
 ## 📊 Output Explaination
 

@@ -1,7 +1,7 @@
 @echo off
-TITLE WOM Clan Stats - First Time Setup
+TITLE OSRS Clan Activity Reporter - Setup
 echo ===================================================
-echo      WOM Discord MVP - Initial Setup Wizard
+echo      Clan Activity Reporter - Initial Setup
 echo ===================================================
 echo.
 
@@ -65,23 +65,37 @@ IF %ERRORLEVEL% NEQ 0 (
 :: 4. Check .env
 if not exist ".env" (
     echo [3/3] Creating .env file from template...
-    echo # --- Discord Configuration --- > .env
+    echo # ========================================= > .env
+    echo #      CLAN REPORT CONFIGURATION           >> .env
+    echo # ========================================= >> .env
+    echo. >> .env
+    echo # --- Discord Configuration --- >> .env
     echo # Bot Token (From Developer Portal -> Bot -> Reset Token) >> .env
     echo # IMPORTANT: Enable "Message Content Intent" in the Bot tab! >> .env
     echo DISCORD_TOKEN=YOUR_BOT_TOKEN_HERE >> .env
+    echo # Channel ID where you want the bot to post the summary (Right click channel -> Copy ID) >> .env
     echo RELAY_CHANNEL_ID= >> .env
     echo. >> .env
-    echo # --- Wise Old Man Configuration --- >> .env
-    echo WOM_API_KEY=YOUR_KEY_HERE >> .env
+    echo # --- Wise Old Man (WOM) Configuration --- >> .env
+    echo # Your Group ID (e.g. 11114) >> .env
     echo WOM_GROUP_ID= >> .env
+    echo # API Key (Required for refreshing group data) >> .env
+    echo WOM_API_KEY=YOUR_KEY_HERE >> .env
+    echo # Group Verification Secret (Required for group updates) >> .env
     echo WOM_GROUP_SECRET= >> .env
     echo. >> .env
-    echo # --- Settings --- >> .env
+    echo # --- Report Settings --- >> .env
+    echo # Date to calculate "Since Start" stats from (YYYY-MM-DD) >> .env
     echo CUSTOM_START_DATE=2025-02-14 >> .env
+    echo # Folder path to auto-copy the Excel report to (e.g. G:\My Drive\ClanStats) >> .env
+    echo # Leave empty to disable auto-copy. >> .env
+    echo LOCAL_DRIVE_PATH= >> .env
     echo. >> .env
-    echo # --- Google Drive (Optional) --- >> .env
-    echo # Folder ID where reports will be uploaded >> .env
-    echo GOOGLE_DRIVE_FOLDER_ID= >> .env
+    echo # --- Developer / Advanced --- >> .env
+    echo # set to 'true' to only fetch 5 members (fast testing) >> .env
+    echo WOM_TEST_MODE=false >> .env
+    echo # Number of days to scan Discord history back (Default 30) >> .env
+    echo DAYS_LOOKBACK=30
     echo. >> .env
     echo [WARN] A new .env file was created. You MUST edit it with your keys!
 ) else (
