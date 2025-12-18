@@ -24,6 +24,8 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeRemainingColumn
 
 from core.config import Config
+from core.utils import normalize_user_string
+from core.performance import PerformanceMonitor, timed_operation
 from services.wom import wom_client
 from services.discord import discord_service
 from database.connector import SessionLocal, init_db
@@ -41,6 +43,7 @@ logging.basicConfig(
 logger = logging.getLogger("Harvest")
 console = Console()
 
+@timed_operation("WOM Snapshots Processing")
 async def process_wom_snapshots(group_id, members_list):
     """Fetches full player details for all members and saves snapshots."""
     logger.info(f"Processing WOM snapshots for {len(members_list)} members...")
@@ -48,10 +51,10 @@ async def process_wom_snapshots(group_id, members_list):
     db = SessionLocal()
     
     # Pre-fetch today's snapshots to skip
-    today_prefix = datetime.now().isoformat()[:10]
+    today_prefix = datetime.now(timezone.utc).isoformat()[:10]
     
     async def fetch_one(username):
-        u_clean = username.lower()
+        u_clean = normalize_user_string(username)
         
         # 1. Fetch
         try:
@@ -77,7 +80,7 @@ async def process_wom_snapshots(group_id, members_list):
             return None
 
     # --- DAILY LOCK OPTIMIZATION ---
-    today_date = datetime.now().date()
+    today_date = datetime.now(timezone.utc).date()
     # Find users who already have a snapshot today
     from sqlalchemy import func
     stmt = select(WOMSnapshot.username).where(func.date(WOMSnapshot.timestamp) == str(today_date))
@@ -85,7 +88,7 @@ async def process_wom_snapshots(group_id, members_list):
     
     target_members = []
     for m in members_list:
-        if m['username'].lower() in already_done:
+        if normalize_user_string(m['username']) in already_done:
             pass # Skip
         else:
             target_members.append(m)
@@ -122,8 +125,17 @@ async def process_wom_snapshots(group_id, members_list):
     # Batch Save
     try:
         count = 0 
-        timestamp = datetime.now()
+        timestamp = datetime.now(timezone.utc)
+        
+        from database.models import SkillSnapshot, BossSnapshot, WOMSnapshot # Import inside function to avoid circular imports if any
+        
         for r in results:
+            # r = (username, xp, boss_kills, ehp, ehb, json_str)
+            # We need to parse json_str again or pass the dict? 
+            # In fetch_one, we return json.dumps(p). 
+            # It's better to parse `r[5]` here.
+            
+            raw_json = r[5]
             snapshot = WOMSnapshot(
                 username=r[0],
                 timestamp=timestamp,
@@ -131,17 +143,49 @@ async def process_wom_snapshots(group_id, members_list):
                 total_boss_kills=r[2],
                 ehp=r[3],
                 ehb=r[4],
-                raw_data=r[5]
+                raw_data=raw_json
             )
             db.add(snapshot)
+            db.flush() # Flush to get snapshot.id
+            
+            # Create sub-records
+            try:
+                data = json.loads(raw_json)
+                # Skills
+                skills = data.get('data', {}).get('skills', {})
+                for s_name, s_data in skills.items():
+                    db.add(SkillSnapshot(
+                        snapshot_id=snapshot.id,
+                        skill_name=s_name,
+                        xp=s_data.get('experience', 0),
+                        level=s_data.get('level', 1),
+                        rank=s_data.get('rank', -1)
+                    ))
+                
+                # Bosses
+                bosses = data.get('data', {}).get('bosses', {})
+                for b_name, b_data in bosses.items():
+                    kills = b_data.get('kills', -1)
+                    if kills > 0:
+                         db.add(BossSnapshot(
+                            snapshot_id=snapshot.id,
+                            boss_name=b_name,
+                            kills=kills,
+                            rank=b_data.get('rank', -1)
+                        ))
+            except Exception as parse_err:
+                 logger.error(f"Failed to parse inner JSON for structure: {parse_err}")
+
             count += 1
+            
         db.commit()
-        logger.info(f"Saved {count} WOM snapshots.")
+        logger.info(f"Saved {count} WOM snapshots (with detailed stats).")
     except Exception as e:
         logger.error(f"Error saving snapshots: {e}")
     finally:
         db.close()
 
+@timed_operation("WOM Deep Sync")
 async def process_wom_snapshots_deep(group_id, members_list):
     """Deep Sync: Fetches full snapshot history for all members (Incremental)."""
     logger.info(f"Starting SMART DEEP SYNC for {len(members_list)} members...")
@@ -279,6 +323,7 @@ def get_all_timestamps_thread_safe(username):
     finally:
         db_local.close()
 
+@timed_operation("Name Change Detection")
 async def check_name_changes(members_data):
     """Detects if users have changed names since last run."""
     logger.info("Checking for name changes...")
@@ -294,10 +339,10 @@ async def check_name_changes(members_data):
         # users in `members_data` but NOT in DB are "New".
         # We map Missing -> New via WOM API.
         
-        current_names = {m['username'].lower() for m in members_data}
+        current_names = {normalize_user_string(m['username']) for m in members_data}
         
         # Get all users seen in last 7 days from DB
-        cutoff = datetime.now() - timedelta(days=7)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=7)
         stmt = select(WOMSnapshot.username).where(WOMSnapshot.timestamp >= cutoff).distinct()
         recent_db_users = set(db.execute(stmt).scalars().all())
         
@@ -323,7 +368,7 @@ async def check_name_changes(members_data):
                     new_name = target.get('newName')
                     logger.info(f"Name Change Detected: {old_name} -> {new_name}")
                     
-                    if new_name.lower() in recent_db_users:
+                    if normalize_user_string(new_name) in recent_db_users:
                         logger.info(f"Merging history: {new_name} already exists in DB. Consolidating records...")
                         # Proceed with update instead of skipping
                         
@@ -358,13 +403,12 @@ async def run_harvest(close_client=True):
         try:
             logger.info("Triggering WOM Group Update...")
             await wom_client.update_group(Config.WOM_GROUP_ID, Config.WOM_GROUP_SECRET)
+            await wom_client.update_group(Config.WOM_GROUP_ID, Config.WOM_GROUP_SECRET)
+            
+            wait_time = Config.WOM_UPDATE_WAIT
             if not Config.TEST_MODE:
-                if Config.WOM_SHORT_UPDATE_DELAY:
-                    logger.info("Waiting 10s for propagation (Short Wait Enabled)...")
-                    await asyncio.sleep(10)
-                else:
-                    logger.info("Waiting 5 minutes for propagation (Full Wait)...")
-                    await asyncio.sleep(300) 
+                logger.info(f"Waiting {wait_time}s for WOM propagation...")
+                await asyncio.sleep(wait_time) 
         except Exception as e:
             logger.error(f"Group update failed: {e}")
 
@@ -392,11 +436,17 @@ async def run_harvest(close_client=True):
     latest = db.query(DiscordMessage.created_at).order_by(desc(DiscordMessage.created_at)).first()
     db.close()
     
+    # Determine incremental start date
     start_dt = datetime.fromisoformat(Config.CUSTOM_START_DATE).replace(tzinfo=timezone.utc)
     if latest and latest[0]:
         start_dt = latest[0].replace(tzinfo=timezone.utc)
-    
-    
+
+    # Safety cap: do not look back further than Config.DAYS_LOOKBACK
+    cap_dt = datetime.now(timezone.utc) - timedelta(days=Config.DAYS_LOOKBACK)
+    if start_dt < cap_dt:
+        logger.info(f"Capping Discord fetch window to last {Config.DAYS_LOOKBACK} days (from {start_dt.date()} -> {cap_dt.date()})")
+        start_dt = cap_dt
+
     discord_task = asyncio.create_task(discord_service.fetch(start_date=start_dt))
     
     if Config.WOM_DEEP_SCAN:
@@ -404,8 +454,6 @@ async def run_harvest(close_client=True):
         wom_task = asyncio.create_task(process_wom_snapshots_deep(Config.WOM_GROUP_ID, members))
     else:
         wom_task = asyncio.create_task(process_wom_snapshots(Config.WOM_GROUP_ID, members))
-    
-    await discord_task
     
     await discord_task
     await wom_task

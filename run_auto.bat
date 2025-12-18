@@ -9,9 +9,20 @@ IF NOT EXIST ".venv\Scripts\python.exe" (
     exit /b 1
 )
 
+
+echo Running Weekly Database Optimization Check...
+".venv\Scripts\python.exe" optimize_db.py --check-weekly
+
 echo Running Orchestrator...
 ".venv\Scripts\python.exe" main.py
 if errorlevel 1 goto error
+
+echo Generating Weekly Clan Spotlight (Fun Stats)...
+".venv\Scripts\python.exe" fun_stats_analysis.py
+if errorlevel 1 (
+    echo WARNING: Fun Stats Analysis failed. Continuing...
+)
+
 
 echo ========================================
 echo SUCCESS: Report generated successfully.

@@ -4,6 +4,7 @@ import aiohttp
 import json
 from datetime import datetime
 from core.config import Config
+from core.performance import retry_async, timed_operation
 
 class WOMClient:
     def __init__(self):
@@ -136,6 +137,7 @@ class WOMClient:
         
         raise Exception(f"Max retries exceeded for WOM API: {endpoint}")
 
+    @timed_operation("WOM Get Group Members")
     async def get_group_members(self, group_id):
         if not group_id or not str(group_id).strip():
             self.logger.error("WOM Group ID is missing or empty.")
@@ -162,6 +164,7 @@ class WOMClient:
         params = {'username': username, 'status': 'approved', 'limit': limit}
         return await self._request('GET', '/names', params=params)
 
+    @timed_operation("WOM Update Group")
     async def update_group(self, group_id, secret_code):
         data = {'verificationCode': secret_code}
         return await self._request('POST', f'/groups/{group_id}/update-all', data=data)

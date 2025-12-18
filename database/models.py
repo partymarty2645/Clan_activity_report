@@ -40,3 +40,22 @@ class WOMSnapshot(Base):
     ehp = Column(Float)
     ehb = Column(Float)
     raw_data = Column(Text)
+
+class SkillSnapshot(Base):
+    __tablename__ = 'skill_snapshots'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    snapshot_id = Column(Integer, index=True) # Foreign Key relationship handled manually or via simple join for speed
+    skill_name = Column(String)
+    xp = Column(Integer)
+    level = Column(Integer)
+    rank = Column(Integer)
+
+class BossSnapshot(Base):
+    __tablename__ = 'boss_snapshots'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    snapshot_id = Column(Integer, index=True)
+    boss_name = Column(String)
+    kills = Column(Integer)
+    rank = Column(Integer)

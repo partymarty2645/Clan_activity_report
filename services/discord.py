@@ -59,6 +59,9 @@ class DiscordFetcher:
             for guild in self.client.guilds:
                 channels.extend(guild.text_channels)
         
+        import re
+        relay_regex = re.compile(r"\*\*(.+?)\*\*:")
+        
         db = SessionLocal()
         try:
             for channel in channels:
@@ -67,6 +70,7 @@ class DiscordFetcher:
                     continue
 
                 batch = []
+                total_fetched = 0
                 async for msg in channel.history(limit=None, after=self.start_date, oldest_first=True):
                     if self.end_date and msg.created_at > self.end_date:
                         break
@@ -83,7 +87,19 @@ class DiscordFetcher:
                         guild_name=msg.guild.name,
                         created_at=msg.created_at
                     )
+                    
+                    # Relay Bot Parsing
+                    if str(msg.author) == "Osrs clanchat#0000":
+                        match = relay_regex.search(msg.content)
+                        if match:
+                            model.author_name = match.group(1).strip()
+
                     batch.append(model)
+                    total_fetched += 1
+                    # Optional per-run cap
+                    if Config.DISCORD_MAX_MESSAGES and total_fetched >= Config.DISCORD_MAX_MESSAGES:
+                        logger.warning(f"Reached DISCORD_MAX_MESSAGES cap ({Config.DISCORD_MAX_MESSAGES}). Stopping early.")
+                        break
                     
                     if len(batch) >= Config.DISCORD_BATCH_SIZE:
                         self._save_batch(db, batch)

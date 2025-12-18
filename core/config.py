@@ -21,6 +21,8 @@ class Config:
     DISCORD_BATCH_SIZE = int(os.getenv('DISCORD_BATCH_SIZE', _d_conf.get('batch_size', 100)))
     DISCORD_RATE_LIMIT_DELAY = float(os.getenv('DISCORD_RATE_LIMIT_DELAY', _d_conf.get('rate_limit_delay', 0.75)))
     DAYS_LOOKBACK = int(os.getenv('DAYS_LOOKBACK', 30))
+    # Optional safety cap on total messages fetched in a single run (0 = unlimited)
+    DISCORD_MAX_MESSAGES = int(os.getenv('DISCORD_MAX_MESSAGES', _d_conf.get('max_messages', 0)))
 
     # --- WOM ---
     WOM_API_KEY = os.getenv('WOM_API_KEY')
@@ -34,6 +36,7 @@ class Config:
     WOM_MAX_CONCURRENT = int(os.getenv('WOM_MAX_CONCURRENT', _w_conf.get('max_concurrent', 2)))
     WOM_SHORT_UPDATE_DELAY = os.getenv('WOM_SHORT_UPDATE_DELAY', str(_w_conf.get('short_update_delay', True))).lower() == 'true'
     WOM_DEEP_SCAN = os.getenv('WOM_DEEP_SCAN', 'False').lower() == 'true'
+    WOM_UPDATE_WAIT = int(os.getenv('WOM_UPDATE_WAIT', 10 if WOM_SHORT_UPDATE_DELAY else 300))
     
     # --- Testing ---
     TEST_MODE = os.getenv('WOM_TEST_MODE', 'False').lower() == 'true'

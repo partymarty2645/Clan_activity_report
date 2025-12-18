@@ -45,3 +45,6 @@ test_output.xlsx
 # Editor
 .vscode/
 *.code-workspace
+
+# Next.js
+.next/

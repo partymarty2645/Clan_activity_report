@@ -5,9 +5,13 @@ import traceback
 from logging.handlers import RotatingFileHandler
 
 # Import modules to run
+# Import modules to run
 from harvest import run_harvest
 from report import run_report
 from services.wom import wom_client
+from dashboard_export import export_dashboard_json
+from moderation_analysis import analyze_moderation
+from enforcer_toolkit import run_enforcer_suite
 
 # Setup Logging for Orchestrator
 logging.basicConfig(
@@ -28,12 +32,28 @@ async def main():
     success = False
     try:
         # Step 1: Harvest
-        logger.info(">> STEP 1/2: HARVEST")
+        logger.info(">> STEP 1/4: HARVEST")
         await run_harvest(close_client=False)
         
         # Step 2: Report
-        logger.info(">> STEP 2/2: REPORT")
+        logger.info(">> STEP 2/4: REPORT")
         await run_report(close_client=False) # We close manually at very end
+        
+        # Step 3: Dashboard JSON export (optional visual dashboard)
+        try:
+            logger.info(">> STEP 3/4: DASHBOARD EXPORT")
+            export_dashboard_json()
+        except Exception as e:
+            logger.warning(f"Dashboard export failed (non-fatal): {e}")
+
+        # Step 4: Enforcer Suite
+        try:
+            logger.info(">> STEP 4/4: ENFORCER SUITE")
+            await analyze_moderation(output_file="moderation_report.txt")
+            await run_enforcer_suite()
+            logger.info("   -> Enforcer Reports Generated.")
+        except Exception as e:
+             logger.error(f"Enforcer Suite failed (non-fatal): {e}")
         
         success = True
         logger.info(">> PIPELINE SUCCESS")
@@ -45,9 +65,9 @@ async def main():
         await wom_client.close()
         logger.info("==========================================")
         if hasattr(sys, 'exc_info') and sys.exc_info()[0]:
-             logger.info("       PIPELINE FINISHED WITH ERRORS      ")
+            logger.info("       PIPELINE FINISHED WITH ERRORS      ")
         else:
-             logger.info("       PIPELINE FINISHED                  ")
+            logger.info("       PIPELINE FINISHED                  ")
         logger.info("==========================================")
 
 if __name__ == "__main__":
