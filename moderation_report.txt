@@ -1,0 +1,42 @@
+Fetching Clan Members...
+Fetching Activity Data...
+
+========================================
+      🚨 MODERATION ALERT LIST 🚨
+========================================
+
+[LEADERSHIP SLUMP] - (Tier 1 Inactivity)
+🚨 ll05 (dragonstone)
+🚨 dikke denn (saviour)
+
+[CHURN RISK] - (Fading Stars)
+🚨 stonefaced (146 msgs -> 0 in last 7d)
+🚨 1ynez (485 msgs -> 0 in last 7d)
+🚨 good timer (479 msgs -> 0 in last 7d)
+⚠️ voihiivatti (138 msgs -> 4 in last 7d)
+🚨 speedpeen (213 msgs -> 0 in last 7d)
+⚠️ strixter (106 msgs -> 9 in last 7d)
+⚠️ bounty hunty (136 msgs -> 2 in last 7d)
+⚠️ a shipwreck (2234 msgs -> 3 in last 7d)
+
+[SILENT RECRUITS] - (Active Gameplay, No Chat)
+⚠️ collectbeans (XP: 270,823, Boss: 0, Msgs: 0)
+⚠️ zyfarion (XP: 49,240, Boss: 0, Msgs: 0)
+⚠️ ares 0 6 (XP: 5,268,713, Boss: 0, Msgs: 0)
+⚠️ pyzdushreder (XP: 709,264, Boss: 23, Msgs: 0)
+⚠️ pluwis (XP: 1,221,342, Boss: 1, Msgs: 0)
+⚠️ smackachod3 (XP: 1,227,423, Boss: 0, Msgs: 0)
+⚠️ bashfulnuke (XP: 672,196, Boss: 0, Msgs: 0)
+⚠️ seamore buns (XP: 1,304,711, Boss: 8, Msgs: 0)
+⚠️ jossu115 (XP: 6,614,038, Boss: 0, Msgs: 0)
+⚠️ btgslaughter (XP: 1,075,030, Boss: 0, Msgs: 0)
+⚠️ 99heisman (XP: 1,279,300, Boss: 0, Msgs: 0)
+⚠️ d3r3l3ct (XP: 787,219, Boss: 1, Msgs: 0)
+⚠️ downbad4gp (XP: 663,034, Boss: 0, Msgs: 0)
+⚠️ abdul911 (XP: 2,364,626, Boss: 47, Msgs: 0)
+⚠️ ilfp (XP: 1,385,385, Boss: 8, Msgs: 0)
+⚠️ serkmulat0r (XP: 1,097,475, Boss: 3, Msgs: 0)
+⚠️ wretchedseed (XP: 513,120, Boss: 0, Msgs: 0)
+⚠️ frommedellin (XP: 1,249,549, Boss: 8, Msgs: 0)
+⚠️ beedlebeedle (XP: 1,853,452, Boss: 38, Msgs: 0)
+⚠️ zpen (XP: 1,136,003, Boss: 1, Msgs: 0)

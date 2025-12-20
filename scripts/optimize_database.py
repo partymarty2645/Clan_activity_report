@@ -11,6 +11,7 @@ Author: Agent 6
 import sqlite3
 import time
 import os
+import sys
 from rich.console import Console
 
 console = Console()
@@ -27,6 +28,19 @@ def optimize():
 
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+
+    # 0. INTEGRITY CHECK (Fail fast if corrupt)
+    console.print("[cyan]Phase 0: Verifying Database Integrity...[/cyan]")
+    try:
+        integrity = cursor.execute("PRAGMA integrity_check").fetchone()[0]
+        if integrity != "ok":
+            console.print(f"[bold red]CRITICAL: Database integrity check failed: {integrity}[/bold red]")
+            conn.close()
+            sys.exit(1)
+        console.print("  + Integrity check passed.")
+    except Exception as e:
+        console.print(f"[bold red]CRITICAL: Failed to run integrity check: {e}[/bold red]")
+        sys.exit(1)
 
     # 1. DROP DUPLICATES & OBSOLETE
     # We prioritize the named 'idx_' versions usually, but we'll stick to a clean naming convention.
@@ -79,17 +93,27 @@ def optimize():
     conn.commit()
 
     # 3. VACUUM & ANALYZE
-    console.print("[magenta]Phase 3: Vacuuming & Analyzing (This may take a moment)...[/magenta]")
+    console.print("[magenta]Phase 3: Vacuuming & Analyzing (Low Memory Mode)...[/magenta]")
     start = time.time()
     try:
         # SQLite VACUUM requires no transaction block usually, but python handles it.
-        # We need to turn off auto transaction for VACUUM sometimes or just execute.
         conn.isolation_level = None # Autocommit mode for VACUUM
+        
+        # Low Memory Optimization Settings
+        cursor.execute("PRAGMA cache_size = -2048") # Limit to ~2MB
+        cursor.execute("PRAGMA temp_store = FILE")  # Use disk instead of RAM for temp storage
+        cursor.execute("PRAGMA synchronous = FULL") # Ensure safety
+
         cursor.execute("VACUUM")
         cursor.execute("ANALYZE")
         console.print(f"  - Vacuum Complete in {time.time() - start:.2f}s")
     except Exception as e:
-        console.print(f"  ! Vacuum failed: {e}")
+        if "disk I/O" in str(e):
+            console.print(f"[yellow]WARNING: VACUUM failed (disk I/O error). Skipping compaction to allow pipeline to continue.[/yellow]")
+        else:
+            console.print(f"  ! Vacuum failed: {e}")
+            conn.close()
+            sys.exit(1)
 
     conn.close()
 

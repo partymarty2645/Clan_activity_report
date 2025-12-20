@@ -18,6 +18,10 @@ if errorlevel 1 (
 
 echo Running Weekly Database Optimization Check...
 ".venv\Scripts\python.exe" scripts/optimize_database.py
+if errorlevel 1 (
+    echo WARNING: Database optimization failed. Stopping execution to prevent corruption.
+    goto error
+)
 REM Note: Removed --check-weekly flag if not supported by new script, or ensure script supports it.
 
 echo Running Orchestrator...

@@ -1,0 +1,25 @@
+
+==================================================
+      👮 OFFICER PERFORMANCE AUDIT (30d) 👮
+==================================================
+CLAN AVERAGE: 95.5 msgs | 4,239,712 XP
+CLAN MEDIAN:  7.0 msgs
+--------------------------------------------------
+OFFICER              | ROLE         | MSGS     | XP GAIN         | STATUS
+--------------------------------------------------
+sir gowi             | saviour      | 3245     | 37,463,260      | ✅
+psilocyn             | zenyte       | 1733     | 37,134,626      | ✅
+theforgegod          | saviour      | 1232     | 36,928,072      | ✅
+wonindstink          | saviour      | 993      | 8,154,932       | ✅
+docofmed             | deputy_owner | 891      | 21,735,115      | ✅
+partymarty94         | owner        | 750      | 10,770,811      | ✅
+vanvolter ii         | dragonstone  | 618      | 8,187,690       | ✅
+jbwell               | deputy_owner | 499      | 424,205         | ✅
+jakestl314           | zenyte       | 411      | 6,081,870       | ✅
+mtndck               | deputy_owner | 386      | 1,235,111       | ✅
+netfllxnchll         | saviour      | 254      | 14,409,459      | ✅
+eachitandeye         | saviour      | 226      | 4,111,307       | ✅
+b0otyband1t          | saviour      | 121      | 3,421,606       | ✅
+llo6                 | deputy_owner | 7        | 0               | ⚠️ Slacking
+ll05                 | dragonstone  | 0        | 0               | 🚨 AWOL
+dikke denn           | saviour      | 0        | 0               | 🚨 AWOL

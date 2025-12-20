@@ -95,7 +95,7 @@ if not exist ".env" (
     echo # set to 'true' to only fetch 5 members (fast testing) >> .env
     echo WOM_TEST_MODE=false >> .env
     echo # Number of days to scan Discord history back (Default 30) >> .env
-    echo DAYS_LOOKBACK=30
+    echo DAYS_LOOKBACK=30 >> .env
     echo. >> .env
     echo [WARN] A new .env file was created. You MUST edit it with your keys!
 ) else (
