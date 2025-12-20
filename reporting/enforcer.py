@@ -1,4 +1,10 @@
 import asyncio
+import sys
+import os
+
+# Adjust path to allow imports from root when run as script
+sys.path.append(os.getcwd())
+
 import argparse
 import logging
 from datetime import datetime, timedelta, timezone

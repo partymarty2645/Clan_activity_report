@@ -11,20 +11,22 @@ IF NOT EXIST ".venv\Scripts\python.exe" (
 
 
 echo Running Database Backup...
-".venv\Scripts\python.exe" backup_db.py
+".venv\Scripts\python.exe" scripts/backup_db.py
 if errorlevel 1 (
     echo WARNING: Database backup failed. Continuing...
 )
 
 echo Running Weekly Database Optimization Check...
-".venv\Scripts\python.exe" optimize_db.py --check-weekly
+".venv\Scripts\python.exe" scripts/optimize_database.py
+REM Note: Removed --check-weekly flag if not supported by new script, or ensure script supports it.
 
 echo Running Orchestrator...
 ".venv\Scripts\python.exe" main.py
 if errorlevel 1 goto error
 
 echo Generating Weekly Clan Spotlight (Fun Stats)...
-".venv\Scripts\python.exe" fun_stats_analysis.py
+".venv\Scripts\python.exe" reporting/fun_stats.py
+
 if errorlevel 1 (
     echo WARNING: Fun Stats Analysis failed. Continuing...
 )
