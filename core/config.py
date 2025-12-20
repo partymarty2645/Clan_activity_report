@@ -20,7 +20,7 @@ class Config:
     _d_conf = _yaml_config.get('discord', {})
     DISCORD_BATCH_SIZE = int(os.getenv('DISCORD_BATCH_SIZE', _d_conf.get('batch_size', 100)))
     DISCORD_RATE_LIMIT_DELAY = float(os.getenv('DISCORD_RATE_LIMIT_DELAY', _d_conf.get('rate_limit_delay', 0.75)))
-    DAYS_LOOKBACK = int(os.getenv('DAYS_LOOKBACK', 30))
+    DAYS_LOOKBACK = int(os.getenv('DAYS_LOOKBACK', 400)) # Increased to >1 Year for Yearly Stats
     # Optional safety cap on total messages fetched in a single run (0 = unlimited)
     DISCORD_MAX_MESSAGES = int(os.getenv('DISCORD_MAX_MESSAGES', _d_conf.get('max_messages', 0)))
 

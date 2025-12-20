@@ -10,15 +10,15 @@ from harvest import run_harvest
 from report import run_report
 from services.wom import wom_client
 from dashboard_export import export_dashboard_json
-from moderation_analysis import analyze_moderation
-from enforcer_toolkit import run_enforcer_suite
+from reporting.moderation import analyze_moderation
+from reporting.enforcer import run_enforcer_suite
 
 # Setup Logging for Orchestrator
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
     handlers=[
-        RotatingFileHandler("app.log", maxBytes=5*1024*1024, backupCount=5, encoding='utf-8'),
+        RotatingFileHandler("app.log", maxBytes=5*1024*1024, backupCount=2, encoding='utf-8'),
         logging.StreamHandler(sys.stdout)
     ]
 )

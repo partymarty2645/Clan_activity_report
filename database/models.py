@@ -41,12 +41,20 @@ class WOMSnapshot(Base):
     ehb = Column(Float)
     raw_data = Column(Text)
 
+class ClanMember(Base):
+    __tablename__ = 'clan_members'
+
+    username = Column(String, primary_key=True)
+    role = Column(String)
+    joined_at = Column(DateTime)
+    last_updated = Column(DateTime)
+
 class SkillSnapshot(Base):
     __tablename__ = 'skill_snapshots'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     snapshot_id = Column(Integer, index=True) # Foreign Key relationship handled manually or via simple join for speed
-    skill_name = Column(String)
+    skill_name = Column(String, index=True)
     xp = Column(Integer)
     level = Column(Integer)
     rank = Column(Integer)
@@ -56,6 +64,6 @@ class BossSnapshot(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     snapshot_id = Column(Integer, index=True)
-    boss_name = Column(String)
+    boss_name = Column(String, index=True)
     kills = Column(Integer)
     rank = Column(Integer)

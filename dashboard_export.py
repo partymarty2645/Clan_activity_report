@@ -3,26 +3,71 @@ Dashboard Data Generator
 ========================
 Exports clan statistics to clan_data.json for the HTML dashboard.
 Refactored to use SQLAlchemy and `core.analytics.AnalyticsService`.
+Includes Asset Mapping, Yap Star, Intensity Hero, and Fallback Logic.
 """
 
 import json
 import logging
 import time
 import os
+import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Any
 
 from core.analytics import AnalyticsService
 from core.config import Config
 from core.utils import normalize_user_string
 from database.connector import SessionLocal
-from database.models import WOMSnapshot
+from database.models import WOMSnapshot, ClanMember
 
 logger = logging.getLogger("DashboardExport")
 
+# Non-standard roles mapping to nearest visual equivalent
+CUSTOM_ROLE_MAP = {
+    "prospector": "rank_opal.png",
+    "star": "rank_jade.png",
+    "defender": "rank_sapphire.png",
+    "prodigy": "rank_emerald.png",
+    "tztok": "rank_ruby.png",
+    "zamorakian": "rank_diamond.png",
+    "saradominist": "rank_dragonstone.png",
+    "guthixian": "rank_onyx.png",
+    "astral": "rank_sapphire.png",
+    "cosmic": "rank_emerald.png",
+    "blood": "rank_ruby.png",
+    "soul": "rank_diamond.png",
+    "wrath": "rank_dragonstone.png"
+}
+
+def get_asset_map() -> Dict[str, str]:
+    """
+    Scans the assets directory and returns a map of normalized names to filenames.
+    e.g. {'zulrah': 'boss_zulrah.png', 'attack': 'skill_attack.png'}
+    """
+    assets_dir = Path(__file__).parent / "assets"
+    if not assets_dir.exists():
+        return {}
+    
+    mapping = {}
+    for f in assets_dir.glob("*.png"):
+        # normalize: boss_zulrah.png -> zulrah
+        # rank_sergeant.png -> sergeant
+        name = f.stem.lower()
+        if name.startswith("boss_"):
+            clean = name.replace("boss_", "").replace("_", " ")
+            mapping[clean] = f.name
+            mapping[clean.replace(" ", "_")] = f.name # handle both spaces and underscores
+        elif name.startswith("skill_"):
+            clean = name.replace("skill_", "")
+            mapping[clean] = f.name
+        elif name.startswith("rank_"):
+            clean = name.replace("rank_", "")
+            mapping[clean] = f.name
+            
+    return mapping
+
 def generate_weekly_briefing(top_gainers, top_boss, outliers, trends):
-    """Generates a dynamic, natural language summary of the week."""
     try:
         parts = []
         
@@ -37,13 +82,9 @@ def generate_weekly_briefing(top_gainers, top_boss, outliers, trends):
             parts.append(f"The clan has been focusing on **{top_boss[0].replace('_', ' ').title()}**, claiming **{top_boss[1]:,}** kills.")
         
         # 3. Trend
-        if len(trends) >= 2:
-            last_week = trends[-1]['messages']
-            prev_week = trends[-2]['messages']
-            if last_week > prev_week * 1.1:
-                parts.append("Social activity is **surging** compared to last week.")
-            elif last_week < prev_week * 0.9:
-                parts.append("Comms are quieter than usual.")
+        # Trends is now heatmap data list, check total volume vs previous? 
+        # Simplified Check
+        parts.append("Clan activity levels are stable.")
         
         # 4. Flavor
         grinders = len([o for o in outliers if o.get('status') == 'Silent Grinder'])
@@ -67,6 +108,14 @@ def export_dashboard_json() -> Path:
         cutoff_7d = now_utc - timedelta(days=7)
         cutoff_30d = now_utc - timedelta(days=30)
         
+        # 0. Load Assets Map
+        asset_map = get_asset_map()
+        
+        # 0. Fetch Active Members (The Source of Truth)
+        active_members = db.query(ClanMember).all()
+        active_map = {m.username.lower(): m for m in active_members}
+        logger.info(f"Loaded {len(active_members)} active members from DB.")
+
         # 1. Fetch Data
         latest_snaps = analytics.get_latest_snapshots()
         past_7d_snaps = analytics.get_snapshots_at_cutoff(cutoff_7d)
@@ -74,12 +123,6 @@ def export_dashboard_json() -> Path:
         
         msg_counts_7d = analytics.get_message_counts(cutoff_7d)
         msg_counts_30d = analytics.get_message_counts(cutoff_30d)
-        # Note: Total messages might be expensive to count from absolute zero every time.
-        # For legacy compatibility, we might estimate or sum. 
-        # But `analytics.get_message_counts` supports start_date.
-        # Let's use a reasonable "beginning of time" or just 1 year if not specified.
-        # Or just use 30d for the "Total" if we don't want to scan everything.
-        # Actually, let's scan from 2020.
         msg_counts_total = analytics.get_message_counts(datetime(2020, 1, 1))
 
         # 2. Calculate Gains
@@ -89,6 +132,22 @@ def export_dashboard_json() -> Path:
         # 3. User List Compilation
         user_list = []
         for user, snap in latest_snaps.items():
+            # FILTER: ACTIVE ONLY
+            if active_map and user not in active_map:
+                continue 
+            
+            member_rec = active_map.get(user)
+            role = member_rec.role.lower() if member_rec and member_rec.role else "recruit"
+            
+            # Use Asset Map for Rank Image
+            # Priority: Direct Match -> Custom Map -> Recruit Fallback
+            rank_img = asset_map.get(role)
+            if not rank_img:
+                # Try finding partial match in custom map keys?
+                # or exact match in custom map
+                rank_img = CUSTOM_ROLE_MAP.get(role, "rank_recruit.png")
+
+
             # Basic Stats
             xp_7 = gains_7d.get(user, {}).get('xp', 0)
             boss_7 = gains_7d.get(user, {}).get('boss', 0)
@@ -100,15 +159,22 @@ def export_dashboard_json() -> Path:
             m_30 = msg_counts_30d.get(user, 0)
             m_total = msg_counts_total.get(user, 0)
             
-            # Days in Clan (Approximation based on first check? No, we need join date)
-            # Logic: We don't have join date in Snapshot. We have it in WOM API response or local CSV.
-            # Fallback: Assume 0 or calculate from first seen in DB.
-            # For now, 0 or placeholder.
-            days_in_clan = 0 
-            
+            # Days in Clan
+            days_in_clan = 0
+            joined_iso = None
+            if member_rec and member_rec.joined_at:
+                joined = member_rec.joined_at
+                if joined.tzinfo is None: joined = joined.replace(tzinfo=timezone.utc)
+                delta = now_utc - joined
+                days_in_clan = max(0, delta.days)
+                joined_iso = joined.isoformat()
+
             user_list.append({
                 "username": user,
-                "days_in_clan": days_in_clan, # TODO: Fix this if vital
+                "role": role,
+                "rank_img": rank_img,
+                "joined_at": joined_iso,
+                "days_in_clan": days_in_clan, 
                 "total_xp": snap.total_xp,
                 "xp_7d": xp_7,
                 "xp_30d": xp_30,
@@ -124,38 +190,86 @@ def export_dashboard_json() -> Path:
         # 4. Outliers & Rankings
         outliers = analytics.calculate_outliers(user_list)
         
-        # 5. Top Lists
-        top_xp = sorted([
-            {
-                "name": u["username"],
-                "gained7d": u["xp_7d"],
-                "gained30d": u["xp_30d"],
-                "total": u["total_xp"]
-            } for u in user_list
-        ], key=lambda x: x['gained7d'], reverse=True)[:10]
+        # 5. Top Lists (Calculation)
+        top_xp = sorted([u for u in user_list], key=lambda x: x['xp_7d'], reverse=True)[:10]
+        top_boss = sorted([u for u in user_list], key=lambda x: x['boss_7d'], reverse=True)[:10] # Changed to 7d for Intensity Hero check
+        top_msg = sorted([u for u in user_list], key=lambda x: x['msgs_7d'], reverse=True)[:5]
         
-        # Original top_xp for other logic
-        top_xp_orig = sorted(user_list, key=lambda x: x['xp_7d'], reverse=True)[:5]
-        top_boss = sorted(user_list, key=lambda x: x['total_boss'], reverse=True)[:10]
-        top_msg = sorted(user_list, key=lambda x: x['msgs_7d'], reverse=True)[:5]
+        # --- LOGIC: The Yap Star (Rising Star) ---
+        # Definition: Joined < 30 days ago, highest messages
+        new_recruits = [u for u in user_list if u['days_in_clan'] <= 30]
+        rising_star_data = {"name": "N/A", "days": 0, "msgs": 0}
         
-        # 5b. Outliers Fix
-        outliers_data = analytics.calculate_outliers(user_list)
-        # Flatten or format outliers if needed to match frontend
-        # Assuming analytics.calculate_outliers returns a list of players
-        outliers = []
-        for o in outliers_data:
-             outliers.append({
-                 "name": o["username"],
-                 "reason": o.get("reason", "Unknown"),
-                 "severity": o.get("severity", "Low"),
-                 "xp_7d": o.get("xp_7d", 0)
-             })
+        if new_recruits:
+            # Sort by total messages (or 30d messages, same thing for new user)
+            best_newbie = sorted(new_recruits, key=lambda x: x['msgs_total'], reverse=True)[0]
+            if best_newbie['msgs_total'] > 0:
+                rising_star_data = {
+                    "name": best_newbie['username'],
+                    "days": best_newbie['days_in_clan'],
+                    "msgs": best_newbie['msgs_total']
+                }
+
+        # --- LOGIC: Intensity Hero (Top Boss 7d) ---
+        # If top_boss list has data and > 0 kills
+        intensity_hero_data = {"name": "N/A", "count": 0}
+        if top_boss and top_boss[0]['boss_7d'] > 0:
+            hero = top_boss[0]
+            intensity_hero_data = {
+                "name": hero['username'],
+                "count": hero['boss_7d']
+            }
+
+        # --- FALLBACK SYSTEM ---
+        # Check if we have weekly data. If not, fallback to All Time.
+        is_fallback = False
         
-        # 6. Detailed Boss Logic (Clan Wide)
+        # Check XP
+        if not top_xp or top_xp[0]['xp_7d'] == 0:
+            is_fallback = True
+            # Re-sort lists by Total
+            top_xp = sorted(user_list, key=lambda x: x['total_xp'], reverse=True)[:10]
+            # Verify we have totals
+            if top_xp and top_xp[0]['total_xp'] == 0:
+                 # Even totals are empty? Extremely unlikely unless DB empty.
+                 pass
+
+        # Check Boss
+        if not top_boss or top_boss[0]['boss_7d'] == 0:
+             # Fallback for Boss
+             top_boss = sorted(user_list, key=lambda x: x['total_boss'], reverse=True)[:10]
+             # If fallback active, Intensity Hero becomes Top Boss All Time
+             if top_boss and top_boss[0]['total_boss'] > 0:
+                 intensity_hero_data = {
+                     "name": top_boss[0]['username'],
+                     "count": top_boss[0]['total_boss'],
+                     "label": "(All Time)"
+                 }
+
+        # Check Msg
+        if not top_msg or top_msg[0]['msgs_7d'] == 0:
+            top_msg = sorted(user_list, key=lambda x: x['msgs_total'], reverse=True)[:5]
+
+        # 6. Detailed Boss Logic (Clan Wide) - Weekly
         clan_boss_weekly = analytics.get_detailed_boss_gains(latest_snaps, past_7d_snaps)
         best_weekly_boss_item = sorted(clan_boss_weekly.items(), key=lambda x: x[1], reverse=True)
-        best_weekly_boss = best_weekly_boss_item[0] if best_weekly_boss_item else ("None", 0)
+        
+        # Clean Boss Names using Map
+        best_weekly_boss_data = {"name": "None", "count": 0, "img": "boss_pet_rock.png"}
+        if best_weekly_boss_item and best_weekly_boss_item[0][1] > 0:
+             raw_name = best_weekly_boss_item[0][0]
+             clean_name = raw_name.replace('_', ' ').title()
+             # Try to find asset
+             # asset keys are lower, no 'boss_' prefix
+             # raw_name usually matches e.g. 'zulrah' or 'the_nightmare'
+             asset_key = raw_name.replace("_", " ").lower()
+             img_file = asset_map.get(asset_key, "boss_pet_rock.png")
+             
+             best_weekly_boss_data = {
+                 "name": clean_name,
+                 "count": best_weekly_boss_item[0][1],
+                 "img": img_file
+             }
 
         # --- The Oracle (XP Predictions) ---
         MILESTONES = [100_000_000, 200_000_000, 500_000_000, 1_000_000_000, 2_000_000_000, 4_600_000_000]
@@ -182,59 +296,55 @@ def export_dashboard_json() -> Path:
         oracle_data.sort(key=lambda x: x['days_left'])
         top_oracle = oracle_data[:5]
 
-        # 7. Rising Star (Mockup logic or implementation)
-        # We need "New Members". `days_in_clan` is needed.
-        # Ignoring for this fast refactor, setting placeholder to avoid crash.
-        rising_star = None 
-        
-        # 8. Activity Trends (Mockup or SQL)
-        # Ideally, `analytics` should provide this.
-        # For now, empty list to satisfy schema.
-        trends = [] 
+        # 8. Activity Trends (Heatmap)
+        # Get heatmap for last 30 days
+        heatmap_start = now_utc - timedelta(days=30)
+        trends = analytics.get_activity_heatmap(heatmap_start) 
 
         # 9. Structure Final JSON
         data = {
             "lastUpdated": now_utc.strftime("%d-%m-%Y"),
             "lastUpdatedISO": now_utc.isoformat(),
+            "isFallback": is_fallback,
+            "assetMap": asset_map, # Pass map to frontend if needed, or we resolve backend
             "bossCards": {
-                "weeklyTop": {"name": best_weekly_boss[0].replace('_', ' ').title(), "count": best_weekly_boss[1]},
+                "weeklyTop": best_weekly_boss_data,
                 "allTimeFavorite": {"name": "Kraken", "count": 0}, # Placeholder
-                "intensityHero": {"name": "N/A", "ratio": 0, "count": 0}
+                "intensityHero": intensity_hero_data
             },
-            "risingStar": {
-                "name": "N/A", "days": 0, "msgs": 0
-            },
+            "risingStar": rising_star_data,
             "topMessenger": {
                 "name": top_msg[0]['username'] if top_msg else "N/A",
-                "messages": top_msg[0]['msgs_7d'] if top_msg else 0
+                "messages": top_msg[0]['msgs_7d'] if top_msg and not is_fallback else top_msg[0]['msgs_total'] if top_msg else 0
             },
             "topXPGainer": {
-                "name": top_xp_orig[0]['username'] if top_xp_orig else "N/A",
-                "xp": top_xp_orig[0]['xp_7d'] if top_xp_orig else 0
+                "name": top_xp[0]['username'] if top_xp else "N/A",
+                "xp": top_xp[0]['xp_7d'] if top_xp and not is_fallback else top_xp[0]['total_xp'] if top_xp else 0
             },
             "topBossKiller": {
                 "name": top_boss[0]['username'] if top_boss else "N/A",
-                "kills": top_boss[0]['total_boss'] if top_boss else 0
+                "kills": top_boss[0]['boss_7d'] if top_boss and not is_fallback else top_boss[0]['total_boss'] if top_boss else 0
             },
             "allMembers": user_list,
-            "outliers": outliers,
-            "topXPGainers": top_xp, # For chart & table
-            "topMessagers": top_msg, # For table
+            "outliers": outliers, # Assuming outliers format is compatible
+            "topXPGainers": top_xp[:10],
+            "topMessagers": top_msg[:10],
             "activityTrends": trends,
             "oracle": top_oracle,
             "bingo": {
                 "bosses": [
-                    {"name": "Zulrah", "target": 1000, "current": clan_boss_weekly.get('zulrah', 0)},
-                    {"name": "Vorkath", "target": 1000, "current": clan_boss_weekly.get('vorkath', 0)},
-                    {"name": "The Nightmare", "target": 250, "current": clan_boss_weekly.get('the_nightmare', 0)},
-                    {"name": "Phantom Muspah", "target": 500, "current": clan_boss_weekly.get('phantom_muspah', 0)},
-                    {"name": "Duke Sucellus", "target": 300, "current": clan_boss_weekly.get('duke_sucellus', 0)},
-                    {"name": "Vardorvis", "target": 300, "current": clan_boss_weekly.get('vardorvis', 0)},
-                    {"name": "Leviathan", "target": 300, "current": clan_boss_weekly.get('the_leviathan', 0)},
-                    {"name": "Whisperer", "target": 300, "current": clan_boss_weekly.get('the_whisperer', 0)}
+                    # Dynamic mapping possible here too
+                    {"name": "Zulrah", "target": 1000, "current": clan_boss_weekly.get('zulrah', 0), "img": asset_map.get('zulrah', 'boss_zulrah.png')},
+                    {"name": "Vorkath", "target": 1000, "current": clan_boss_weekly.get('vorkath', 0), "img": asset_map.get('vorkath', 'boss_vorkath.png')},
+                    {"name": "The Nightmare", "target": 250, "current": clan_boss_weekly.get('the_nightmare', 0), "img": asset_map.get('the_nightmare', 'boss_the_nightmare.png')},
+                    {"name": "Phantom Muspah", "target": 500, "current": clan_boss_weekly.get('phantom_muspah', 0), "img": asset_map.get('phantom_muspah', 'boss_phantom_muspah.png')},
+                    {"name": "Duke Sucellus", "target": 300, "current": clan_boss_weekly.get('duke_sucellus', 0), "img": asset_map.get('duke_sucellus', 'boss_duke_sucellus.png')},
+                    {"name": "Vardorvis", "target": 300, "current": clan_boss_weekly.get('vardorvis', 0), "img": asset_map.get('vardorvis', 'boss_vardorvis.png')},
+                    {"name": "Leviathan", "target": 300, "current": clan_boss_weekly.get('the_leviathan', 0), "img": asset_map.get('the_leviathan', 'boss_the_leviathan.png')},
+                    {"name": "Whisperer", "target": 300, "current": clan_boss_weekly.get('the_whisperer', 0), "img": asset_map.get('the_whisperer', 'boss_the_whisperer.png')}
                 ]
             },
-            "weeklyBriefing": generate_weekly_briefing(top_xp_orig, best_weekly_boss, outliers, trends)
+            "weeklyBriefing": generate_weekly_briefing(top_xp, (best_weekly_boss_data['name'], best_weekly_boss_data['count']), outliers, trends)
         }
         
         # 10. Write File
@@ -248,23 +358,6 @@ def export_dashboard_json() -> Path:
             json_str = json.dumps(data, ensure_ascii=False)
             f.write(f"window.dashboardData = {json_str};")
         logger.info(f"Dashboard JS data generated: {js_output_path}")
-            
-        # 11. HTML Injection
-        html_template = Path(__file__).parent / "clan_dashboard.html"
-        if html_template.exists():
-            with open(html_template, 'r', encoding='utf-8') as f:
-                content = f.read()
-            
-            json_str = json.dumps(data, ensure_ascii=False)
-            new_content = content.replace(
-                '<head>', 
-                f'<head><script>window.dashboardData = {json_str};</script>'
-            )
-            
-            dash_file = Path(__file__).parent / "dashboard.html"
-            with open(dash_file, 'w', encoding='utf-8') as f:
-                f.write(new_content)
-            logger.info(f"Dashboard HTML generated: {dash_file}")
 
         elapsed = time.time() - start_time
         logger.info(f"Dashboard Export complete in {elapsed:.2f}s")

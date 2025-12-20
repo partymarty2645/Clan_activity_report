@@ -163,6 +163,38 @@ class AnalyticsService:
                 
         return gains
 
+    def get_activity_heatmap(self, start_date: datetime) -> List[Dict[str, int]]:
+        """
+        Returns message volume by DayOfWeek and Hour for heatmap.
+        Uses SQLite strftime function.
+        Returns: [{'day': 0-6, 'hour': 0-23, 'value': count}, ...]
+        """
+        # SQLite strftime: %w = Day of week 0-6 (Sunday=0), %H = Hour 00-23
+        stmt = (
+            select(
+                func.strftime('%w', DiscordMessage.created_at).label("dow"),
+                func.strftime('%H', DiscordMessage.created_at).label("hour"),
+                func.count(DiscordMessage.id).label("count")
+            )
+            .where(DiscordMessage.created_at >= start_date)
+            .group_by("dow", "hour")
+        )
+        
+        results = self.db.execute(stmt).all()
+        
+        data = []
+        for row in results:
+            try:
+                data.append({
+                    "day": int(row.dow),
+                    "hour": int(row.hour),
+                    "value": row.count
+                })
+            except (ValueError, TypeError):
+                continue
+                
+        return data
+
     def calculate_outliers(self, stats_list: List[Dict]) -> List[Dict]:
         """
         Analyzes stats for Outliers.

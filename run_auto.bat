@@ -10,6 +10,12 @@ IF NOT EXIST ".venv\Scripts\python.exe" (
 )
 
 
+echo Running Database Backup...
+".venv\Scripts\python.exe" backup_db.py
+if errorlevel 1 (
+    echo WARNING: Database backup failed. Continuing...
+)
+
 echo Running Weekly Database Optimization Check...
 ".venv\Scripts\python.exe" optimize_db.py --check-weekly
 
