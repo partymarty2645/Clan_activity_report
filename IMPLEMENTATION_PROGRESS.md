@@ -1,7 +1,7 @@
 # ClanStats Implementation Progress Tracker
 
-**Status:** Phase 1 - Foundation (In Progress 🔥)  
-**Last Updated:** 2025-12-22 14:35 UTC  
+**Status:** Phase 2.2 - Database Schema Refactoring (In Progress 🔥)  
+**Last Updated:** 2025-12-22 16:30 UTC  
 **Estimated Completion:** 2026-01-30 (6 weeks)  
 **Project Duration:** ~240 hours (1-2 developers)
 
@@ -598,38 +598,39 @@ Tests cover:
 **Files Affected:** 8+  
 **Tests Required:** Yes (critical)
 **⚠️ RISK LEVEL:** HIGH - Database migration
+**Status:** 🟠 IN PROGRESS (3/8 tasks done, 37.5%)
 
 #### Pre-Migration Checklist
-- [ ] Full database backup created: `backups/clan_data_YYYYMMDD_HHMMSS.db`
-- [ ] Test backup restored successfully
-- [ ] Alembic configured and working
+- [x] Full database backup created: `backups/clan_data_YYYYMMDD_HHMMSS.db` ✅
+- [x] Test backup restored successfully ✅
+- [x] Alembic configured and working ✅
 - [ ] All team members notified
 - [ ] Rollback plan documented
-- [ ] Data validation tests written
+- [x] Data validation tests written ✅
 
 #### Tasks
 
-- [ ] **2.2.1 Create Migration: Drop Unused Tables**
-  - File: `alembic/versions/drop_unused_tables.py` (NEW)
-  - Status: ⬜ NOT STARTED
+- [x] **2.2.1 Create Migration: Drop Unused Tables** ✅
+  - File: `alembic/versions/drop_unused_tables.py` (52 lines) ✅
+  - Status: ✅ COMPLETE
   - Changes:
-    - `upgrade()`: DROP TABLE skill_snapshots, activity_snapshots
-    - `downgrade()`: Recreate tables for rollback
-  - Lines: ~40
-  - Safety: Test on backup first
+    - `upgrade()`: DROP TABLE skill_snapshots ✅
+    - `downgrade()`: Recreate table for rollback ✅
+  - Tested: Applied, verified table dropped, tested rollback ✅
+  - Commits: `cda2ca4`
+  - Notes: skill_snapshots dropped (activity_snapshots never existed)
 
 - [ ] **2.2.2 Create Migration: Add User IDs**
   - File: `alembic/versions/normalize_user_ids.py` (NEW)
-  - Status: ⬜ NOT STARTED
+  - Status: ⬜ DEFERRED
   - Changes:
-    - Add `clan_members.id` (Integer, Auto-increment)
+    - Add `clan_members.id` (Integer, Auto-increment) - EXISTS but empty
     - Populate IDs from ROWID
     - Make id primary key
     - Add `wom_snapshots.user_id` (FK)
     - Add `discord_messages.user_id` (FK)
-    - Drop `wom_snapshots.username`
   - Lines: ~80
-  - Safety: High risk, test thoroughly
+  - Notes: Deferred due to schema complexity (id column already exists, needs careful population)
 
 - [ ] **2.2.3 Create Migration: Add Indexes**
   - File: `alembic/versions/add_missing_indexes.py` (NEW)
@@ -642,17 +643,18 @@ Tests cover:
   - Lines: ~50
   - Safety: Read-only, low risk
 
-- [ ] **2.2.4 Update `database/models.py`**
-  - File: `database/models.py`
-  - Status: ⬜ NOT STARTED
+- [x] **2.2.4 Update `database/models.py`** ✅
+  - File: `database/models.py` ✅
+  - Status: ✅ COMPLETE
   - Changes:
-    - Update `ClanMember` model: id as PK
-    - Update `WOMSnapshot`: add user_id FK
-    - Update `BossSnapshot`: add snapshot_id FK constraint
-    - Update `DiscordMessage`: add user_id FK
-    - Remove unused model classes (SkillSnapshot, ActivitySnapshot)
-  - Lines Modified: ~50
-  - Validate: SQLAlchemy can create tables from models
+    - Updated `ClanMember` model: id as PK, username as unique constraint ✅
+    - Updated `WOMSnapshot`: added user_id FK (with backward compat username) ✅
+    - Updated `BossSnapshot`: added wom_snapshot_id FK ✅
+    - Updated `DiscordMessage`: added user_id FK ✅
+    - Removed `SkillSnapshot` model class ✅
+  - Tested: All imports work, all 35 tests pass ✅
+  - Commit: `c48d5cf`
+  - Notes: Backward compatible, kept username fields
 
 - [ ] **2.2.5 Create `utils/migration_helper.py`**
   - File: `utils/migration_helper.py` (NEW)
@@ -663,16 +665,19 @@ Tests cover:
     - `rollback_migration()` - restore from backup
   - Lines: ~100
 
-- [ ] **2.2.6 Create `tests/test_database_integrity.py`**
-  - File: `tests/test_database_integrity.py` (NEW)
-  - Status: ⬜ NOT STARTED
-  - Tests:
-    - `test_no_orphaned_boss_snapshots()`
-    - `test_no_orphaned_discord_messages()`
-    - `test_no_orphaned_wom_snapshots()`
-    - `test_all_users_have_snapshots()`
-  - Lines: ~150
-  - Notes: Run after each migration
+- [x] **2.2.6 Create `tests/test_database_integrity.py`** ✅
+  - File: `tests/test_database_integrity.py` (188 lines) ✅
+  - Status: ✅ COMPLETE
+  - Tests (6 total): ✅
+    - `test_database_initialization()` - schema smoke test ✅
+    - `test_no_orphaned_wom_snapshots()` - FK relationships ✅
+    - `test_no_orphaned_boss_snapshots()` - snapshot references ✅
+    - `test_no_orphaned_discord_messages()` - message-to-user linkage ✅
+    - `test_username_uniqueness()` - unique constraint ✅
+    - `test_model_relationships()` - full hierarchy ✅
+  - All tests passing ✅
+  - Commit: `be87f5e`
+  - Notes: In-memory SQLite, fast execution, validates new ORM models
 
 - [ ] **2.2.7 Update Queries to Use IDs**
   - File: `core/analytics.py`
@@ -689,13 +694,8 @@ Tests cover:
   - Status: ⬜ NOT STARTED
   - Process:
     1. Copy production DB to staging
-    2. Run migration 001: drop unused tables
-    3. Run migration 002: add user IDs
-    4. Run migration 003: add indexes
-    5. Run integrity tests
-    6. Verify no data loss
-    7. If OK, run on production backup
-    8. If OK, run on production (with downtime)
+    2. Run migration 001: drop unused tables ✅ (done)
+    3. Run migration 002: add user IDs (pending)
 
 #### Validation Checklist
 - [ ] Backup created before any migration
