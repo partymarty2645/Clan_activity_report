@@ -367,8 +367,8 @@ def run_export():
          for k in msg_stats_total.keys():
              if 'gowi' in k: print(f" - '{k}'")
     
-    # 4. Asset Map
-    asset_map = load_assets_map()
+    # 4. Asset Map (deprecated)
+    # asset_map = load_assets_map() - removed, not used in output_data
     
     output_data = {
         "generated_at": datetime.datetime.now().isoformat(),
@@ -456,7 +456,7 @@ def run_export():
                 best_all_time = max(valid_bosses, key=valid_bosses.get)
                 fav_boss_all_time_name = best_all_time.replace('_', ' ').title()
                 key_at = best_all_time.lower().replace(' ', '_')
-                if key_at in asset_map: fav_boss_all_time_img = asset_map[key_at]
+                # asset_map removed (deprecated, using fallback logic)
                 if 'vorkath' in key_at: fav_boss_all_time_img = 'boss_vorkath.png'
                 if 'zulrah' in key_at: fav_boss_all_time_img = 'boss_zulrah.png'
 
@@ -478,7 +478,7 @@ def run_export():
             if max_delta_30 > 0:
                 fav_boss_name = best_boss_30.replace('_', ' ').title()
                 key_30 = best_boss_30.lower().replace(' ', '_')
-                if key_30 in asset_map: fav_boss_img = asset_map[key_30]
+                # asset_map removed (deprecated, using fallback logic)
                 if 'vorkath' in key_30: fav_boss_img = 'boss_vorkath.png'
                 if 'zulrah' in key_30: fav_boss_img = 'boss_zulrah.png'
         

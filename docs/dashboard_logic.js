@@ -530,16 +530,23 @@ function renderBossDiversity() {
 
     if (charts.bossDiv) charts.bossDiv.destroy();
 
+    // Generate dynamic colors for N items
+    const generateColors = (count) => {
+        const colors = [];
+        for (let i = 0; i < count; i++) {
+            const hue = (i * 137.508) % 360; // Golden angle approx
+            colors.push(`hsl(${hue}, 70%, 50%)`);
+        }
+        return colors;
+    };
+
     charts.bossDiv = new Chart(ctx, {
         type: 'doughnut',
         data: {
             labels: data.labels,
             datasets: [{
                 data: data.datasets[0].data,
-                backgroundColor: [
-                    '#FFD700', '#00d4ff', '#33FF33', '#FF3333',
-                    '#FF00FF', '#FFA500', '#008080', '#555555'
-                ],
+                backgroundColor: generateColors(data.labels.length),
                 borderWidth: 0
             }]
         },
@@ -547,7 +554,7 @@ function renderBossDiversity() {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { position: 'right', labels: { color: '#ccc', boxWidth: 10 } }
+                legend: { display: false } // Hide legend for "All Bosses" to avoid UI clutter
             }
         }
     });
@@ -632,7 +639,16 @@ function renderBossTrend() {
 
     // Update Name
     const nameEl = document.getElementById('trending-boss-name');
+
+    // Safety Check: hide if no valid chart data
+    if (!data || !data.chart_data || !data.chart_data.datasets || !data.chart_data.datasets[0]) {
+        if (nameEl) nameEl.innerText = "No Trending Data";
+        ctx.style.display = 'none';
+        return;
+    }
+
     if (nameEl) nameEl.innerText = `${data.boss_name} (+${formatNumber(data.total_gain)})`;
+    ctx.style.display = 'block';
 
     if (charts.bossTrend) charts.bossTrend.destroy();
 
@@ -1299,7 +1315,16 @@ function renderLeaderboardChart() {
                 y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
                 x: { grid: { display: false } }
             },
-            plugins: { legend: { display: false } }
+            plugins: {
+                legend: { display: false },
+                title: {
+                    display: true,
+                    text: 'Score = (XP / 10k) + (Boss * 5) + (Msgs * 2)',
+                    color: '#888',
+                    font: { size: 10, style: 'italic' },
+                    padding: { bottom: 10 }
+                }
+            }
         }
     });
 }

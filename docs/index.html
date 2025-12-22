@@ -363,6 +363,38 @@
             z-index: 1;
         }
 
+        /* HEADER BUTTONS */
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .download-btn {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid var(--neon-blue);
+            color: var(--neon-blue);
+            padding: 8px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-family: var(--font-body);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover {
+            background: rgba(0, 212, 255, 0.2);
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .download-btn .icon {
+            font-size: 1.1em;
+        }
+
         .stat-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
@@ -760,8 +792,11 @@
             <div id="general" class="section active">
                 <div class="header">
                     <h1>General</h1>
-                    <div style="text-align: right;">
+                    <div class="header-right">
                         <div class="header-info">Updated: <span id="updated-time">loading...</span></div>
+                        <a href="clan_data.csv" class="download-btn" download>
+                            <span class="icon">📄</span> CSV
+                        </a>
                         <input type="text" class="search-box" id="search-general" placeholder="Search player...">
                     </div>
                 </div>
