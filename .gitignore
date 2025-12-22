@@ -48,3 +48,8 @@ test_output.xlsx
 
 # Next.js
 .next/
+
+# Test artifacts
+.pytest_cache/
+htmlcov/
+reports/
