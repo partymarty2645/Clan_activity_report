@@ -53,3 +53,8 @@ test_output.xlsx
 .pytest_cache/
 htmlcov/
 reports/
+.coverage
+clan_data.json
+clan_data.js
+docs/clan_data.json
+docs/clan_data.js
