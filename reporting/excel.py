@@ -5,6 +5,7 @@ import os
 import xlsxwriter
 from datetime import datetime, timedelta, timezone
 from core.config import Config
+from core.timestamps import TimestampHelper
 from core.utils import get_unique_filename
 from core.performance import timed_operation
 
@@ -29,12 +30,12 @@ class ExcelReporter:
             finally:
                 db.close()
 
-        # 1. Define Dates
-        now_utc = datetime.now(timezone.utc)
-        cutoff_7d = now_utc - timedelta(days=7)
-        cutoff_30d = now_utc - timedelta(days=30)
-        cutoff_90d = now_utc - timedelta(days=90)
-        cutoff_365d = now_utc - timedelta(days=365)
+        # 1. Define Dates (using TimestampHelper for centralized UTC handling)
+        now_utc = TimestampHelper.now_utc()
+        cutoff_7d = TimestampHelper.cutoff_days_ago(7)
+        cutoff_30d = TimestampHelper.cutoff_days_ago(30)
+        cutoff_90d = TimestampHelper.cutoff_days_ago(90)
+        cutoff_365d = TimestampHelper.cutoff_days_ago(365)
         cutoff_lifetime = datetime(2020, 1, 1, tzinfo=timezone.utc)
 
         # 2. Fetch Data (Bulk)

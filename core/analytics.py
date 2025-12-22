@@ -8,6 +8,8 @@ Uses SQLAlchemy models for strict typing and connection pooling.
 Note: This service supports both username-based and ID-based queries.
 Username-based queries work with current schema.
 ID-based queries (get_*_by_id methods) are available once user_id FK populated (Phase 2.2.2).
+
+Timestamps: All methods use UTC internally. Use TimestampHelper for creating cutoff dates.
 """
 import logging
 import json
@@ -18,6 +20,7 @@ from sqlalchemy.orm import Session
 
 from database.models import WOMSnapshot, DiscordMessage, ClanMember
 from core.utils import normalize_user_string
+from core.timestamps import TimestampHelper
 from core.config import Config
 
 logger = logging.getLogger("Analytics")

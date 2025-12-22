@@ -15,6 +15,7 @@ sys.path.append(os.getcwd())
 from reporting.excel import reporter
 from core.config import Config
 from core.usernames import UsernameNormalizer
+from core.timestamps import TimestampHelper
 from data.queries import Queries
 
 # Setup Logging
@@ -213,13 +214,14 @@ def load_metadata(db_path, min_timestamps=None):
             try:
                 min_ts_str = min_timestamps[username]['ts']
                 joined_dt = datetime.datetime.fromisoformat(min_ts_str.replace('Z', '+00:00'))
+                joined_dt = TimestampHelper.to_utc(joined_dt)  # Ensure UTC
             except:
                 pass
         
         # 3. Clamp to Clan Founding Date
         if joined_dt:
-            if joined_dt.tzinfo is None:
-                joined_dt = joined_dt.replace(tzinfo=timezone.utc)
+            joined_dt = TimestampHelper.to_utc(joined_dt)  # Ensure UTC
+            CLAN_FOUNDING_DATE = TimestampHelper.to_utc(datetime.datetime(2025, 2, 14))
             if joined_dt < CLAN_FOUNDING_DATE:
                 joined_dt = CLAN_FOUNDING_DATE
         
