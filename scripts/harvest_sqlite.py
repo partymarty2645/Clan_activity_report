@@ -5,12 +5,14 @@ import json
 import sqlite3
 import datetime
 from datetime import timezone
+from typing import Optional
 
 # Setup path
 sys.path.append(os.getcwd())
 
-from services.wom import wom_client
-from services.discord import discord_service
+from services.wom import wom_client, WOMClient
+from services.discord import discord_service, DiscordFetcher
+from services.factory import ServiceFactory
 from core.config import Config
 from core.usernames import UsernameNormalizer
 from data.queries import Queries
@@ -33,19 +35,23 @@ DB_PATH = "clan_data.db"
 def get_db_connection():
     return sqlite3.connect(DB_PATH)
 
-async def fetch_member_data(username):
+async def fetch_member_data(username, wom=None):
     try:
+        # Use injected WOM client or fall back to global singleton
+        client = wom if wom is not None else wom_client
         # Get details (includes latest snapshot)
-        p = await wom_client.get_player_details(username)
+        p = await client.get_player_details(username)
         return (username, p)
     except Exception as e:
         # print(f"Error fetching {username}: {e}")
         return (username, None)
 
-async def fetch_and_check_staleness(username):
+async def fetch_and_check_staleness(username, wom=None):
     # Wrapper to fetch details, check staleness, and optionally update
     try:
-        p = await wom_client.get_player_details(username)
+        # Use injected WOM client or fall back to global singleton
+        client = wom if wom is not None else wom_client
+        p = await client.get_player_details(username)
         if not p: return (username, None)
         
         # Check staleness
@@ -57,7 +63,7 @@ async def fetch_and_check_staleness(username):
                 # Trigger update
                 print(f"  [Stale] {username} last updated {last_update}. Requesting scan...")
                 try:
-                    await wom_client.update_player(username)
+                    await client.update_player(username)
                     # We could re-fetch, but let's just use current data for now to avoid stalling
                     # The update will happen in background on WOM side usually? 
                     # WOM update is sync or async? It returns new data usually.
@@ -69,7 +75,11 @@ async def fetch_and_check_staleness(username):
     except Exception as e:
         return (username, None)
 
-async def run_sqlite_harvest():
+async def run_sqlite_harvest(wom_client_inject: Optional[WOMClient] = None, discord_service_inject: Optional[DiscordFetcher] = None):
+    # Use injected clients or fall back to factory/globals
+    wom = wom_client_inject if wom_client_inject is not None else wom_client
+    discord = discord_service_inject if discord_service_inject is not None else discord_service
+    
     print(f"Connecting to {DB_PATH} via sqlite3...")
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -115,14 +125,14 @@ async def run_sqlite_harvest():
             print(f"  - Error checking last message: {e}. Defaulting to Founding Date.")
             start_date = datetime.datetime(2025, 2, 14, tzinfo=timezone.utc)
             
-        await discord_service.fetch(start_date=start_date)
+        await discord.fetch(start_date=start_date)
         # print("  [DEBUG] Discord Fetch temporarily disabled for optimization test.")
     except Exception as e:
         print(f"Discord Harvest Failed: {e}")
     
     # 1. Get Members
     print("Fetching Group Members from WOM...")
-    members = await wom_client.get_group_members(Config.WOM_GROUP_ID)
+    members = await wom.get_group_members(Config.WOM_GROUP_ID)
     print(f"Found {len(members)} members.")
     
     # Limit for testing if needed
@@ -224,8 +234,8 @@ async def run_sqlite_harvest():
         except Exception as query_err:
             logger.warning(f"Failed to check existing snapshot for {uname}: {query_err}")
             
-        # If not skipped, add to queue
-        tasks.append(fetch_and_check_staleness(uname))
+        # If not skipped, add to queue (pass injected wom client)
+        tasks.append(fetch_and_check_staleness(uname, wom=wom))
 
     if skipped_count > 0:
         print(f"  [Optimization] Skipped {skipped_count} players (Today's data already exists).")
@@ -327,7 +337,7 @@ async def run_sqlite_harvest():
 
     finally:
         print("DEBUG: Closing WOM Client...")
-        await wom_client.close()
+        await wom.close()
         print("DEBUG: Closing DB Connection...")
         conn.close()
 
