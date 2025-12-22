@@ -15,6 +15,7 @@ from services.discord import discord_service, DiscordFetcher
 from services.factory import ServiceFactory
 from core.config import Config
 from core.usernames import UsernameNormalizer
+from core.timestamps import TimestampHelper
 from data.queries import Queries
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeRemainingColumn
@@ -109,10 +110,12 @@ async def run_sqlite_harvest(wom_client_inject: Optional[WOMClient] = None, disc
                              last_msg_ts += '+00:00'
                          
                          start_date = datetime.datetime.fromisoformat(last_msg_ts)
+                         # Ensure UTC
+                         start_date = TimestampHelper.to_utc(start_date)
                          # Add 1ms to avoid fetching same last message
                          start_date += datetime.timedelta(milliseconds=1)
                          
-                         print(f"  - Found previous messages. Resuming from {start_date}...")
+                         print(f"  - Found previous messages. Resuming from {TimestampHelper.format_for_display(start_date)}...")
                      except:
                          start_date = founding_date
                  else:
@@ -143,7 +146,7 @@ async def run_sqlite_harvest(wom_client_inject: Optional[WOMClient] = None, disc
     active_usernames = []
     rows_to_upsert = []
     
-    ts_now = datetime.datetime.now(timezone.utc)
+    ts_now = TimestampHelper.now_utc()
 
     for m in members:
         # WOM API returns keys like 'username', 'role', 'joinedAt'
@@ -161,6 +164,8 @@ async def run_sqlite_harvest(wom_client_inject: Optional[WOMClient] = None, disc
             try:
                 # Handle ISO format. API usually gives "2023-01-01T12:00:00.000Z"
                 joined_dt = datetime.datetime.fromisoformat(joined_at_str.replace('Z', '+00:00'))
+                # Ensure UTC
+                joined_dt = TimestampHelper.to_utc(joined_dt)
             except Exception as e:
                  print(f"Warning: Could not parse joinedAt '{joined_at_str}' for {raw_name}: {e}")
                  # Fallback? If we fallback to now, key stats might be wrong (Days in clan = 0).

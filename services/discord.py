@@ -3,6 +3,7 @@ import asyncio
 import logging
 from datetime import datetime, timezone, timedelta
 from core.config import Config
+from core.timestamps import TimestampHelper
 from database.connector import SessionLocal
 from database.models import DiscordMessage
 
@@ -85,7 +86,7 @@ class DiscordFetcher:
                         channel_name=msg.channel.name,
                         guild_id=msg.guild.id,
                         guild_name=msg.guild.name,
-                        created_at=msg.created_at
+                        created_at=TimestampHelper.to_utc(msg.created_at)  # Ensure UTC
                     )
                     
                     # Relay Bot Parsing
