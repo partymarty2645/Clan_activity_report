@@ -88,6 +88,14 @@ This is not a suggestion. This is the contract for this project. Every code chan
 - **Example:** `git commit -m "Phase 1.3.1: Issue#3 Username Normalization - Added UsernameNormalizer class"`
 - **Verification:** `git log --oneline` shows clear progression
 
+### Rule 11: NO Automatic Pushes to GitHub
+- **Requirement:** Do NOT push to GitHub automatically
+- **Process:** Create local commits only
+- **Manual Override:** Only user can order GitHub push (after build + testing succeeds)
+- **Reasoning:** Ensures all commits are verified before remote storage
+- **Action:** When user says "push to github" or equivalent, then run `git push origin main`
+- **Default:** Do not push unless explicitly ordered
+
 ---
 
 ## 🎯 Phase-Specific Rules
