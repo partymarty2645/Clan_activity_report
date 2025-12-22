@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boss Kill Distribution</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background-color: #1a1a1a;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            margin-bottom: 10px;
+            font-size: 28px;
+            color: #FFE66D;
+        }
+        
+        .description {
+            color: #aaa;
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .chart-container {
+            background-color: #262626;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .chart-container img {
+            width: 100%;
+            height: auto;
+            border-radius: 4px;
+        }
+        
+        .info-box {
+            background-color: #1e1e1e;
+            border-left: 4px solid #FFE66D;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        
+        .info-box strong {
+            color: #FFE66D;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .stat-card {
+            background-color: #2a2a2a;
+            padding: 12px;
+            border-radius: 4px;
+            border-left: 3px solid #FFE66D;
+        }
+        
+        .stat-card .label {
+            color: #aaa;
+            font-size: 12px;
+        }
+        
+        .stat-card .value {
+            color: #FFE66D;
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚔️ Boss Kill Distribution by Week</h1>
+        <p class="description">
+            Stacked area showing which bosses the clan focused on each week. 
+            Useful for identifying seasonal grinding patterns and PvM meta shifts.
+        </p>
+        
+        <div class="chart-container">
+            <img src="https://mdn.alipayobjects.com/one_clip/afts/img/XjYRT5pFQwcAAAAASWAAAAgAoEACAQFr/original" alt="Boss Kill Distribution">
+            
+            <div class="info-box">
+                <strong>🎯 Key Observations:</strong><br>
+                • <strong>Week 1-2:</strong> Heavy Kraken focus (easy money, good for new players)<br>
+                • <strong>Week 3:</strong> Shift toward Zulrah (increased difficulty, better loot)<br>
+                • <strong>Week 4:</strong> Balanced approach with all bosses represented<br>
+                • Theatre of Blood remains niche (requires high gear/skill)<br>
+                • Total kills trending upward = clan improving and farming more
+            </div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="label">Total Kraken Kills</div>
+                    <div class="value">989</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Total Zulrah Kills</div>
+                    <div class="value">915</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Total Vorkath Kills</div>
+                    <div class="value">570</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Theatre of Blood Kills</div>
+                    <div class="value">230</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

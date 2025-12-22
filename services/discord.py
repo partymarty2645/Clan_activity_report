@@ -79,7 +79,7 @@ class DiscordFetcher:
                     model = DiscordMessage(
                         id=msg.id,
                         author_id=msg.author.id,
-                        author_name=str(msg.author),
+                        author_name=msg.author.display_name, # Use Server Nickname (matches RSN better)
                         content=msg.content,
                         channel_id=msg.channel.id,
                         channel_name=msg.channel.name,
@@ -117,7 +117,7 @@ class DiscordFetcher:
                 db.merge(msg) 
             db.commit()
             logger.info(f"Saved {len(batch)} messages.")
-            self.fetched_messages.extend(batch)
+            # self.fetched_messages.extend(batch) # optimization: don't hold in memory
         except Exception as e:
             logger.error(f"DB Error: {e}")
             db.rollback()
@@ -174,4 +174,3 @@ class DiscordFetcher:
 
 discord_service = DiscordFetcher()
 
-discord_service = DiscordFetcher()

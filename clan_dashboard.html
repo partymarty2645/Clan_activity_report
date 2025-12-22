@@ -14,30 +14,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <script src="clan_data.js"></script>
-    <script>
-        console.log("Checking for dashboardData...");
-        try {
-            if (typeof window.dashboardData !== 'undefined') {
-                console.log("SUCCESS: dashboardData loaded via clan_data.js", window.dashboardData);
-            } else {
-                console.error("FAILURE: window.dashboardData is undefined!");
-            }
-        } catch (e) {
-            console.error("CRITICAL: Error check data load", e);
-        }
-    </script>
-    <script>
-        console.log("Checking for dashboardData...");
-        try {
-            if (typeof window.dashboardData !== 'undefined') {
-                console.log("SUCCESS: dashboardData loaded via clan_data.js", window.dashboardData);
-            } else {
-                console.error("FAILURE: window.dashboardData is undefined!");
-            }
-        } catch (e) {
-            console.error("CRITICAL: Error check data load", e);
-        }
-    </script>
+    <script src="dashboard_logic.js" defer></script>
+
     <link
         href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Outfit:wght@300;400;600&display=swap"
         rel="stylesheet">
@@ -385,6 +363,38 @@
             z-index: 1;
         }
 
+        /* HEADER BUTTONS */
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .download-btn {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid var(--neon-blue);
+            color: var(--neon-blue);
+            padding: 8px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-family: var(--font-body);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover {
+            background: rgba(0, 212, 255, 0.2);
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .download-btn .icon {
+            font-size: 1.1em;
+        }
+
         .stat-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
@@ -609,6 +619,157 @@
         .diff-neu {
             color: #888;
         }
+
+        /* Interactable Names */
+        .player-link {
+            cursor: pointer;
+            color: #e0e0e0;
+            transition: 0.2s;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
+        }
+
+        .player-link:hover {
+            color: var(--neon-gold);
+            border-bottom-style: solid;
+        }
+
+        .profile-role {
+            color: var(--neon-gold);
+            font-family: 'Cinzel', serif;
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-top: 5px;
+        }
+
+        .profile-body {
+            padding: 25px;
+        }
+
+        .profile-stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .p-stat {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .p-stat .label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text-mute);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .p-stat .value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+
+        .profile-highlight {
+            display: flex;
+            align-items: center;
+            background: rgba(0, 212, 255, 0.05);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+
+        .highlight-icon img {
+            width: 40px;
+            margin-right: 15px;
+        }
+
+        .highlight-text .label {
+            font-size: 0.8rem;
+            color: var(--neon-blue);
+        }
+
+        .highlight-text .value {
+            font-size: 1.2rem;
+            font-family: 'Cinzel', serif;
+            color: #fff;
+        }
+
+        .profile-recent {
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 15px;
+        }
+
+        .recent-row {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        .recent-row span {
+            color: #fff;
+        }
+
+        .recent-row i {
+            color: var(--neon-green);
+            margin-right: 5px;
+        }
+
+        /* PULSE TICKER ANIMATION */
+        @keyframes tickerScroll {
+            0% {
+                transform: translateX(100%);
+            }
+
+            100% {
+                transform: translateX(-100%);
+            }
+        }
+
+        /* TIMEFRAME TOGGLES */
+        .time-toggle {
+            background: transparent;
+            border: none;
+            color: var(--text-mute);
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: var(--font-headings);
+            font-size: 0.9em;
+            transition: 0.3s;
+            border-radius: 4px;
+        }
+
+        .time-toggle:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .time-toggle.active {
+            color: var(--obsidian);
+            background: var(--neon-blue);
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.4);
+            font-weight: bold;
+        }
+
+        .trend-indicator {
+            font-size: 0.8em;
+            margin-left: 8px;
+            opacity: 0.8;
+        }
+
+        .trend-up {
+            color: var(--neon-green);
+        }
+
+        .trend-down {
+            color: var(--neon-red);
+        }
     </style>
 </head>
 
@@ -617,12 +778,13 @@
         <!-- Sidebar Navigation -->
         <div class="sidebar">
             <div class="sidebar-title">CLAN<br>STATS</div>
-            <div class="nav-item active" onclick="switchSection('general')">General</div>
-            <div class="nav-item" onclick="switchSection('outliers')">Outliers</div>
-            <div class="nav-item" onclick="switchSection('messages')">Messages</div>
-            <div class="nav-item" onclick="switchSection('bosses')">Bosses</div>
-            <div class="nav-item" onclick="switchSection('xp-gains')">XP Gains</div>
-            <div class="nav-item" onclick="switchSection('roster')"><i class="fas fa-users"></i>Full Roster</div>
+            <div class="nav-item active" data-tab="general" onclick="switchSection('general')">General</div>
+            <div class="nav-item" data-tab="outliers" onclick="switchSection('outliers')">Purging</div>
+            <div class="nav-item" data-tab="messages" onclick="switchSection('messages')">Messages</div>
+            <div class="nav-item" data-tab="bosses" onclick="switchSection('bosses')">Bosses</div>
+            <div class="nav-item" data-tab="xp-gains" onclick="switchSection('xp-gains')">XP Gains</div>
+            <div class="nav-item" data-tab="roster" onclick="switchSection('roster')"><i class="fas fa-users"></i>Full
+                Roster</div>
         </div>
         <!-- Main Content -->
         <div class="main-content">
@@ -630,48 +792,53 @@
             <div id="general" class="section active">
                 <div class="header">
                     <h1>General</h1>
-                    <div style="text-align: right;">
+                    <div class="header-right">
                         <div class="header-info">Updated: <span id="updated-time">loading...</span></div>
+                        <a href="clan_data.csv" class="download-btn" download>
+                            <span class="icon">📄</span> CSV
+                        </a>
                         <input type="text" class="search-box" id="search-general" placeholder="Search player...">
                     </div>
                 </div>
-                <!-- Weekly Briefing (Command Center) -->
+                <!-- WEEKLY INTELLIGENCE BRIEFING (PULSE TICKER) -->
                 <div class="stat-card"
-                    style="width: 100%; margin-bottom: 30px; background: linear-gradient(90deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 100, 150, 0.15) 100%);">
-                    <div class="stat-label" style="display: flex; align-items: center; gap: 10px;"><i
-                            class="fas fa-terminal"></i>WEEKLY INTELLIGENCE BRIEFING </div>
-                    <div class="stat-value"
-                        style="font-size: 16px; font-weight: normal; line-height: 1.6; color: #b3ecff;"
-                        id="weekly-briefing-text"><span class="loading">
-                            <div class="spinner"
-                                style="width: 15px; height: 15px; border-width: 2px; display: inline-block;vertical-align: middle; margin: 0 10px;">
-                            </div>Analysing clan telemetry...
-                        </span></div>
+                    style="width: 100%; margin-bottom: 20px; padding: 15px; background: linear-gradient(90deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 100, 150, 0.15) 100%); display: flex; align-items: center; gap: 15px;">
+                    <div style="color: var(--neon-blue); font-weight: bold; white-space: nowrap;"><i
+                            class="fas fa-satellite-dish"></i> CLAN PULSE:</div>
+                    <div
+                        style="flex: 1; overflow: hidden; position: relative; mask-image: linear-gradient(90deg, transparent, white 20px, white calc(100% - 20px), transparent);">
+                        <div id="news-ticker"
+                            style="white-space: nowrap; animation: tickerScroll 20s linear infinite; display: inline-block;">
+                            <span class="loading">Establishing sat-link...</span>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- CONTROL BAR (TIMEFRAME TOGGLES) -->
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+                    <div class="glass-card" style="padding: 5px; display: inline-flex; gap: 5px;">
+                        <button class="time-toggle active" onclick="switchTimeframe('7d')" id="btn-7d">7 Days</button>
+                        <button class="time-toggle" onclick="switchTimeframe('30d')" id="btn-30d">30 Days</button>
+                    </div>
+                </div>
+
                 <div class="stats-grid" id="general-stats">
-                    <div class="stat-card">
-                        <div class="stat-label">Top Messenger</div>
-                        <div class="stat-value" id="top-messenger-val">0</div>
-                        <div class="stat-description" id="top-messenger-name">Loading...</div><i
-                            class="fas fa-comment-dots stat-icon"></i>
+                    <div class="stat-card" id="card-top-msg">
+                        <div class="stat-label">Top Messenger <span class="trend-indicator" id="trend-msg"></span></div>
+                        <div class="stat-value" id="stat-top-msg">Loading...</div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Top XP Gained (7d)</div>
-                        <div class="stat-value" id="top-xp-val">0</div>
-                        <div class="stat-description" id="top-xp-name">Loading...</div><i
-                            class="fas fa-chart-line stat-icon"></i>
+                    <div class="stat-card" id="card-top-xp">
+                        <div class="stat-label">Top XP Gained <span id="lbl-xp-period">(7d)</span> <span
+                                class="trend-indicator" id="trend-xp"></span></div>
+                        <div class="stat-value" id="stat-top-xp">Loading...</div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Rising Star (Newbie)</div>
-                        <div class="stat-value" id="rising-star-val">0</div>
-                        <div class="stat-description" id="rising-star-name">Loading...</div><i
-                            class="fas fa-star stat-icon"></i>
+                    <div class="stat-card" id="card-rising-star">
+                        <div class="stat-label">Rising Star</div>
+                        <div class="stat-value" id="stat-rising-star">Loading...</div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card" id="card-top-boss">
                         <div class="stat-label">Top Boss Killer</div>
-                        <div class="stat-value" id="top-boss-val">0</div>
-                        <div class="stat-description" id="top-boss-name">Loading...</div><i
-                            class="fas fa-skull stat-icon"></i>
+                        <div class="stat-value" id="stat-top-boss">Loading...</div>
                     </div>
                 </div>
 
@@ -686,16 +853,55 @@
                     </div>
                 </div>
 
-                <!-- CLAN BINGO GRID -->
+
+                <!-- NEW CHARTS SECTION (Replaces Bingo) -->
                 <div class="section-container">
-                    <div class="section-title"><i class="fas fa-grid-2"></i> Clan Bingo Progress</div>
-                    <div id="bingo-grid" class="bingo-grid">
-                        <!-- Dynamic Bingo Items will be injected here -->
-                        <div class="glass-card" style="padding: 40px; text-align: center; color: var(--text-mute);">
-                            Initializing Bingo Engine...
+                    <div class="section-title"><i class="fas fa-chart-pie"></i> Performance Analytics</div>
+
+                    <!-- Row 1: Scatter (Full Width) -->
+                    <div class="chart-container" style="margin-bottom: 24px;">
+                        <div class="chart-title">"Chatterboxes" vs "Grinders" (Activity Matrix)</div>
+                        <div class="chart-wrapper" style="height: 400px;">
+                            <canvas id="chart-scatter-interaction"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Donut & Stacked Bar -->
+                    <div class="dual-chart">
+                        <div class="chart-item">
+                            <div class="chart-item-title">Bossing Diversity</div>
+                            <div class="chart-wrapper">
+                                <canvas id="chart-boss-diversity"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-item">
+                            <div class="chart-item-title">Raids Preference</div>
+                            <div class="chart-wrapper">
+                                <canvas id="chart-raids-performance"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 3: Skill Mastery & Trending Boss -->
+                    <div class="dual-chart">
+                        <div class="chart-item">
+                            <div class="chart-item-title">Clan Skill Mastery (99s)</div>
+                            <div class="chart-wrapper">
+                                <canvas id="chart-skill-mastery"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-item">
+                            <div class="chart-item-title">
+                                Boss of the Month: <span id="trending-boss-name"
+                                    style="color: var(--neon-gold);">...</span>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="chart-boss-trend"></canvas>
+                            </div>
                         </div>
                     </div>
                 </div>
+
 
                 <div class="dual-chart">
                     <div class="chart-item">
@@ -907,24 +1113,23 @@
             <!-- Outliers Section -->
             <div id="outliers" class="section">
                 <div class="header">
-                    <h1>Outliers</h1>
+                    <h1>Purging Candidates</h1>
                     <div style="text-align: right;">
                         <div class="header-info">Updated: <span id="updated-time-out">loading...</span></div><input
                             type="text" class="search-box" id="search-outliers" placeholder="Search player...">
                     </div>
                 </div>
                 <div class="chart-container">
-                    <div class="chart-title">Members with Unusual Activity Patterns
-                    </div>
+                    <div class="chart-title">Inactive & Low Performance Members</div>
                     <div class="table-container" style="padding: 0;">
                         <table id="outliers-table">
                             <thead>
                                 <tr>
                                     <th>Player</th>
                                     <th>Role</th>
-                                    <th>7d Messages</th>
-                                    <th>7d XP Gain</th>
-                                    <th>Avg Daily Msgs</th>
+                                    <th>Messages (30d)</th>
+                                    <th>XP Gain (30d)</th>
+                                    <th>Joined</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
@@ -958,6 +1163,7 @@
                                 <th onclick="sortTable(5)">Msgs (7d) <i class="fas fa-sort"></i></th>
                                 <th onclick="sortTable(6)">Msgs (Total) <i class="fas fa-sort"></i></th>
                                 <th onclick="sortTable(7)">Ratio <i class="fas fa-sort"></i></th>
+                                <th onclick="sortTable(8)">Days <i class="fas fa-sort"></i></th>
                             </tr>
                         </thead>
                         <tbody id="roster-body">
@@ -1111,7 +1317,126 @@
                 }
             </style>
 
-            <script src="dashboard_logic.js"></script>
+            <!-- PLAYER PROFILE MODAL -->
+            <div id="player-profile-modal" class="omni-overlay" onclick="if(event.target===this) closePlayerProfile()">
+                <div class="glass-card profile-card-modal">
+                    <button class="close-btn" onclick="closePlayerProfile()"><i class="fas fa-times"></i></button>
+
+                    <div class="profile-header">
+                        <div class="profile-rank-icon">
+                            <img id="pp-rank-img" src="assets/rank_recruit.png" alt="Rank">
+                        </div>
+                        <div class="profile-title">
+                            <h2 id="pp-username">Player Name</h2>
+                            <div id="pp-role" class="profile-role">Role</div>
+                        </div>
+                    </div>
+
+                    <div class="profile-body">
+                        <div class="profile-stats-grid">
+                            <div class="p-stat">
+                                <span class="label">Total XP</span>
+                                <span class="value" id="pp-total-xp">0</span>
+                            </div>
+                            <div class="p-stat">
+                                <span class="label">Total Boss</span>
+                                <span class="value" id="pp-total-boss">0</span>
+                            </div>
+                            <div class="p-stat">
+                                <span class="label">Messages</span>
+                                <span class="value" id="pp-total-msg">0</span>
+                            </div>
+                            <div class="p-stat">
+                                <span class="label">Days in Clan</span>
+                                <span class="value" id="pp-days">0</span>
+                            </div>
+                        </div>
+
+                        <div class="profile-highlight">
+                            <div class="highlight-icon">
+                                <img id="pp-skill-img" src="assets/skill_attack.png" alt="Top Skill">
+                            </div>
+                            <div class="highlight-text">
+                                <div class="label">Est. Top Skill</div>
+                                <div class="value" id="pp-top-skill">Unknown</div>
+                            </div>
+                        </div>
+
+                        <div class="profile-recent">
+                            <div class="label">Recent Performance (7d)</div>
+                            <div class="recent-row">
+                                <span><i class="fas fa-chart-line"></i> XP +<span id="pp-xp-7d">0</span></span>
+                                <span><i class="fas fa-skull"></i> Kills +<span id="pp-boss-7d">0</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <style>
+                /* Player Profile Modal Styles */
+                .profile-card-modal {
+                    width: 450px;
+                    background: rgba(10, 10, 12, 0.95);
+                    border: 1px solid var(--neon-gold);
+                    box-shadow: 0 0 50px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(255, 215, 0, 0.05);
+                    padding: 0;
+                    position: relative;
+                    overflow: hidden;
+                    animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+
+                @keyframes slideUp {
+                    from {
+                        transform: translateY(50px);
+                        opacity: 0;
+                    }
+
+                    to {
+                        transform: translateY(0);
+                        opacity: 1;
+                    }
+                }
+
+                .close-btn {
+                    position: absolute;
+                    top: 15px;
+                    right: 15px;
+                    background: transparent;
+                    border: none;
+                    color: var(--text-mute);
+                    font-size: 1.2rem;
+                    cursor: pointer;
+                    z-index: 10;
+                    transition: 0.2s;
+                }
+
+                .close-btn:hover {
+                    color: #fff;
+                    transform: scale(1.1);
+                }
+
+                .profile-header {
+                    background: linear-gradient(180deg, rgba(255, 215, 0, 0.1) 0%, transparent 100%);
+                    padding: 30px 20px 20px;
+                    text-align: center;
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                }
+
+                .profile-rank-icon img {
+                    width: 64px;
+                    height: 64px;
+                    filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.3));
+                    margin-bottom: 10px;
+                }
+
+                .profile-title h2 {
+                    margin: 0;
+                    font-size: 2rem;
+                }
+            </style>
+        </div>
+    </div>
 </body>
 
 </html>

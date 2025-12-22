@@ -126,14 +126,18 @@ class WOMClient:
                     return result
 
             except aiohttp.ClientResponseError as e:
-                if e.status < 500 and e.status != 429:
-                    self.logger.error(f"WOM API Client Error: {e.status} - {e.message}")
-                    raise
-                self.logger.error(f"Requests Error (Attempt {attempt+1}): {e}")
-                await asyncio.sleep(2)
+                # Specific check for Auth Errors
+                if e.status in [401, 403]:
+                    self.logger.error(f"AUTH ERROR: Access Denied ({e.status}). Please check your WOM_API_KEY in .env!")
+                    raise Exception("WOM API Authentication Failed")
+                
+                self.logger.error(f"WOM API Client Error: {e.status} - {e.message}")
+                if e.status == 502:
+                     self.logger.warning("WOM 502 Bad Gateway. Retrying is typically effective.")
+                raise
             except Exception as e:
-                self.logger.error(f"Unexpected request error (Attempt {attempt+1}): {e}")
-                await asyncio.sleep(2)
+                self.logger.error(f"Request Error (Attempt {attempt+1}): {e}")
+                await asyncio.sleep(2 * (attempt + 1)) # Linear backoff
         
         raise Exception(f"Max retries exceeded for WOM API: {endpoint}")
 
@@ -159,6 +163,10 @@ class WOMClient:
 
     async def get_player_details(self, username):
         return await self._request('GET', f'/players/{username}')
+
+    async def update_player(self, username):
+        """Request a fresh scan for a player."""
+        return await self._request('POST', f'/players/{username}')
     
     async def search_name_changes(self, username, limit=5):
         params = {'username': username, 'status': 'approved', 'limit': limit}

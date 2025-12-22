@@ -8,25 +8,7 @@ from core.config import Config
 from core.utils import get_unique_filename
 from core.performance import timed_operation
 
-# Define Theme Colors Locally for "Executive Night Mode"
-class DarkTheme:
-    BG_DARK = '#121212'
-    TEXT_LIGHT = '#E0E0E0'
-    HEADER_BG = '#1E1E1E'
-    
-    # Category Colors
-    XP_GREEN = '#006400'     # Dark Green for text/headers
-    XP_SCALE_MAX = '#33FF33' # Bright Green for high values
-    
-    BOSS_RED = '#8B0000'     # Dark Red for headers
-    BOSS_SCALE_MAX = '#FF4500' # Orange-Red for high values
-    
-    MSG_BLUE = '#00008B'     # Dark Blue for headers
-    MSG_SCALE_MAX = '#00BFFF' # Deep Sky Blue for high values
-    
-    ZERO_RED = '#FF0000'     # Pure Red for zeros
-
-    LINK_COLOR = '#44AAFF'
+from reporting.styles import Theme, ExcelFormats
 
 logger = logging.getLogger("ExcelReporter")
 
@@ -68,10 +50,16 @@ class ExcelReporter:
         msgs_total = analytics_service.get_message_counts(cutoff_lifetime)
 
         # 3. Calculate Deltas
-        gains_7d = analytics_service.calculate_gains(latest_snaps, past_7d)
-        gains_30d = analytics_service.calculate_gains(latest_snaps, past_30d)
-        gains_90d = analytics_service.calculate_gains(latest_snaps, past_90d)
-        gains_365d = analytics_service.calculate_gains(latest_snaps, past_365d)
+        # Apply staleness limits to prevent misleading "spikes" from long inactivity
+        # 7d: 14 days limit
+        # 30d: 60 days limit (Double timeframe)
+        # 90d: 180 days limit (Double timeframe)
+        # 1 Year: No limit (If user was inactive for 2 years, gain in last year = current - value_at_start_of_year [which is same as 2y ago])
+        
+        gains_7d = analytics_service.calculate_gains(latest_snaps, past_7d, staleness_limit_days=14)
+        gains_30d = analytics_service.calculate_gains(latest_snaps, past_30d, staleness_limit_days=60)
+        gains_90d = analytics_service.calculate_gains(latest_snaps, past_90d, staleness_limit_days=180)
+        gains_365d = analytics_service.calculate_gains(latest_snaps, past_365d, staleness_limit_days=None)
 
         # 4. Build Rows
         rows = []
@@ -84,20 +72,21 @@ class ExcelReporter:
                 if m:
                     rank_str = getattr(m, 'role', None) or m.get('role', 'Member')
                     joined_str = getattr(m, 'joined_at', None) or m.get('joined_at', 'N/A')
+                    
+                    # Force EU Date Format (DD-MM-YYYY)
                     if isinstance(joined_str, datetime):
                         joined_str = joined_str.strftime("%d-%m-%Y")
-                    elif isinstance(joined_str, str) and 'T' in joined_str:
+                    elif isinstance(joined_str, str):
+                        # Clean up potentially messy strings
+                        clean_str = joined_str.split('T')[0] # Remove time part if ISO
+                        
+                        # Try parsing YYYY-MM-DD
                         try:
-                            # Try to parse ISO format if possible, otherwise fallback
-                             dt_obj = datetime.fromisoformat(joined_str.replace('Z', '+00:00'))
-                             joined_str = dt_obj.strftime("%d-%m-%Y")
-                        except Exception:
-                             # Fallback to simple string manipulation if parsing fails, but try to rearrange
-                             parts = joined_str.split('T')[0].split('-')
-                             if len(parts) == 3:
-                                 joined_str = f"{parts[2]}-{parts[1]}-{parts[0]}"
-                             else:
-                                 joined_str = joined_str.split('T')[0]
+                            parts = clean_str.split('-')
+                            if len(parts) == 3 and len(parts[0]) == 4: # YYYY-MM-DD
+                                joined_str = f"{parts[2]}-{parts[1]}-{parts[0]}"
+                        except:
+                            pass # Keep original if parse fails
 
             row = {
                 'Name': user,
@@ -170,14 +159,7 @@ class ExcelReporter:
         # --- FORMATS ---
         
         # Base Format (Dark Inteface)
-        base_fmt = {
-            'bg_color': DarkTheme.BG_DARK,
-            'font_color': DarkTheme.TEXT_LIGHT,
-            'font_size': 15,    # User requested Font Size 15
-            'font_name': 'Calibri',
-            'border': 1,
-            'border_color': '#333333'
-        }
+        base_fmt = ExcelFormats.base(workbook)
         
         fmt_string = workbook.add_format(base_fmt)
         fmt_string.set_align('left')
@@ -201,23 +183,31 @@ class ExcelReporter:
                 'font_size': 14
             })
 
-        fmt_header_gen = get_header_fmt('#333333') # General (Name, Rank)
-        fmt_header_xp = get_header_fmt(DarkTheme.XP_GREEN)
-        fmt_header_boss = get_header_fmt(DarkTheme.BOSS_RED)
-        fmt_header_msg = get_header_fmt(DarkTheme.MSG_BLUE)
+        fmt_header_gen = workbook.add_format(ExcelFormats.header(workbook)) # General (Name, Rank)
+        # Custom headers using Theme colors
+        def create_category_header(bg_color):
+            fmt = ExcelFormats.header(workbook)
+            fmt['bg_color'] = bg_color
+            return workbook.add_format(fmt)
+
+        fmt_header_xp = create_category_header(Theme.XP_GREEN if hasattr(Theme, 'XP_GREEN') else '#006400')
+        fmt_header_boss = create_category_header(Theme.BOSS_RED if hasattr(Theme, 'BOSS_RED') else '#8B0000')
+        fmt_header_msg = create_category_header(Theme.MSG_BLUE if hasattr(Theme, 'MSG_BLUE') else '#00008B')
 
         # Zero Format (Bold Red)
         fmt_zero = workbook.add_format(base_fmt)
-        fmt_zero.set_font_color(DarkTheme.ZERO_RED)
+        fmt_zero.set_font_color(Theme.RED_NEON)
         fmt_zero.set_bold(True)
         fmt_zero.set_align('center')
         fmt_zero.set_align('vcenter')
         
         # Link Format
-        fmt_link = workbook.add_format({
-            'bold': True, 'font_color': DarkTheme.LINK_COLOR, 'bg_color': DarkTheme.BG_DARK,
+        fmt_link_dict = ExcelFormats.base(workbook)
+        fmt_link_dict.update({
+            'bold': True, 'font_color': Theme.BLUE_NEON,
             'align': 'center', 'valign': 'vcenter', 'underline': True, 'font_size': 16
         })
+        fmt_link = workbook.add_format(fmt_link_dict)
 
         # --- LAYOUT & DATA ---
         
@@ -297,21 +287,21 @@ class ExcelReporter:
                     'type': '3_color_scale',
                     'min_color': '#222222', 
                     'mid_color': '#114411',
-                    'max_color': DarkTheme.XP_SCALE_MAX
+                    'max_color': Theme.GREEN_NEON
                 })
             elif 'Boss' in col:
                 worksheet.conditional_format(start_row, i, max_row + start_row - 1, i, {
                     'type': '3_color_scale',
                     'min_color': '#222222',
                     'mid_color': '#551111',
-                    'max_color': DarkTheme.BOSS_SCALE_MAX
+                    'max_color': Theme.RED_NEON
                 })
             elif 'Msgs' in col or 'Total Msgs' in col:
                 worksheet.conditional_format(start_row, i, max_row + start_row - 1, i, {
                     'type': '3_color_scale',
                     'min_color': '#222222',
                     'mid_color': '#111155',
-                    'max_color': DarkTheme.MSG_SCALE_MAX
+                    'max_color': Theme.BLUE_NEON
                 })
 
     def _atomic_save(self, temp, final):

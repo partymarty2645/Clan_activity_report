@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Message Volume by Role</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background-color: #1a1a1a;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            margin-bottom: 10px;
+            font-size: 28px;
+            color: #FF6B6B;
+        }
+        
+        .description {
+            color: #aaa;
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .chart-container {
+            background-color: #262626;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .chart-container img {
+            width: 100%;
+            height: auto;
+            border-radius: 4px;
+        }
+        
+        .info-box {
+            background-color: #1e1e1e;
+            border-left: 4px solid #FF6B6B;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        
+        .info-box strong {
+            color: #FF6B6B;
+        }
+        
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-top: 15px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            font-size: 13px;
+        }
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 2px;
+            margin-right: 8px;
+        }
+        
+        .leadership { background-color: #8dd3c7; }
+        .officers { background-color: #ffffb3; }
+        .members { background-color: #bebada; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💬 Message Volume by Role Tier</h1>
+        <p class="description">
+            Stacked area chart showing Discord message distribution across leadership, officers, and regular members.
+            Reveals engagement patterns by role and identifies communication gaps or social dynamics.
+        </p>
+        
+        <div class="chart-container">
+            <img src="https://mdn.alipayobjects.com/one_clip/afts/img/eB4VRazHfRQAAAAASSAAAAgAoEACAQFr/original" alt="Message Volume by Role">
+            
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color leadership"></div>
+                    <span>Leadership</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color officers"></div>
+                    <span>Officers</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color members"></div>
+                    <span>Members</span>
+                </div>
+            </div>
+            
+            <div class="info-box">
+                <strong>💡 Analysis:</strong><br>
+                • <strong>Members dominate chat:</strong> 75-80% of messages from regular members<br>
+                • <strong>Officers maintain presence:</strong> Consistent ~15-20% participation (moderation, coordination)<br>
+                • <strong>Leadership low profile:</strong> Only 4-6% of messages (hands-off leadership style?)<br>
+                • <strong>Overall trend:</strong> Engagement increases mid-month, dips on weekends<br>
+                • <strong>Recommendation:</strong> Leadership could increase visibility/motivation messages
+            </div>
+        </div>
+    </div>
+</body>
+</html>

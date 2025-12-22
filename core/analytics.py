@@ -163,6 +163,64 @@ class AnalyticsService:
                 
         return gains
 
+    def get_user_top_boss_gains(self, current_map: Dict[str, WOMSnapshot], 
+                              old_map: Dict[str, WOMSnapshot]) -> Dict[str, tuple]:
+        """
+        Calculates the single boss with the highest Kill Delta for each user.
+        Returns: {username: (boss_name, delta_count)}
+        Example: {'party_marty': ('vorkath', 50)}
+        """
+        from database.models import BossSnapshot
+        
+        # 1. Collect all IDs
+        curr_ids = [s.id for s in current_map.values() if s.id]
+        old_ids = [s.id for s in old_map.values() if s.id]
+        
+        if not curr_ids:
+            return {}
+
+        # 2. Bulk Fetch Helper: Returns {snapshot_id: {boss_name: kills}}
+        def get_snapshot_boss_data(ids):
+            if not ids: return {}
+            stmt = (
+                select(BossSnapshot.snapshot_id, BossSnapshot.boss_name, BossSnapshot.kills)
+                .where(BossSnapshot.snapshot_id.in_(ids))
+            )
+            rows = self.db.execute(stmt).all()
+            data = {}
+            for row in rows:
+                if row.snapshot_id not in data:
+                    data[row.snapshot_id] = {}
+                data[row.snapshot_id][row.boss_name] = row.kills
+            return data
+
+        # 3. Fetch Data
+        curr_data = get_snapshot_boss_data(curr_ids)
+        old_data = get_snapshot_boss_data(old_ids)
+        
+        # 4. Compare
+        results = {}
+        for user, curr_snap in current_map.items():
+            best_boss = "None"
+            max_delta = -1
+            
+            curr_bosses = curr_data.get(curr_snap.id, {})
+            old_snap = old_map.get(user)
+            old_bosses = old_data.get(old_snap.id, {}) if old_snap else {}
+            
+            for boss, kills in curr_bosses.items():
+                prev = old_bosses.get(boss, 0)
+                delta = kills - prev
+                if delta > max_delta:
+                    max_delta = delta
+                    best_boss = boss
+            
+            # Only record if there's actual activity
+            if max_delta > 0:
+                results[user] = (best_boss, max_delta)
+                
+        return results
+
     def get_activity_heatmap(self, start_date: datetime) -> List[Dict[str, int]]:
         """
         Returns message volume by DayOfWeek and Hour for heatmap.

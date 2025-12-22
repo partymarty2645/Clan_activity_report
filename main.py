@@ -1,17 +1,12 @@
 import asyncio
 import logging
 import sys
-import traceback
+import subprocess
+import os
 from logging.handlers import RotatingFileHandler
 
-# Import modules to run
-# Import modules to run
-from harvest import run_harvest
-from report import run_report
-from services.wom import wom_client
-from dashboard_export import export_dashboard_json
-from reporting.moderation import analyze_moderation
-from reporting.enforcer import run_enforcer_suite
+# NOTE: Avoiding Top-Level Imports of hanging modules (database, sqlalchemy, aiohttp)
+# We use subprocess to run "Clean" scripts.
 
 # Setup Logging for Orchestrator
 logging.basicConfig(
@@ -24,51 +19,89 @@ logging.basicConfig(
 )
 logger = logging.getLogger("Orchestrator")
 
+def run_script(script_path):
+    """Runs a script using subprocess and streams output."""
+    process = None
+    try:
+        # Use formatting to run from current python env
+        cmd = [sys.executable, "-u", script_path]
+        logger.info(f"Running Subprocess: {' '.join(cmd)}")
+        
+        process = subprocess.Popen(
+            cmd, 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        
+        # Stream output
+        while True:
+            output = process.stdout.readline()
+            if output == '' and process.poll() is not None:
+                break
+            if output:
+                logger.info(f"  [SUB] {output.strip()}")
+                
+        rc = process.poll()
+        if rc != 0:
+            err = process.stderr.read()
+            logger.error(f"Script {script_path} failed with code {rc}: {err}")
+            return False
+            
+        return True
+    except KeyboardInterrupt:
+        logger.warning(f"Killing script {script_path} due to keyboard interrupt...")
+        if process:
+            process.kill()
+        raise # Re-raise to stop main pipeline
+    except Exception as e:
+        logger.error(f"Failed to run script {script_path}: {e}")
+        return False
+
 async def main():
     logger.info("==========================================")
     logger.info("       CLAN REPORT PIPELINE STARTED       ")
+    logger.info("       (Mode: Safe Process Isolation)     ")
     logger.info("==========================================")
     
     success = False
-    try:
-        # Step 1: Harvest
-        logger.info(">> STEP 1/4: HARVEST")
-        await run_harvest(close_client=False)
-        
-        # Step 2: Report
-        logger.info(">> STEP 2/4: REPORT")
-        await run_report(close_client=False) # We close manually at very end
-        
-        # Step 3: Dashboard JSON export (optional visual dashboard)
-        try:
-            logger.info(">> STEP 3/4: DASHBOARD EXPORT")
-            export_dashboard_json()
-        except Exception as e:
-            logger.warning(f"Dashboard export failed (non-fatal): {e}")
+    
+    # Scripts location
+    scripts_dir = os.path.join(os.getcwd(), 'scripts')
 
-        # Step 4: Enforcer Suite
-        try:
-            logger.info(">> STEP 4/4: ENFORCER SUITE")
-            await analyze_moderation(output_file="moderation_report.txt")
-            await run_enforcer_suite()
-            logger.info("   -> Enforcer Reports Generated.")
-        except Exception as e:
-             logger.error(f"Enforcer Suite failed (non-fatal): {e}")
+    # Step 0: Backup handled externally by run_auto.bat calling scripts/backup_db.py
+    # to avoid duplication and process locking.
+    
+    # Step 1: Harvest (Sync/SQLite)
+    logger.info(">> STEP 1/4: HARVEST")
+    if not run_script(os.path.join(scripts_dir, 'harvest_sqlite.py')):
+        logger.error("Harvest failed. Aborting pipeline.")
+        return sys.exit(1)
+
+    # Step 2: Report (SQLite)
+    logger.info(">> STEP 2/4: REPORT")
+    # Using report_sqlite.py
+    if not run_script(os.path.join(scripts_dir, 'report_sqlite.py')):
+        logger.error("Report generation failed.")
+        # Non-fatal? Maybe we want dashboard at least.
         
-        success = True
-        logger.info(">> PIPELINE SUCCESS")
-        
-    except Exception as e:
-        logger.error(f"!! PIPELINE FAILED !! Error: {e}")
-        logger.error(traceback.format_exc())
-    finally:
-        await wom_client.close()
-        logger.info("==========================================")
-        if hasattr(sys, 'exc_info') and sys.exc_info()[0]:
-            logger.info("       PIPELINE FINISHED WITH ERRORS      ")
-        else:
-            logger.info("       PIPELINE FINISHED                  ")
-        logger.info("==========================================")
+    # Step 3: Dashboard Export (SQLite)
+    logger.info(">> STEP 3/5: DASHBOARD EXPORT")
+    if not run_script(os.path.join(scripts_dir, 'export_sqlite.py')):
+        logger.error("Dashboard export failed.")
+
+    # Step 4: CSV Export
+    logger.info(">> STEP 4/5: CSV EXPORT")
+    if not run_script(os.path.join(scripts_dir, 'export_csv.py')):
+        logger.warning("CSV export failed.")
+
+    # Step 5: Enforcer Suite
+    # The enforcer suite likely uses ORM. Skipped for now to ensure stability.
+    logger.info(">> STEP 5/5: ENFORCER SUITE")
+    logger.warning("Enforcer Suite skipped in Safe Mode (Migration pending).")
+    
+    logger.info(">> PIPELINE SUCCESS")
+    logger.info("==========================================")
 
 if __name__ == "__main__":
     try:

@@ -63,14 +63,14 @@ def optimize():
 
     # 2. CREATE OPTIMIZED INDEXES (The Top 3 + Cleanups)
     
-    # Index 1: Functional Index for Harvest (Daily Lock)
-    # Replaces the need for full table scan on `func.date(timestamp)`
+    # Index 1: Standard Timestamp Index for Harvest (Daily Lock)
+    # The new harvester checks `timestamp >= ?`, so we need a direct index on timestamp, not date()
     console.print("[green]Phase 2: Forging New Indexes...[/green]")
     try:
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_wom_snapshot_date ON wom_snapshots(date(timestamp))")
-        console.print("  + Created functional index: idx_wom_snapshot_date (Speeds up Harvest Daily Check)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_wom_snapshots_timestamp ON wom_snapshots(timestamp)")
+        console.print("  + Created index: idx_wom_snapshots_timestamp (Speeds up Harvest Freshness Check)")
     except Exception as e:
-        console.print(f"  ! Failed idx_wom_snapshot_date: {e}")
+        console.print(f"  ! Failed idx_wom_snapshots_timestamp: {e}")
 
     # Index 2: Functional Index for Report (Author Grouping)
     # Speeds up message counting by author case-insensitively
@@ -102,18 +102,25 @@ def optimize():
         # Low Memory Optimization Settings
         cursor.execute("PRAGMA cache_size = -2048") # Limit to ~2MB
         cursor.execute("PRAGMA temp_store = FILE")  # Use disk instead of RAM for temp storage
-        cursor.execute("PRAGMA synchronous = FULL") # Ensure safety
+        cursor.execute("PRAGMA synchronous = NORMAL") # Good balance for maintenance
 
-        cursor.execute("VACUUM")
-        cursor.execute("ANALYZE")
-        console.print(f"  - Vacuum Complete in {time.time() - start:.2f}s")
+        try:
+            # Re-enabling VACUUM but handling potentially locked DB
+            console.print("  - Running VACUUM (Rebuilds DB file to reclaim space)...")
+            cursor.execute("VACUUM")
+            console.print(f"  - VACUUM finished in {time.time() - start:.2f}s")
+            
+            console.print("  - Running PRAGMA optimize (Updates query planner statistics)...")
+            cursor.execute("PRAGMA optimize")
+            console.print("  - Optimize finished.")
+            
+        except sqlite3.OperationalError as e:
+             console.print(f"[yellow]WARNING: VACUUM failed ({e}). Database might be locked. Skipping compaction.[/yellow]")
+        except Exception as e:
+             console.print(f"[yellow]WARNING: VACUUM failed with unexpected error ({e}). Skipping.[/yellow]")
+
     except Exception as e:
-        if "disk I/O" in str(e):
-            console.print(f"[yellow]WARNING: VACUUM failed (disk I/O error). Skipping compaction to allow pipeline to continue.[/yellow]")
-        else:
-            console.print(f"  ! Vacuum failed: {e}")
-            conn.close()
-            sys.exit(1)
+        console.print(f"[red]Error during optimization phase 3: {e}[/red]")
 
     conn.close()
 
@@ -121,7 +128,10 @@ def optimize():
     size_after = os.path.getsize(DB_PATH) / (1024*1024)
     saved = size_before - size_after
     console.print(f"[bold green]Optimization Complete![/bold green]")
-    console.print(f"New Size: {size_after:.2f} MB (Saved {saved:.2f} MB)")
+    if saved > 0.01:
+        console.print(f"New Size: {size_after:.2f} MB (Saved {saved:.2f} MB)")
+    else:
+        console.print(f"New Size: {size_after:.2f} MB (Database was already optimized)")
 
 if __name__ == "__main__":
     optimize()

@@ -1,566 +1,908 @@
-const API_URL = 'http://localhost:5000/api'; // Fallback if needed, but we use clan_data.json primarily
+/**
+ * Clan Dashboard Logic
+ * Handles data loading, chart rendering, and interactions.
+ */
+
+// Global State
 let dashboardData = null;
 let charts = {};
+let currentPeriod = '7d'; // Default timeframe
 
-// --- CHART.JS DEFAULTS (NEON THEME) ---
-Chart.defaults.color = '#e0e0e0';
-Chart.defaults.borderColor = 'rgba(0, 212, 255, 0.1)';
-Chart.defaults.font.family = "'Outfit', sans-serif";
-Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(10, 10, 10, 0.9)';
-Chart.defaults.plugins.tooltip.titleColor = '#00d4ff';
-Chart.defaults.plugins.tooltip.bodyColor = '#fff';
-Chart.defaults.plugins.tooltip.borderColor = '#00d4ff';
-Chart.defaults.plugins.tooltip.borderWidth = 1;
+// Global Error Handler
+window.onerror = function (msg, url, lineNo, columnNo, error) {
+    console.error("Global Error: " + msg, error);
+    const el = document.getElementById('updated-time');
+    if (el) el.innerHTML = `<span style="color:red">Error: ${msg}</span>`;
+    return false;
+};
 
-// --- DATA FETCHING ---
-async function getDashboardData() {
-    if (window.dashboardData) return window.dashboardData;
-    if (dashboardData) return dashboardData;
-    try {
-        const response = await fetch('clan_data.json');
-        if (!response.ok) throw new Error('Network response was not ok');
-        dashboardData = await response.json();
-        window.dashboardData = dashboardData; // Expose globally
-        return dashboardData;
-    } catch (error) {
-        console.error("Failed to load clan_data.json:", error);
-        return null;
+// Global Timeframe Switcher
+window.switchTimeframe = function (period) {
+    if (period === currentPeriod) return;
+    currentPeriod = period;
+    console.log("Switched timeframe to:", currentPeriod);
+
+    // Update Buttons
+    document.querySelectorAll('.time-toggle').forEach(btn => btn.classList.remove('active'));
+    const activeBtn = document.getElementById(`btn-${period}`);
+    if (activeBtn) activeBtn.classList.add('active');
+
+    // Update Label
+    const lbl = document.getElementById('lbl-xp-period');
+    if (lbl) lbl.innerText = `(${period})`;
+
+    // Re-render Affected Sections
+    if (dashboardData) {
+        safelyRun(() => renderGeneralStats(dashboardData), "renderGeneralStats");
+        // Re-render charts that depend on this (like Top XP)
+        safelyRun(() => renderTopXPChart(), "renderTopXPChart");
     }
-}
+};
 
-// --- NAVIGATION ---
-function switchSection(sectionId) {
-    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+// Global Tab Switcher (Exposed for HTML onclick)
+window.switchSection = function (sectionId) {
+    console.log("Switching to section:", sectionId);
 
-    const section = document.getElementById(sectionId);
-    if (section) section.classList.add('active');
-
-    // Update Nav State
-    document.querySelectorAll('.nav-item').forEach(n => {
-        const text = n.textContent.trim().toLowerCase();
-        if (sectionId === 'general' && text.includes('dashboard')) n.classList.add('active');
-        else if (sectionId === 'roster' && text.includes('roster')) n.classList.add('active');
-        else if (sectionId === 'bosses' && text.includes('boss')) n.classList.add('active');
-        else if (sectionId === 'messages' && text.includes('message')) n.classList.add('active');
-        else if (sectionId === 'xp-gains' && text.includes('xp')) n.classList.add('active');
-        else if (sectionId === 'outliers' && text.includes('outlier')) n.classList.add('active');
-        else if (sectionId === 'comparator' && text.includes('comparator')) n.classList.add('active');
+    // 1. Hide all sections
+    document.querySelectorAll('.section').forEach(el => {
+        el.classList.remove('active');
+        el.style.display = 'none'; // Ensure hidden
     });
 
-    // Trigger Data Load for Section
-    if (sectionId === 'general') loadGeneralData();
-    else if (sectionId === 'messages') loadMessagesData();
-    else if (sectionId === 'xp-gains') loadXPGainsDataBubble();
-    else if (sectionId === 'outliers') loadOutliersData();
-    else if (sectionId === 'bosses') loadBossesData();
-    else if (sectionId === 'roster') loadRosterData();
-    else if (sectionId === 'comparator') loadComparatorData();
+    // 2. Show target section
+    const target = document.getElementById(sectionId);
+    if (target) {
+        target.classList.add('active');
+        target.style.display = 'block';
+    } else {
+        console.warn("Target section not found:", sectionId);
+    }
 
-    // Trigger resize for charts
-    setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
-}
-
-// --- GENERAL SECTION ---
-async function loadGeneralData() {
-    const data = await getDashboardData();
-    if (!data) return;
-
-    // FIX: Update Timestamps everywhere
-    const now = new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    ['updated-time', 'updated-time-msg', 'updated-time-xp', 'updated-time-boss', 'updated-time-out'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = now;
+    // 3. Update Sidebar Active State
+    document.querySelectorAll('.nav-item').forEach(el => {
+        el.classList.remove('active');
+        // Check matching onclick or data attribute
+        const clickAttr = el.getAttribute('onclick');
+        if (clickAttr && clickAttr.includes(`'${sectionId}'`)) {
+            el.classList.add('active');
+        }
     });
 
-    // 1. Text Stats & Weekly Briefing (Oracle)
-    const briefingEl = document.getElementById('weekly-briefing-text');
-    if (briefingEl) {
-        if (data.oracle && data.oracle.length) {
-            const top = data.oracle[0];
-            briefingEl.innerHTML = `Oracle Vision: <span style="color:var(--neon-purple)">${top.name}</span> is on track for <span style="color:var(--neon-green)">${top.milestone}</span>.`;
+    // 4. Trigger Resize for Charts (Fixes rendering if hidden)
+    if (typeof Chart !== 'undefined') {
+        Object.values(Chart.instances).forEach(chart => chart.resize());
+    }
+};
+
+// Wait for DOM
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log("Dashboard initializing...");
+
+    try {
+        // 1. Load Data
+        if (window.dashboardData) {
+            dashboardData = window.dashboardData;
+            console.log("Loaded data from window.dashboardData");
         } else {
-            briefingEl.textContent = "Clan activity is stable. No major anomalies detected.";
+            try {
+                const resp = await fetch('clan_data.json');
+                if (!resp.ok) throw new Error("Failed to fetch clan_data.json");
+                dashboardData = await resp.json();
+                console.log("Loaded data from clan_data.json");
+            } catch (e) {
+                console.warn("Could not load data:", e);
+                if (window.dashboardData) {
+                    dashboardData = window.dashboardData;
+                } else {
+                    throw new Error("Data load failed. " + e.message);
+                }
+            }
+        }
+
+        if (!dashboardData) throw new Error("Dashboard Data is null");
+
+        // Fallback for topXPGainers if missing
+        if (!dashboardData.topXPGainers && dashboardData.allMembers) {
+            console.warn("Generating topXPGainers from allMembers");
+            dashboardData.topXPGainers = [...dashboardData.allMembers]
+                .sort((a, b) => b.xp_7d - a.xp_7d);
+        }
+
+        // Indicate Data Loaded
+        const updateEl = document.getElementById('updated-time');
+        if (updateEl) updateEl.innerText = "Data Loaded. Rendering...";
+
+        // 2. Initial Render
+        safelyRun(() => renderLastUpdated(dashboardData.generated_at), "renderLastUpdated");
+        safelyRun(() => renderGeneralStats(dashboardData), "renderGeneralStats");
+        safelyRun(() => renderAlertCards(dashboardData.allMembers), "renderAlertCards");
+        // safelyRun(() => renderBingoGrid(), "renderBingoGrid"); // REMOVED
+        safelyRun(() => renderRecentActivity(dashboardData.allMembers), "renderRecentActivity");
+        safelyRun(() => renderRecentActivity(dashboardData.allMembers), "renderRecentActivity");
+        safelyRun(() => renderInactiveWatchlist(dashboardData.allMembers), "renderInactiveWatchlist");
+
+        // New Render Functions
+        safelyRun(() => renderFullRoster(dashboardData.allMembers), "renderFullRoster");
+        safelyRun(() => renderMessagesSection(dashboardData.allMembers), "renderMessagesSection");
+        safelyRun(() => renderXpSection(dashboardData.allMembers), "renderXpSection");
+        safelyRun(() => renderBossesSection(dashboardData.allMembers), "renderBossesSection");
+        safelyRun(() => renderOutliersSection(dashboardData.allMembers), "renderOutliersSection");
+
+        // 3. Render Charts
+        safelyRun(() => renderAllCharts(), "renderAllCharts");
+
+        // 4. Setup Search (Header search boxes)
+        safelyRun(() => renderNewsTicker(dashboardData.allMembers), "renderNewsTicker");
+        safelyRun(() => setupSearch(), "setupSearch");
+
+    } catch (criticalError) {
+        console.error("CRITICAL INIT ERROR:", criticalError);
+        const headerInfo = document.querySelector('.header-info');
+        // Ensure headerInfo exists, if not try updated-time id
+        const el = headerInfo || document.getElementById('updated-time');
+        if (el) el.innerHTML = `<span style="color:red; font-size: 0.8em;">INIT ERROR: ${criticalError.message}</span>`;
+    }
+});
+
+// Table Sorting Logic
+window.sortTable = function (n) {
+    const table = document.getElementById("roster-table");
+    if (!table) return;
+
+    // Toggle Sort Direction
+    if (!table.dataset.sortDir) table.dataset.sortDir = "asc";
+    let dir = table.dataset.sortDir === "asc" ? "desc" : "asc";
+    table.dataset.sortDir = dir;
+
+    let switching = true;
+    let shouldSwitch;
+    let i;
+
+    while (switching) {
+        switching = false;
+        const rows = table.rows;
+
+        // Loop through all table rows (except the first, which contains table headers)
+        for (i = 1; i < (rows.length - 1); i++) {
+            shouldSwitch = false;
+
+            const x = rows[i].getElementsByTagName("TD")[n];
+            const y = rows[i + 1].getElementsByTagName("TD")[n];
+
+            let xVal = x.textContent || x.innerText;
+            let yVal = y.textContent || y.innerText;
+
+            // Clean numbers (remove k, M, commas)
+            // If column is Ratio (idx 7) or Days (idx 8), treat as number
+            // XP (1,2), Boss (3,4), Msgs (5,6) are also numbers
+            // Name (0) is string
+
+            const isNumeric = n !== 0;
+
+            let xNum = parseFloat(xVal.replace(/[+,kM\s]/g, ''));
+            let yNum = parseFloat(yVal.replace(/[+,kM\s]/g, ''));
+
+            // Handle multipliers if needed (k=1000, M=1000000) - simplified here as formatNumber puts them back
+            // Actually, sorting pre-formatted numbers (1.2k vs 900) requires parsing suffixes
+            if (xVal.includes('M')) xNum = parseFloat(xVal) * 1000000;
+            else if (xVal.includes('k')) xNum = parseFloat(xVal) * 1000;
+
+            if (yVal.includes('M')) yNum = parseFloat(yVal) * 1000000;
+            else if (yVal.includes('k')) yNum = parseFloat(yVal) * 1000;
+
+            if (dir == "asc") {
+                if (isNumeric) {
+                    if (xNum > yNum) shouldSwitch = true;
+                } else {
+                    if (xVal.toLowerCase() > yVal.toLowerCase()) shouldSwitch = true;
+                }
+            } else {
+                if (isNumeric) {
+                    if (xNum < yNum) shouldSwitch = true;
+                } else {
+                    if (xVal.toLowerCase() < yVal.toLowerCase()) shouldSwitch = true;
+                }
+            }
+
+            if (shouldSwitch) {
+                rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                switching = true;
+                break;
+            }
         }
     }
 
-    // 2. Alert Cards (Churn Risks)
-    renderAlertCards(data.allMembers);
+    // Update Icons
+    document.querySelectorAll("th i").forEach(i => i.className = "fas fa-sort");
+    const header = table.getElementsByTagName("TH")[n];
+    const icon = header.querySelector("i");
+    if (icon) icon.className = dir === "asc" ? "fas fa-sort-up" : "fas fa-sort-down";
+};
 
-    // 3. Bingo Grid (Demo)
-    renderBingoGrid();
-
-    // 4. Stats Cards (Top Messenger, etc.)
-    // FIX: Using direct ID targeting instead of wrapper lookup
-    if (data.topMessenger) updateStatCard('top-messenger', data.topMessenger.name, data.topMessenger.messages, 'Best Yapper');
-    if (data.topXPGainer) updateStatCard('top-xp', data.topXPGainer.name, formatNumber(data.topXPGainer.xp), 'XP Machine');
-    if (data.risingStar) updateStatCard('rising-star', data.risingStar.name, `+${data.risingStar.msgs} msgs`, 'Rising Star');
-    if (data.topBossKiller) updateStatCard('top-boss', data.topBossKiller.name, data.topBossKiller.kills, 'Boss Hunter');
-
-    // 5. Charts
+function safelyRun(fn, name) {
     try {
-        renderActivityHealth(data);
-        renderLeaderboard(data);
-        renderRecentActivity(data);
-        renderWatchlist(data);
-        // NEW Charts (Previously Missing)
-        renderTopXPContributors(data);
-        renderPlayerRadar(data);
-        renderActivityTrend(data);
-    } catch (e) { console.error("Chart Render Error:", e); }
-
-    // 6. Force Resize to prevent hidden charts
-    setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
-}
-
-function renderAlertCards(members) {
-    const container = document.getElementById('alert-cards-container');
-    if (!container) return;
-    // Logic: Total XP > 10m, XP 7d < 25k, Msgs 30d < 10
-    const risks = members.filter(m => m.total_xp > 10000000 && m.xp_7d < 25000 && m.msgs_30d < 10)
-        .sort((a, b) => b.total_xp - a.total_xp).slice(0, 3);
-
-    if (risks.length === 0) {
-        container.innerHTML = '<div class="glass-card" style="grid-column: 1/-1; padding: 20px; text-align: center; color: var(--neon-green);">No immediate churn risks detected.</div>';
-    } else {
-        container.innerHTML = risks.map(m => `
-            <div class="glass-card alert-card">
-                <div class="stat-label" style="color: var(--neon-red); letter-spacing: 2px;"><i class="fas fa-radiation"></i> CHURN RISK</div>
-                <div class="stat-value" style="font-size: 20px; margin: 10px 0;">${m.username}</div>
-                <div class="stat-description" style="display: flex; justify-content: space-between; font-size: 0.8rem;">
-                    <span>XP (7d): ${formatNumber(m.xp_7d)}</span>
-                    <span>Msgs (30d): ${m.msgs_30d}</span>
-                </div>
-            </div>
-        `).join('');
+        fn();
+    } catch (e) {
+        console.error(`Error in ${name}:`, e);
     }
 }
 
-function renderBingoGrid() {
-    const container = document.getElementById('bingo-grid');
-    if (!container) return;
-    const bingoTargets = [
-        { name: 'Vorkath', progress: 100, complete: true },
-        { name: 'Zulrah', progress: 45, complete: false },
-        { name: 'Raids', progress: 12, complete: false },
-        { name: 'Slayer', progress: 100, complete: true }
-    ];
-    container.innerHTML = bingoTargets.map(b => `
-        <div class="glass-card bingo-card" style="${b.complete ? 'border: 1px solid var(--neon-green); box-shadow: inset 0 0 10px rgba(57, 255, 20, 0.3);' : ''}">
-             <div class="bingo-progress" style="${b.complete ? 'color: var(--neon-green);' : ''}">
-                ${b.complete ? '<i class="fas fa-check"></i>' : b.progress + '%'}
-             </div>
-             <div class="bingo-boss-name">${b.name}</div>
-        </div>
-    `).join('');
+function renderLastUpdated(isoDate) {
+    const el = document.getElementById('updated-time');
+    if (el && isoDate) {
+        const d = new Date(isoDate);
+        el.innerText = d.toLocaleString('en-GB').replace(/\//g, '-');
+    }
 }
 
-// FIX: Refactored to target specific element IDs defined in HTML
-function updateStatCard(baseId, name, value, subtitle) {
-    const nameEl = document.getElementById(baseId + '-name'); // e.g., top-messenger-name
-    const valEl = document.getElementById(baseId + '-val');   // e.g., top-messenger-val
+function renderGeneralStats(data) {
+    // Helper to generic card specific HTML
+    const setHtml = (id, html) => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = html;
+    };
 
-    if (nameEl) nameEl.textContent = name;
-    if (valEl) valEl.textContent = value;
-    // subtitle is unused in current HTML structure or static
+    // Determine Property Keys based on Current Period
+    const xpKey = currentPeriod === '30d' ? 'xp_30d' : 'xp_7d';
+    const msgKey = currentPeriod === '30d' ? 'msgs_30d' : 'msgs_7d';
+    // Boss data might not be distinctly split in basic summary object, but let's see if we can derive top killer dynamically if needed.
+    // For now, "Top Boss Killer" in root JSON is likely 7d default. If we want dynamic, we need to sort allMembers.
+
+    // 1. Dynamic Sorting for Top Stats
+    const members = data.allMembers;
+
+    // Top XP
+    const topXpMember = [...members].sort((a, b) => b[xpKey] - a[xpKey])[0];
+    if (topXpMember) {
+        setHtml('stat-top-xp', `
+             <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
+                <img src="assets/${topXpMember.rank_img || 'rank_minion.png'}" style="width:30px;height:auto;object-fit:contain;">
+                <span>${topXpMember.username} <span style="color:var(--neon-gold);font-size:0.9em">(${formatNumber(topXpMember[xpKey])})</span></span>
+            </div>
+        `);
+    }
+
+    // Top Messenger
+    const topMsgMember = [...members].sort((a, b) => b[msgKey] - a[msgKey])[0];
+    if (topMsgMember) {
+        setHtml('stat-top-msg', `
+            <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
+                <img src="assets/${topMsgMember.rank_img || 'rank_minion.png'}" style="width:30px;height:auto;object-fit:contain;">
+                <span>${topMsgMember.username} <span style="color:var(--neon-green);font-size:0.9em">(${formatNumber(topMsgMember[msgKey])})</span></span>
+            </div>
+        `);
+    }
+
+    // Rising Star (Always based on a ratio or specific metric, let's keep it static or use 7d msg as proxy for now)
+    if (data.risingStar) {
+        const m = data.risingStar;
+        setHtml('stat-rising-star', `
+             <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
+                <img src="assets/${m.rank_img || 'rank_minion.png'}" style="width:30px;height:auto;object-fit:contain;">
+                <span>${m.name} <span style="color:var(--neon-blue);font-size:0.9em">(${formatNumber(m.msgs)})</span></span>
+            </div>
+        `);
+    }
+
+    // Top Boss (Default to static if no dynamic boss data available for 30d, or sort by boss_score if available)
+    if (data.topBossKiller) {
+        const m = data.topBossKiller;
+        // Try to find full member data
+        const fullMember = members.find(p => p.username === m.name);
+        const bossImg = fullMember && fullMember.favorite_boss_img ? fullMember.favorite_boss_img : (m.rank_img || 'rank_minion.png');
+
+        setHtml('stat-top-boss', `
+             <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
+                <img src="assets/${bossImg}" style="width:30px;height:auto;object-fit:contain;" onerror="this.src='assets/rank_minion.png';this.onerror=null;">
+                <span>${m.name} <span style="color:var(--neon-red);font-size:0.9em">(${formatNumber(m.kills)})</span></span>
+            </div>
+        `);
+    }
 }
 
-function renderActivityHealth(data) {
-    // FIX: Element ID is activity-health-chart in HTML
-    const ctx = document.getElementById('activity-health-chart');
-    if (!ctx) return;
-    if (charts['health']) charts['health'].destroy();
+function renderNewsTicker(members) {
+    const tickerContainer = document.getElementById('news-ticker');
+    if (!tickerContainer) return;
 
-    // Simple mock data for health if not fully aggregated in JSON
-    charts['health'] = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Active', 'Quiet', 'Inactive'],
-            datasets: [{
-                data: [65, 25, 10], // Mock or derive from data.allMembers logic
-                backgroundColor: ['#39ff14', '#ffd700', '#ff073a'],
-                borderColor: '#000',
-                borderWidth: 2
-            }]
-        },
-        options: { cutout: '70%', plugins: { legend: { position: 'right' } } }
+    // Generate News Items
+    const news = [];
+
+    // 1. Big XP Gains
+    const topXp = [...members].sort((a, b) => b.xp_7d - a.xp_7d).slice(0, 3);
+    topXp.forEach(m => {
+        if (m.xp_7d > 1000000) news.push(`🏆 <b>${m.username}</b> gained ${formatNumber(m.xp_7d)} XP this week!`);
+    });
+
+    // 2. Boss Killers
+    const topBoss = [...members].sort((a, b) => b.boss_7d - a.boss_7d).slice(0, 3);
+    topBoss.forEach(m => {
+        if (m.boss_7d > 50) news.push(`⚔️ <b>${m.username}</b> slew ${m.boss_7d} bosses recently.`);
+    });
+
+    // 3. Chatters
+    const topMsg = [...members].sort((a, b) => b.msgs_7d - a.msgs_7d)[0];
+    if (topMsg && topMsg.msgs_7d > 100) news.push(`💬 <b>${topMsg.username}</b> is the chatterbox of the week with ${topMsg.msgs_7d} messages.`);
+
+    // 4. Random Flavour
+    const totalXp = members.reduce((sum, m) => sum + (m.xp_7d || 0), 0);
+    news.push(`📈 Clan Total XP Gained: ${formatNumber(totalXp)}`);
+
+    // Duplicate string to ensure smooth infinite loop if short
+    let finalHtml = news.join(' &nbsp;&bull;&nbsp; ');
+    if (news.length < 5) finalHtml += ' &nbsp;&bull;&nbsp; ' + finalHtml;
+
+    tickerContainer.innerHTML = finalHtml;
+}
+
+function setText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.innerText = text;
+}
+
+function formatNumber(num) {
+    if (num === undefined || num === null) return "0";
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+function renderAlertCards(members) {
+    const alertsContainer = document.getElementById('alert-cards-container');
+    if (!alertsContainer) return;
+
+    alertsContainer.innerHTML = '';
+
+    // Logic: Inactive but high rank? Or 0 activity?
+    // Let's pick 3 "At Risk" members (low XP, not new)
+    const atRisk = members
+        .filter(m => m.xp_7d === 0 && m.boss_7d === 0 && m.msgs_7d === 0)
+        .slice(0, 4);
+
+    if (atRisk.length === 0) {
+        alertsContainer.innerHTML = '<div class="glass-card" style="padding:20px;grid-column:1/-1;text-align:center;color:#4fec4f">No immediate risks detected.</div>';
+        return;
+    }
+
+    atRisk.forEach(m => {
+        const card = document.createElement('div');
+        card.className = 'alert-card';
+        card.innerHTML = `
+            <div class="alert-header" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;color:var(--neon-red)">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span style="font-family:'Cinzel'">Inactivity Risk</span>
+            </div>
+            <div class="player-info" style="display:flex;align-items:center;gap:15px">
+                <img src="assets/${m.rank_img || 'rank_minion.png'}" style="width:40px;height:auto;" onerror="this.src='assets/rank_minion.png'">
+                <div class="player-details">
+                    <div class="player-name" style="color:#fff;font-weight:bold">${m.username}</div>
+                    <div class="player-role" style="color:#888;font-size:0.8em">${m.role}</div>
+                </div>
+            </div>
+            <div class="alert-metric" style="margin-top:15px;display:flex;justify-content:space-between;border-top:1px solid rgba(255,255,255,0.1);padding-top:10px">
+                <span style="color:#888">7d Activity</span>
+                <span style="color:var(--neon-red)">0 XP</span>
+            </div>
+        `;
+        alertsContainer.appendChild(card);
     });
 }
 
-function renderLeaderboard(data) {
-    // Composite Score Top 5
-    const ctx = document.getElementById('leaderboard-chart');
+function renderRecentActivity(members) {
+    // Populate "Recent Activity" Table (Top 5 by XP or Msgs)
+    const tbody = document.querySelector('#recent-activity-table tbody');
+    if (!tbody) return;
+
+    // Sort by recent Messages (High to Low)
+    const recent = [...members].sort((a, b) => b.msgs_7d - a.msgs_7d).slice(0, 10);
+
+    let html = '';
+    recent.forEach((m, i) => {
+        html += `
+            <tr>
+                <td style="color:${i < 3 ? 'var(--neon-gold)' : '#fff'}">#${i + 1}</td>
+                <td style="display:flex;align-items:center;gap:10px">
+                     <img src="assets/${m.rank_img}" width="20" onerror="this.style.display='none'">
+                     ${m.username}
+                </td>
+                <td>${m.msgs_7d}</td>
+                <td style="color:var(--neon-green)">+${formatNumber(m.xp_7d)}</td>
+            </tr>
+        `;
+    });
+    tbody.innerHTML = html;
+}
+
+function renderInactiveWatchlist(members) {
+    const container = document.getElementById('inactive-watchlist');
+    if (!container) return;
+
+    // Filter: 0 msgs in last 30d (and joined > 30d ago? optional)
+    const inactive = members.filter(m => m.msgs_30d === 0 && m.days_in_clan > 30).slice(0, 20);
+
+    if (inactive.length === 0) {
+        container.innerHTML = '<span style="color:#888">All systems active.</span>';
+        return;
+    }
+
+    let html = '';
+    inactive.forEach(m => {
+        html += `<span class="inactive-tag">${m.username}</span>`;
+    });
+    container.innerHTML = html;
+}
+
+
+// ---------------------------------------------------------
+// NEW VISUALIZATION FUNCTIONS (Replaces Bingo)
+// ---------------------------------------------------------
+
+function renderScatterInteraction() {
+    const ctx = document.getElementById('chart-scatter-interaction');
     if (!ctx) return;
-    if (charts['leaderboard']) charts['leaderboard'].destroy();
+    if (charts.scatterInt) charts.scatterInt.destroy();
 
-    if (!data.allMembers) return;
+    const members = dashboardData.allMembers;
 
-    // FIX: Safe Sort with 0-check
-    const top5 = [...data.allMembers]
-        .sort((a, b) => ((b.xp_7d || 0) + (b.boss_7d || 0) * 1000) - ((a.xp_7d || 0) + (a.boss_7d || 0) * 1000))
-        .slice(0, 5);
+    // x: Messages (30d), y: XP (30d)
+    const dataPoints = members
+        .filter(m => m.msgs_30d > 0 || m.xp_30d > 0)
+        .map(m => ({
+            x: m.msgs_30d,
+            y: m.xp_30d,
+            r: 5,
+            player: m.username,
+            role: m.role
+        }));
 
-    charts['leaderboard'] = new Chart(ctx, {
-        type: 'bar',
+    // Split into Quadrants logic could be visual annotations
+    // Color coding by Role maybe?
+
+    charts.scatterInt = new Chart(ctx, {
+        type: 'scatter',
         data: {
-            labels: top5.map(m => m.username),
             datasets: [{
-                label: 'XP Gained (7d)',
-                data: top5.map(m => m.xp_7d),
-                backgroundColor: '#00d4ff',
-                yAxisID: 'y'
-            }, {
-                label: 'Boss Kills (7d)',
-                data: top5.map(m => m.boss_7d),
-                backgroundColor: '#ff073a',
-                yAxisID: 'y1'
+                label: 'Members',
+                data: dataPoints,
+                borderColor: '#ffffff',
+                borderWidth: 1,
+                pointHoverRadius: 8,
+                backgroundColor: function (context) {
+                    const val = context.raw;
+                    if (!val) return 'rgba(136, 136, 136, 0.5)';
+                    const avgMsg = 50;
+                    const avgXP = 500000;
+
+                    if (val.x > avgMsg && val.y > avgXP) return 'rgba(51, 255, 51, 0.7)'; // Green
+                    if (val.x > avgMsg) return 'rgba(0, 212, 255, 0.7)'; // Blue
+                    if (val.y > avgXP) return 'rgba(255, 215, 0, 0.7)'; // Gold
+                    return 'rgba(136, 136, 136, 0.5)'; // Grey
+                }
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                y: { position: 'left', display: false },
-                y1: { position: 'right', display: false, grid: { drawOnChartArea: false } }
+                x: {
+                    type: 'linear',
+                    position: 'bottom',
+                    title: { display: true, text: 'Messages (30d)', color: '#888' },
+                    grid: { color: 'rgba(255,255,255,0.05)' }
+                },
+                y: {
+                    title: { display: true, text: 'XP Gained (30d)', color: '#888' },
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { callback: function (val) { return formatNumber(val); } }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            const p = context.raw;
+                            return `${p.player}: ${p.x} msgs, ${formatNumber(p.y)} XP`;
+                        }
+                    }
+                },
+                legend: { display: false },
+                annotation: {
+                    annotations: {
+                        label1: {
+                            type: 'label',
+                            xValue: 'max',
+                            yValue: 'max',
+                            content: ['MVP Zone'],
+                            font: { size: 12 },
+                            color: 'rgba(255,255,255,0.3)'
+                        }
+                    }
+                }
             }
         }
     });
 }
 
-function renderRecentActivity(data) {
-    const tbody = document.getElementById('recent-activity-body');
-    if (!tbody) return;
-    // Just show members with highest recent activity
-    const recent = [...data.allMembers].sort((a, b) => b.xp_7d - a.xp_7d).slice(0, 5);
-    tbody.innerHTML = recent.map(m => `
-        <tr>
-            <td>${m.username}</td>
-            <td><span class="role-badge ${getRoleBadge(m.role)}">${m.role}</span></td>
-            <td style="color:#39ff14">+${formatNumber(m.xp_7d)} XP</td>
-        </tr>
-    `).join('');
-}
-
-function renderWatchlist(data) {
-    const list = document.getElementById('inactive-watchlist');
-    if (!list) return;
-    // Filter for truly inactive (0 xp, 0 msg, 0 boss in 30d)
-    const ghosts = data.allMembers.filter(m => m.xp_30d === 0 && m.msgs_30d === 0 && m.boss_30d === 0).slice(0, 5);
-    if (ghosts.length === 0) {
-        list.innerHTML = '<li style="color:#888;">No ghosts detected.</li>';
-    } else {
-        list.innerHTML = ghosts.map(m => `
-            <li>
-                <span class="bad-name">${m.username}</span>
-                <span class="days-inactive">${m.days_in_clan}d in clan</span>
-            </li>
-        `).join('');
-    }
-}
-
-// --- MESSAGES SECTION ---
-async function loadMessagesData() {
-    const data = await getDashboardData();
-    const timeEl = document.getElementById('updated-time-msg');
-    if (timeEl) timeEl.textContent = new Date().toLocaleDateString();
-
-    // 1. Volume Chart
-    const topMsgs = [...data.allMembers].sort((a, b) => b.msgs_30d - a.msgs_30d).slice(0, 5);
-    const ctxVol = document.getElementById('message-volume-chart');
-    if (ctxVol) {
-        if (charts['msg-vol']) charts['msg-vol'].destroy();
-        charts['msg-vol'] = new Chart(ctxVol, {
-            type: 'bar',
-            data: {
-                labels: topMsgs.map(m => m.username),
-                datasets: [{
-                    label: 'Messages (30d)',
-                    data: topMsgs.map(m => m.msgs_30d),
-                    backgroundColor: '#00d4ff'
-                }]
-            },
-            options: { indexAxis: 'y', plugins: { legend: { display: false } } }
-        });
-    }
-
-    // 2. Role Distribution
-    renderRoleDistribution(data);
-
-    // 3. Activity Heatmap
-    renderActivityHeatmap(data);
-
-    // 4. Table
-    const tbody = document.querySelector('#messages-table tbody');
-    if (tbody) {
-        tbody.innerHTML = [...data.allMembers].sort((a, b) => b.msgs_total - a.msgs_total).map(m => `
-            <tr>
-                <td>${m.username}</td>
-                <td><span class="role-badge ${getRoleBadge(m.role)}">${m.role}</span></td>
-                <td>${formatNumber(m.msgs_total)}</td>
-                <td>${formatNumber(m.msgs_7d)}</td>
-                <td>${formatNumber(m.msgs_30d)}</td>
-            </tr>
-        `).join('');
-        setupTableSearch('search-messages', 'messages-table');
-    }
-}
-
-function renderRoleDistribution(data) {
-    const ctx = document.getElementById('role-distribution-chart');
+function renderBossDiversity() {
+    const ctx = document.getElementById('chart-boss-diversity');
     if (!ctx) return;
-    if (charts['role-dist']) charts['role-dist'].destroy();
+    const data = dashboardData.chart_boss_diversity;
+    if (!data) return;
 
-    // Calculate distribution
-    const roleCounts = {};
-    data.allMembers.forEach(m => {
-        const r = m.role || 'Unknown';
-        roleCounts[r] = (roleCounts[r] || 0) + 1;
-    });
+    if (charts.bossDiv) charts.bossDiv.destroy();
 
-    const sortedRoles = Object.entries(roleCounts).sort((a, b) => b[1] - a[1]);
+    // Generate dynamic colors for N items
+    const generateColors = (count) => {
+        const colors = [];
+        for (let i = 0; i < count; i++) {
+            const hue = (i * 137.508) % 360; // Golden angle approx
+            colors.push(`hsl(${hue}, 70%, 50%)`);
+        }
+        return colors;
+    };
 
-    charts['role-dist'] = new Chart(ctx, {
+    charts.bossDiv = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: sortedRoles.map(r => r[0]),
+            labels: data.labels,
             datasets: [{
-                data: sortedRoles.map(r => r[1]),
-                backgroundColor: [
-                    '#00d4ff', '#39ff14', '#ff073a', '#e0e0e0', '#ffd700',
-                    '#bc13fe', '#ffb84d', '#ff69b4', '#00ffff'
-                ],
+                data: data.datasets[0].data,
+                backgroundColor: generateColors(data.labels.length),
                 borderWidth: 0
             }]
         },
         options: {
-            plugins: { legend: { position: 'right', labels: { boxWidth: 10, color: '#aaa', font: { size: 10 } } } }
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false } // Hide legend for "All Bosses" to avoid UI clutter
+            }
         }
     });
 }
 
-function renderActivityHeatmap(data) {
-    const container = document.getElementById('activity-heatmap');
-    if (!container) return;
+function renderRaidsPerformance() {
+    const ctx = document.getElementById('chart-raids-performance');
+    if (!ctx) return;
+    const data = dashboardData.chart_raids;
+    if (!data) return;
 
-    // Data usually in data.activityTrends
-    const trends = data.activityTrends || [];
-    if (trends.length === 0) {
-        container.innerHTML = '<div class="loading">No activity data available</div>';
+    if (charts.raids) charts.raids.destroy();
+
+    charts.raids = new Chart(ctx, {
+        type: 'bar', // Stacked bar usually requires multiple datasets, but here comparing Total Kills across raids is fine as regular bar
+        data: {
+            labels: data.labels,
+            datasets: [{
+                label: 'Total Kills',
+                data: data.datasets[0].data,
+                backgroundColor: [
+                    '#55FF55', '#228822', // CoX
+                    '#FF5555', '#882222', // ToB
+                    '#FFFF55', '#888822'  // ToA
+                ],
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { grid: { color: 'rgba(255,255,255,0.05)' } },
+                x: { grid: { display: false } }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+}
+
+function renderSkillMastery() {
+    const ctx = document.getElementById('chart-skill-mastery');
+    if (!ctx) return;
+    const data = dashboardData.chart_skills;
+    if (!data) return;
+
+    if (charts.skills) charts.skills.destroy();
+
+    // Top 10 skills
+    const labels = data.labels.slice(0, 10);
+    const values = data.datasets[0].data.slice(0, 10);
+
+    charts.skills = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Number of Level 99s',
+                data: values,
+                backgroundColor: '#FFA500',
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y', // Horizontal Bar
+            scales: {
+                x: { grid: { color: 'rgba(255,255,255,0.05)' } },
+                y: { grid: { display: false } }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+}
+
+function renderBossTrend() {
+    const ctx = document.getElementById('chart-boss-trend');
+    if (!ctx) return;
+    const data = dashboardData.chart_boss_trend;
+    if (!data) return;
+
+    // Update Name
+    const nameEl = document.getElementById('trending-boss-name');
+
+    // Safety Check: hide if no valid chart data
+    if (!data || !data.chart_data || !data.chart_data.datasets || !data.chart_data.datasets[0]) {
+        if (nameEl) nameEl.innerText = "No Trending Data";
+        ctx.style.display = 'none';
         return;
     }
 
-    // Grid: 7 days x 24 hours. 
-    // We need to map [day, hour] keys to values.
-    const map = {};
-    let maxVal = 1;
-    trends.forEach(t => {
-        map[`${t.day}-${t.hour}`] = t.value;
-        if (t.value > maxVal) maxVal = t.value;
-    });
+    if (nameEl) nameEl.innerText = `${data.boss_name} (+${formatNumber(data.total_gain)})`;
+    ctx.style.display = 'block';
 
-    // Generate Grid HTML
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    // CSS Grid: 30px label col, then 24 1fr cols.
-    let html = '<div style="display:grid; grid-template-columns: 40px repeat(24, 1fr); gap: 2px; height: 100%; align-content: center;">';
+    if (charts.bossTrend) charts.bossTrend.destroy();
 
-    // Header (Hours)
-    html += '<div style="font-size:8px; color:#444;">UTC</div>'; // Corner
-    for (let h = 0; h < 24; h += 2) html += `<div style="grid-column: span 2; font-size:8px; text-align:center; color:#666;">${h}</div>`;
-
-    // Rows
-    for (let d = 0; d < 7; d++) {
-        html += `<div style="font-size:10px; color:#888; align-self:center;">${days[d]}</div>`;
-        for (let h = 0; h < 24; h++) {
-            const val = map[`${d}-${h}`] || 0;
-            const intensity = Math.min(1, val / (maxVal * 0.8)); // slightly boost visibility
-            // Color: Neon Blue with opacity
-            const color = `rgba(0, 212, 255, ${Math.max(0.1, intensity)})`;
-            const tooltip = `${days[d]} ${h}:00 - ${val} msgs`;
-
-            html += `<div style="
-                background: ${color}; 
-                height: 12px; 
-                border-radius: 2px;
-                " title="${tooltip}"></div>`;
+    charts.bossTrend = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.chart_data.labels,
+            datasets: [{
+                label: `Daily ${data.boss_name} Kills`,
+                data: data.chart_data.datasets[0].data,
+                borderColor: '#FFD700',
+                backgroundColor: 'rgba(255, 215, 0, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { grid: { color: 'rgba(255,255,255,0.05)' } },
+                x: { display: false } // Hide dates to keep it clean, hover for info
+            },
+            plugins: {
+                legend: { display: false }
+            }
         }
-    }
-    html += '</div>';
-
-    container.innerHTML = html;
-    container.style.height = 'auto';
-    container.style.display = 'block'; // Ensure visibility
+    });
 }
 
-// --- XP GAINS SECTION ---
-async function loadXPGainsDataBubble() {
-    const data = await getDashboardData();
-    const timeEl = document.getElementById('updated-time-xp');
-    if (timeEl) timeEl.textContent = new Date().toLocaleDateString();
 
-    // 1. XP 7d Chart
-    const topXP = [...data.allMembers].sort((a, b) => b.xp_7d - a.xp_7d).slice(0, 10);
-    const ctxXP = document.getElementById('xp-7d-chart');
-    if (ctxXP) {
-        if (charts['xp-7d']) charts['xp-7d'].destroy();
-        charts['xp-7d'] = new Chart(ctxXP, {
-            type: 'bar',
-            data: {
-                labels: topXP.map(m => m.username),
-                datasets: [{
-                    label: 'XP Gained (7d)',
-                    data: topXP.map(m => m.xp_7d),
-                    backgroundColor: '#39ff14'
-                }]
-            },
-            options: { plugins: { legend: { display: false } } }
-        });
+/**
+ * Chart.js Rendering
+ */
+function renderAllCharts() {
+    if (typeof Chart === 'undefined') {
+        console.error("Chart.js not loaded");
+        return;
     }
 
-    // 2. Scatter (XP vs Boss) - Optional
-    const ctxScatter = document.getElementById('xp-boss-chart');
-    if (ctxScatter) {
-        if (charts['xp-boss']) charts['xp-boss'].destroy();
-        charts['xp-boss'] = new Chart(ctxScatter, {
-            type: 'scatter',
-            data: {
-                datasets: [{
-                    label: 'Player Performance',
-                    data: data.allMembers.map(m => ({ x: m.boss_total || m.total_boss, y: m.xp_7d })),
-                    backgroundColor: '#bc13fe'
-                }]
+    Chart.defaults.color = '#888';
+    Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
+    Chart.defaults.font.family = "'Outfit', sans-serif";
+
+    renderActivityHealthChart();
+    renderTopXPChart();
+    renderTrendChart();
+
+    // NEW CHARTS
+    renderScatterInteraction();
+    renderBossDiversity();
+    renderRaidsPerformance();
+    renderSkillMastery();
+    renderBossTrend();
+
+    // MISSING CHARTS ADDED
+    renderPlayerRadar();
+    renderLeaderboardChart();
+    initComparator();
+}
+
+function renderActivityHealthChart() {
+    const ctx = document.getElementById('activity-health-chart');
+    if (!ctx) return;
+
+    if (charts.health) charts.health.destroy();
+
+    const members = dashboardData.allMembers;
+    const high = members.filter(m => m.xp_7d > 1000000).length;
+    const med = members.filter(m => m.xp_7d > 100000 && m.xp_7d <= 1000000).length;
+    const low = members.filter(m => m.xp_7d > 0 && m.xp_7d <= 100000).length;
+    const inactive = members.filter(m => m.xp_7d === 0).length;
+
+    charts.health = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['High Activity', 'Moderate', 'Low', 'Inactive'],
+            datasets: [{
+                data: [high, med, low, inactive],
+                backgroundColor: ['#33FF33', '#00d4ff', '#FFD700', '#FF3333'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right', labels: { color: '#ccc' } }
+            }
+        }
+    });
+}
+
+function renderTopXPChart() {
+    const ctx = document.getElementById('top-xp-contributors-chart');
+    if (!ctx) return;
+    if (charts.topXP) charts.topXP.destroy();
+
+    const xpKey = currentPeriod === '30d' ? 'xp_30d' : 'xp_7d';
+    const top5 = [...dashboardData.allMembers].sort((a, b) => b[xpKey] - a[xpKey]).slice(0, 5); // Recalculate based on period
+
+    charts.topXP = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: top5.map(m => m.username),
+            datasets: [{
+                label: `XP Gained (${currentPeriod})`,
+                data: top5.map(m => m[xpKey]),
+                backgroundColor: '#00d4ff',
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+                x: { grid: { display: false } }
             },
-            options: {
-                scales: {
-                    x: { title: { display: true, text: 'Total Boss Kills' } },
-                    y: { title: { display: true, text: 'XP Gained (7d)' } }
+            plugins: { legend: { display: false } }
+        }
+    });
+}
+
+function renderTrendChart() {
+    const ctx = document.getElementById('activity-trend-chart');
+    if (!ctx) return;
+    if (charts.trend) charts.trend.destroy();
+
+    // Use Real Data if available, fallback to dummy only if absolutely necessary
+    const history = dashboardData.history || [];
+
+    let labels, xpData, msgData;
+
+    if (history.length > 0) {
+        // Sort by date just in case
+        history.sort((a, b) => new Date(a.date) - new Date(b.date));
+        labels = history.map(d => {
+            const date = new Date(d.date);
+            return `${date.getDate()}/${date.getMonth() + 1}`;
+        });
+        xpData = history.map(d => d.xp);
+        msgData = history.map(d => d.msgs);
+    } else {
+        // Fallback (should rarely happen if DB is populated)
+        labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        xpData = [0, 0, 0, 0, 0, 0, 0];
+        msgData = [0, 0, 0, 0, 0, 0, 0];
+    }
+
+    charts.trend = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Total XP Gained',
+                    data: xpData,
+                    borderColor: '#FFD700',
+                    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Total Messages',
+                    data: msgData,
+                    borderColor: '#00d4ff',
+                    backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    yAxisID: 'y1'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    display: true,
+                    position: 'left',
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { callback: function (value) { return formatNumber(value); } }
+                },
+                y1: {
+                    display: true,
+                    position: 'right',
+                    grid: { drawOnChartArea: false }, // only want the grid lines for one axis to show up
+                },
+                x: { grid: { display: false } }
+            },
+            plugins: {
+                legend: { display: true, labels: { color: '#ccc' } },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += formatNumber(context.parsed.y);
+                            }
+                            return label;
+                        }
+                    }
                 }
             }
+        }
+    });
+}
+
+
+function setupSearch() {
+    // General Search
+    setupSectionSearch('search-general', '#recent-activity-table tbody tr');
+    setupSectionSearch('search-roster', '#roster-table tbody tr');
+    setupSectionSearch('search-messages', '#messages-table tbody tr');
+    setupSectionSearch('search-xp', '#xp-table tbody tr');
+    setupSectionSearch('search-bosses', '#bosses-table tbody tr');
+    setupSectionSearch('search-outliers', '#outliers-table tbody tr');
+}
+
+function setupSectionSearch(inputId, rowSelector) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+
+    input.addEventListener('input', (e) => {
+        const val = e.target.value.toLowerCase();
+        const rows = document.querySelectorAll(rowSelector);
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            row.style.display = text.includes(val) ? '' : 'none';
         });
-    }
-
-    // 3. XP vs Messages Scatter
-    const ctxMsg = document.getElementById('xp-messages-scatter');
-    if (ctxMsg) {
-        if (charts['xp-msg']) charts['xp-msg'].destroy();
-        charts['xp-msg'] = new Chart(ctxMsg, {
-            type: 'scatter',
-            data: {
-                datasets: [{
-                    label: 'XP vs Messages',
-                    data: data.allMembers.map(m => ({ x: m.msgs_total || 0, y: m.xp_7d })),
-                    backgroundColor: '#ff69b4'
-                }]
-            },
-            options: {
-                scales: {
-                    x: { title: { display: true, text: 'Total Messages' } },
-                    y: { title: { display: true, text: 'XP Gained (7d)' } }
-                }
-            }
-        });
-    }
-
-    // 4. Table
-    const tbody = document.querySelector('#xp-table tbody');
-    if (tbody) {
-        tbody.innerHTML = [...data.allMembers].sort((a, b) => b.xp_7d - a.xp_7d).map(m => `
-            <tr>
-                <td>${m.username}</td>
-                <td><span class="role-badge ${getRoleBadge(m.role)}">${m.role}</span></td>
-                <td>${formatNumber(m.total_xp)}</td>
-                <td style="color:var(--neon-green)">+${formatNumber(m.xp_7d)}</td>
-                <td>+${formatNumber(m.xp_30d)}</td>
-            </tr>
-        `).join('');
-        setupTableSearch('search-xp', 'xp-table');
-    }
+    });
 }
 
-// --- BOSSES SECTION ---
-async function loadBossesData() {
-    const data = await getDashboardData();
-    const timeEl = document.getElementById('updated-time-boss');
-    if (timeEl) timeEl.textContent = new Date().toLocaleDateString();
+// ---------------------------------------------------------
+// NEW RENDER FUNCTIONS
+// ---------------------------------------------------------
 
-    // Render Boss Cards if data.bossCards exists
-    const cardContainer = document.getElementById('boss-cards');
-    if (cardContainer) {
-        cardContainer.innerHTML = '';
-        const createCard = (title, bossData, icon) => {
-            if (!bossData || !bossData.name) return '';
-            return `
-                <div class="glass-card stat-card">
-                    <div class="stat-icon"><img src="assets/${icon}" style="width:32px; filter: drop-shadow(0 0 5px var(--neon-gold));"></div>
-                    <div class="stat-info">
-                        <div class="stat-value">${bossData.name}</div>
-                        <div class="stat-sub">${title}</div>
-                        <div class="stat-sub" style="color:var(--neon-blue)">${formatNumber(bossData.count || bossData.kills)}</div>
-                    </div>
-                </div>
-             `;
-        };
-        // Use safest logic: data.topBossKiller is usually reliable. 
-        cardContainer.innerHTML += createCard('Weekly Top Killer', data.topBossKiller, 'boss_vorkath.png');
-
-        // Pivot: Show Total Clan Kills (7d) which is always robust
-        const totalKills = data.allMembers.reduce((acc, m) => acc + (m.boss_7d || 0), 0);
-        cardContainer.innerHTML += createCard('Total Kills (7d)', { name: 'Clan Total', count: totalKills }, 'boss_pet_rock.png');
-    }
-
-    // Table
-    const tbody = document.querySelector('#bosses-table tbody');
-    if (tbody) {
-        tbody.innerHTML = [...data.allMembers].sort((a, b) => b.total_boss - a.total_boss).map((m, idx) => `
-            <tr>
-                <td>#${idx + 1}</td>
-                <td>${m.username}</td>
-                <td><span class="role-badge ${getRoleBadge(m.role)}">${m.role}</span></td>
-                <td style="color:var(--neon-gold); font-weight:bold;">${formatNumber(m.total_boss)}</td>
-                <td>${formatNumber(m.boss_7d)}</td>
-                <td>${formatNumber(m.boss_30d)}</td>
-            </tr>
-        `).join('');
-        setupTableSearch('search-bosses', 'bosses-table');
-    }
-}
-
-// --- OUTLIERS SECTION ---
-async function loadOutliersData() {
-    const data = await getDashboardData();
-    const timeEl = document.getElementById('updated-time-out');
-    if (timeEl) timeEl.textContent = new Date().toLocaleDateString();
-
-    // Define simple outlier logic: Top 5% XP or Msgs
-    const outliers = [...data.allMembers].sort((a, b) => b.xp_7d - a.xp_7d).slice(0, 10); // Mock logic
-
-    const tbody = document.querySelector('#outliers-table tbody');
-    if (tbody) {
-        tbody.innerHTML = outliers.map(m => `
-            <tr>
-                <td>${m.username}</td>
-                <td><span class="role-badge ${getRoleBadge(m.role)}">${m.role}</span></td>
-                <td>${formatNumber(m.msgs_7d)}</td>
-                <td>${formatNumber(m.xp_7d)}</td>
-                <td>${(m.msgs_total / (m.days_in_clan || 1)).toFixed(1)}</td>
-                <td><span style="color:var(--neon-red)">Anomalous</span></td>
-            </tr>
-        `).join('');
-        setupTableSearch('search-outliers', 'outliers-table');
-    }
-}
-
-// --- ROSTER SECTION ---
-async function loadRosterData() {
-    const data = await getDashboardData();
+function renderFullRoster(members) {
     const tbody = document.getElementById('roster-body');
+    if (!tbody) return;
 
-    if (tbody) {
-        tbody.innerHTML = data.allMembers.map(m => `
+    let html = '';
+    members.forEach(m => {
+        const ratio = m.msgs_total > 0 ? (m.total_xp / m.msgs_total).toFixed(0) : 0;
+        html += `
             <tr>
-                <td class="player-cell">
-                    <!-- FIX: Prefer role-derived asset (e.g. rank_zamorakian.png) over server generic (rank_diamond.png) -->
-                    <img src="${getRankImage(m.role)}" class="rank-icon-sm" onerror="this.src='assets/rank_recruit.png'">
-                    ${m.username}
+                <td style="display:flex;align-items:center;gap:10px">
+                     <img src="assets/${m.rank_img || 'rank_minion.png'}" width="24">
+                     <span class="player-link" onclick="openPlayerProfile('${m.username}')">${m.username}</span>
                 </td>
                 <td>${formatNumber(m.xp_7d)}</td>
                 <td>${formatNumber(m.total_xp)}</td>
@@ -568,384 +910,580 @@ async function loadRosterData() {
                 <td>${formatNumber(m.total_boss)}</td>
                 <td>${formatNumber(m.msgs_7d)}</td>
                 <td>${formatNumber(m.msgs_total)}</td>
-                <td>${(m.social_ratio !== undefined && m.social_ratio !== null) ? m.social_ratio.toFixed(2) : '-'}</td>
+                <td>${formatNumber(ratio)}</td>
+                <td>${m.days_in_clan || 0}</td>
+            </tr>
+        `;
+    });
+    tbody.innerHTML = html;
+}
+
+function renderMessagesSection(members) {
+    // 1. Update Time
+    renderTime('updated-time-msg', dashboardData.generated_at);
+
+    // 2. Table
+    const tbody = document.querySelector('#messages-table tbody');
+    if (tbody) {
+        const sorted = [...members].sort((a, b) => b.msgs_7d - a.msgs_7d).slice(0, 50);
+        tbody.innerHTML = sorted.map(m => `
+            <tr>
+                <td>${m.username}</td>
+                <td>${m.role}</td>
+                <td>${formatNumber(m.msgs_total)}</td>
+                <td style="color:var(--neon-green)">${m.msgs_7d}</td>
+                <td>--</td> 
             </tr>
         `).join('');
-        setupTableSearch('search-roster', 'roster-table');
     }
-}
 
-// --- COMPARATOR SECTION ---
-async function loadComparatorData() {
-    await getDashboardData();
-    initComparator();
-}
+    // 3. Activity Heatmap (Hourly 24h)
+    const heatmap = document.getElementById('activity-heatmap');
+    if (heatmap && dashboardData.activity_heatmap) {
+        heatmap.innerHTML = '';
+        heatmap.style.display = 'grid';
+        heatmap.style.gridTemplateColumns = 'repeat(24, 1fr)';
+        heatmap.style.gap = '2px';
+        heatmap.style.height = '60px';
+        heatmap.style.alignItems = 'end'; // bars from bottom
 
-function initComparator() {
-    const data = window.dashboardData;
-    if (!data) return;
+        const maxVal = Math.max(...dashboardData.activity_heatmap);
 
-    const inputA = document.getElementById('comparator-search-a');
-    const inputB = document.getElementById('comparator-search-b');
-
-    // Simple Datalist setup
-    let datalist = document.getElementById('player-datalist');
-    if (!datalist) {
-        datalist = document.createElement('datalist');
-        datalist.id = 'player-datalist';
-        data.allMembers.forEach(m => {
-            const opt = document.createElement('option');
-            opt.value = m.username;
-            datalist.appendChild(opt);
+        dashboardData.activity_heatmap.forEach((val, hour) => {
+            const bar = document.createElement('div');
+            // Height proportional to max
+            const hPct = maxVal > 0 ? (val / maxVal) * 100 : 0;
+            bar.style.height = Math.max(hPct, 15) + '%';
+            // Increased opacity base to 0.4
+            bar.style.backgroundColor = `rgba(0, 212, 255, ${Math.max(0.4, hPct / 100)})`;
+            bar.style.borderRadius = '2px';
+            bar.title = `${hour}:00 - ${val} msgs`;
+            heatmap.appendChild(bar);
         });
-        document.body.appendChild(datalist);
+    } else if (heatmap) {
+        heatmap.innerHTML = '<div style="text-align:center;padding:50px;color:#666">Activity Heatmap Data Unavailable</div>';
     }
 
-    if (inputA) {
-        inputA.setAttribute('list', 'player-datalist');
-        inputA.onchange = updateComparator;
+    // 4. Charts - Message Volume
+    const ctxVol = document.getElementById('message-volume-chart');
+    if (ctxVol) {
+        if (charts.msgVol) charts.msgVol.destroy();
+        const topMsg = [...members].sort((a, b) => b.msgs_7d - a.msgs_7d).slice(0, 5);
+        charts.msgVol = new Chart(ctxVol, {
+            type: 'bar',
+            data: {
+                labels: topMsg.map(m => m.username),
+                datasets: [{
+                    label: 'Messages (7d)',
+                    data: topMsg.map(m => m.msgs_7d),
+                    backgroundColor: '#00d4ff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { x: { grid: { display: false } }, y: { grid: { color: 'rgba(255,255,255,0.05)' } } }
+            }
+        });
     }
-    if (inputB) {
-        inputB.setAttribute('list', 'player-datalist');
-        inputB.onchange = updateComparator;
+
+    // 5. Role Distribution
+    const ctxRole = document.getElementById('role-distribution-chart');
+    if (ctxRole) {
+        if (charts.roleDist) charts.roleDist.destroy();
+        // Aggregate roles
+        const roles = {};
+        members.forEach(m => {
+            const r = m.role || 'Unknown';
+            roles[r] = (roles[r] || 0) + 1;
+        });
+        charts.roleDist = new Chart(ctxRole, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(roles),
+                datasets: [{
+                    data: Object.values(roles),
+                    backgroundColor: ['#FFD700', '#FF3333', '#33FF33', '#00d4ff', '#FF00FF', '#FFA500'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'right', labels: { color: '#ccc', boxWidth: 10 } } }
+            }
+        });
     }
 }
 
-function updateComparator() {
-    const nameA = document.getElementById('comparator-search-a').value;
-    const nameB = document.getElementById('comparator-search-b').value;
-    const data = window.dashboardData;
+function renderXpSection(members) {
+    renderTime('updated-time-xp', dashboardData.generated_at);
 
-    const playerA = data.allMembers.find(m => m.username === nameA);
-    const playerB = data.allMembers.find(m => m.username === nameB);
+    // Table
+    const tbody = document.querySelector('#xp-table tbody');
+    if (tbody) {
+        const sorted = [...members].sort((a, b) => b.xp_7d - a.xp_7d).slice(0, 50);
+        tbody.innerHTML = sorted.map(m => `
+            <tr>
+                <td style="display:flex;align-items:center;gap:10px">
+                    <img src="assets/${m.rank_img || 'rank_minion.png'}" width="20">
+                    ${m.username}
+                </td>
+                <td>${m.role}</td>
+                <td>${formatNumber(m.total_xp)}</td>
+                <td style="color:var(--neon-green)">+${formatNumber(m.xp_7d)}</td>
+                <td style="color:rgba(255,255,255,0.7)">+${formatNumber(m.xp_30d || 0)}</td>
+            </tr>
+        `).join('');
+    }
 
-    // Update Radar Chart if both exist
-    if (playerA && playerB) {
-        const ctx = document.getElementById('comparator-radar');
-        if (charts['comparator']) charts['comparator'].destroy();
-
-        charts['comparator'] = new Chart(ctx, {
-            type: 'radar',
+    // XP Chart (7d vs Total) - effectively same as Top XP but maybe top 10?
+    const ctxXP = document.getElementById('xp-7d-chart');
+    if (ctxXP) {
+        if (charts.xp7d) charts.xp7d.destroy();
+        const top10 = [...members].sort((a, b) => b.xp_7d - a.xp_7d).slice(0, 10);
+        charts.xp7d = new Chart(ctxXP, {
+            type: 'bar',
             data: {
-                labels: ['XP', 'Boss', 'Msgs', 'Activity', 'Loyalty'],
-                datasets: [
-                    {
-                        label: playerA.username,
-                        data: [playerA.xp_7d / 200000 * 100, playerA.boss_7d / 50 * 100, playerA.msgs_7d / 50 * 100, 80, 70],
-                        borderColor: '#00d4ff',
-                        backgroundColor: 'rgba(0, 212, 255, 0.2)'
-                    },
-                    {
-                        label: playerB.username,
-                        data: [playerB.xp_7d / 200000 * 100, playerB.boss_7d / 50 * 100, playerB.msgs_7d / 50 * 100, 60, 90],
-                        borderColor: '#ffb84d',
-                        backgroundColor: 'rgba(255, 184, 77, 0.2)'
+                labels: top10.map(m => m.username),
+                datasets: [{
+                    label: 'XP Gained (7d)',
+                    data: top10.map(m => m.xp_7d),
+                    backgroundColor: '#33FF33'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } } }
+            }
+        });
+    }
+
+    // Scatter: XP vs Messages
+    const ctxScat = document.getElementById('xp-messages-scatter');
+    if (ctxScat) {
+        if (charts.scat) charts.scat.destroy();
+        // Filter outliers for better chart view
+        const dataPoints = members
+            .filter(m => m.xp_7d > 0 && m.msgs_7d > 0 && m.xp_7d < 50000000)
+            .map(m => ({ x: m.msgs_7d, y: m.xp_7d, r: 5, player: m.username }));
+
+        charts.scat = new Chart(ctxScat, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'XP vs Msgs',
+                    data: dataPoints,
+                    backgroundColor: 'rgba(255, 215, 0, 0.5)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { title: { display: true, text: 'Messages (7d)' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                    y: { title: { display: true, text: 'XP (7d)' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                const p = context.raw;
+                                return `${p.player}: ${p.x} msgs, ${formatNumber(p.y)} XP`;
+                            }
+                        }
                     }
-                ]
+                }
+            }
+        });
+    }
+
+    renderXPvsBossChart(members);
+}
+
+function renderBossesSection(members) {
+    renderTime('updated-time-boss', dashboardData.generated_at);
+
+    // Top Boss Cards
+    const cards = document.getElementById('boss-cards');
+    if (cards) {
+        cards.innerHTML = '';
+        const topKillers = [...members].sort((a, b) => b.boss_7d - a.boss_7d).slice(0, 4);
+        topKillers.forEach(m => {
+            cards.innerHTML += `
+                <div class="stat-card">
+                    <div class="stat-label">${m.username}</div>
+                    <div class="stat-value" style="color:var(--neon-red)">${formatNumber(m.boss_7d)} Kills</div>
+                    <div style="font-size:0.8em;color:#888;margin-top:5px;display:flex;align-items:center;justify-content:center;gap:5px">
+                        <img src="assets/${m.favorite_boss_img || 'boss_pet_rock.png'}" style="height:30px;width:auto;object-fit:contain;">
+                        <span>${m.favorite_boss || 'None'}</span>
+                    </div>
+                </div>
+             `;
+        });
+    }
+
+    // Table
+    const tbody = document.querySelector('#bosses-table tbody');
+    if (tbody) {
+        const sorted = [...members].sort((a, b) => b.total_boss - a.total_boss).slice(0, 50);
+        tbody.innerHTML = sorted.map((m, i) => `
+            <tr>
+                <td>#${i + 1}</td>
+                <td>${m.username}</td>
+                <td>${m.role}</td>
+                <td style="color:var(--neon-gold);font-weight:bold">${formatNumber(m.total_boss)}</td>
+                <td style="color:var(--neon-red)">+${formatNumber(m.boss_7d)}</td>
+                <td style="color:rgba(255,255,255,0.7)">+${formatNumber(m.boss_30d || 0)}</td>
+            </tr>
+        `).join('');
+    }
+}
+
+function renderOutliersSection(members) {
+    renderTime('updated-time-out', dashboardData.generated_at);
+
+    const tbody = document.querySelector('#outliers-table tbody');
+    if (tbody) {
+        // Enriched Purging Logic
+        const purgingCandidates = [];
+
+        members.forEach(m => {
+            let status = null;
+            let type = "";
+
+            // Criteria for Purging
+            if (m.days_in_clan > 60 && m.xp_30d < 50000 && m.boss_30d < 5 && m.msgs_30d === 0) {
+                status = "Terminally Inactive";
+                type = "Purge High Priority";
+            } else if (m.days_in_clan > 30 && m.xp_30d === 0 && m.msgs_30d === 0) {
+                status = "Zero Activity (30d)";
+                type = "Purge";
+            } else if (m.days_in_clan > 90 && m.msgs_total < 10 && m.xp_30d < 100000) {
+                status = "Long-term Ghost";
+                type = "Purge";
+            }
+
+            if (status) {
+                purgingCandidates.push({ ...m, status, type });
             }
         });
 
-        // Update Table (Tale of the Tape)
-        const tbody = document.getElementById('comparator-body');
-        if (tbody) {
-            const metrics = [
-                { label: 'Total XP', key: 'total_xp' },
-                { label: 'Total Boss', key: 'total_boss' },
-                { label: 'Messages', key: 'msgs_total' },
-                { label: 'Days in Clan', key: 'days_in_clan' }
-            ];
+        // Sort by days in clan desc
+        purgingCandidates.sort((a, b) => b.days_in_clan - a.days_in_clan);
 
-            tbody.innerHTML = metrics.map(m => {
-                const v1 = playerA[m.key] || 0;
-                const v2 = playerB[m.key] || 0;
-                const diff = v1 - v2;
-                const color = diff > 0 ? '#00d4ff' : (diff < 0 ? '#ffb84d' : '#888');
-                return `
-                    <tr>
-                        <td>${m.label}</td>
-                        <td style="color:#00d4ff">${formatNumber(v1)}</td>
-                        <td style="color:#ffb84d">${formatNumber(v2)}</td>
-                        <td style="color:${color}">${diff > 0 ? '+' : ''}${formatNumber(diff)}</td>
-                    </tr>
-                 `;
-            }).join('');
+        if (purgingCandidates.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--neon-green)">No purging candidates found. Healthy roster!</td></tr>';
+        } else {
+            tbody.innerHTML = purgingCandidates.map(m => `
+                <tr>
+                    <td>${m.username}</td>
+                    <td>${m.role}</td>
+                    <td>${m.msgs_30d}</td>
+                    <td>${formatNumber(m.xp_30d)}</td>
+                    <td>${m.days_in_clan} days</td>
+                    <td style="color:var(--neon-red);font-weight:bold">${m.status}</td>
+                </tr>
+            `).join('');
         }
     }
 }
 
+// ---------------------------------------------------------
+// ADDED MISSING RENDER FUNCTIONS
+// ---------------------------------------------------------
 
-// --- MISSING CHART IMPLEMENTATIONS ---
-
-function renderTopXPContributors(data) {
-    const ctx = document.getElementById('top-xp-contributors-chart');
+function renderPlayerRadar() {
+    const ctx = document.getElementById('player-radar-chart');
     if (!ctx) return;
-    if (charts['top-xp-contrib']) charts['top-xp-contrib'].destroy();
+    if (charts.playerRadar) charts.playerRadar.destroy();
 
-    const top10 = [...data.allMembers].sort((a, b) => b.xp_7d - a.xp_7d).slice(0, 10);
+    // Compare Top 3 XP Gainers + User Average
+    const top3 = dashboardData.topXPGainers.slice(0, 3);
+    const datasets = top3.map((m, i) => ({
+        label: m.username,
+        data: [
+            Math.min(100, (m.xp_7d / 1000000) * 100), // Scaled to 1M
+            Math.min(100, m.msgs_7d),
+            Math.min(100, m.boss_7d)
+        ],
+        fill: true,
+        backgroundColor: i === 0 ? 'rgba(255, 215, 0, 0.2)' : (i === 1 ? 'rgba(0, 212, 255, 0.2)' : 'rgba(51, 255, 51, 0.2)'),
+        borderColor: i === 0 ? '#FFD700' : (i === 1 ? '#00d4ff' : '#33FF33'),
+        pointBackgroundColor: '#fff',
+        pointBorderColor: '#fff'
+    }));
 
-    charts['top-xp-contrib'] = new Chart(ctx, {
+    charts.playerRadar = new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: ['XP Gain (Rel)', 'Messages', 'Boss Kills'],
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            elements: { line: { borderWidth: 2 } },
+            scales: {
+                r: {
+                    angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                    pointLabels: { color: '#ccc' },
+                    suggestedMin: 0,
+                    suggestedMax: 100
+                }
+            },
+            plugins: { legend: { position: 'top', labels: { color: '#e0e0e0' } } }
+        }
+    });
+}
+
+function renderXPvsBossChart(members) {
+    // XP vs Boss Kills Scatter
+    const ctx = document.getElementById('xp-boss-chart');
+    if (!ctx) return;
+    if (charts.xpBoss) charts.xpBoss.destroy();
+
+    const dataPoints = members
+        .filter(m => m.xp_7d > 0 && m.boss_7d > 0)
+        .map(m => ({ x: m.boss_7d, y: m.xp_7d, player: m.username }));
+
+    charts.xpBoss = new Chart(ctx, {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                label: 'XP vs Boss Kills (7d)',
+                data: dataPoints,
+                backgroundColor: 'rgba(255, 51, 51, 0.6)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { title: { display: true, text: 'Boss Kills (7d)' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                y: { title: { display: true, text: 'XP (7d)' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            const p = context.raw;
+                            return `${p.player}: ${p.x} kills, ${formatNumber(p.y)} XP`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+}
+
+function renderLeaderboardChart() {
+    const ctx = document.getElementById('leaderboard-chart');
+    if (!ctx) return;
+    if (charts.leaderboard) charts.leaderboard.destroy();
+
+    // Composite Score: (XP / 10k) + (Boss * 5) + (Msgs * 2)
+    const scores = dashboardData.allMembers.map(m => {
+        const score = (m.xp_7d / 10000) + (m.boss_7d * 5) + (m.msgs_7d * 2);
+        return { name: m.username, score: Math.round(score) };
+    }).sort((a, b) => b.score - a.score).slice(0, 10);
+
+    charts.leaderboard = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: top10.map(m => m.username),
+            labels: scores.map(s => s.name),
             datasets: [{
-                label: '7d XP Contribution',
-                data: top10.map(m => m.xp_7d),
-                backgroundColor: '#00d4ff',
+                label: 'Clan Activity Score',
+                data: scores.map(s => s.score),
+                backgroundColor: [
+                    '#FFD700', '#C0C0C0', '#CD7F32', // Gold, Silver, Bronze
+                    'rgba(0, 212, 255, 0.6)', 'rgba(0, 212, 255, 0.5)',
+                    'rgba(0, 212, 255, 0.4)', 'rgba(0, 212, 255, 0.3)',
+                    'rgba(0, 212, 255, 0.2)', 'rgba(0, 212, 255, 0.1)', 'rgba(0, 212, 255, 0.05)'
+                ],
                 borderRadius: 4
             }]
         },
         options: {
-            indexAxis: 'y',
-            plugins: { legend: { display: false } },
-            scales: { x: { display: false }, y: { ticks: { color: '#ccc', font: { size: 10 } } } }
-        }
-    });
-}
-
-function renderPlayerRadar(data) {
-    const ctx = document.getElementById('player-radar-chart');
-    if (!ctx) return;
-    if (charts['player-radar']) charts['player-radar'].destroy();
-
-    // Top 5 by composite activity
-    const top5 = [...data.allMembers]
-        .sort((a, b) => ((b.xp_7d || 0) + (b.boss_7d || 0) * 1000 + (b.msgs_7d || 0) * 100) - ((a.xp_7d || 0) + (a.boss_7d || 0) * 1000 + (a.msgs_7d || 0) * 100))
-        .slice(0, 5);
-
-    charts['player-radar'] = new Chart(ctx, {
-        type: 'radar',
-        data: {
-            labels: ['XP Gains', 'Boss Kills', 'Messages', 'Loyalty', 'Impact'],
-            datasets: top5.map((m, i) => ({
-                label: m.username,
-                data: [
-                    Math.min(100, (m.xp_7d / 1000000) * 100),
-                    Math.min(100, (m.boss_7d / 50) * 100),
-                    Math.min(100, (m.msgs_7d / 100) * 100),
-                    Math.min(100, (m.days_in_clan / 365) * 100),
-                    Math.min(100, (m.total_xp / 200000000) * 100)
-                ],
-                borderColor: ['#00d4ff', '#ff073a', '#39ff14', '#ffd700', '#bc13fe'][i] || '#fff',
-                backgroundColor: 'rgba(0,0,0,0)', // Clean look
-                borderWidth: 2
-            }))
-        },
-        options: {
-            elements: { line: { tension: 0.3 } },
-            scales: { r: { angleLines: { color: '#333' }, grid: { color: '#333' }, pointLabels: { color: '#888' } } }
-        }
-    });
-}
-
-function renderActivityTrend(data) {
-    const ctx = document.getElementById('activity-trend-chart');
-    if (!ctx) return;
-    if (charts['activity-trend']) charts['activity-trend'].destroy();
-
-    // Mock trend if real historical data isn't in JSON yet
-    const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const xpTrend = [12, 19, 15, 25, 32, 40, 35].map(v => v * 100000); // Mock
-    const msgTrend = [50, 60, 45, 80, 120, 150, 90]; // Mock
-
-    charts['activity-trend'] = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [
-                { label: 'Total XP', data: xpTrend, borderColor: '#39ff14', yAxisID: 'y' },
-                { label: 'Messages', data: msgTrend, borderColor: '#00d4ff', yAxisID: 'y1' }
-            ]
-        },
-        options: {
-            interaction: { mode: 'index', intersect: false },
+            responsive: true,
+            maintainAspectRatio: false,
             scales: {
-                y: { display: false },
-                y1: { display: false, position: 'right', grid: { drawOnChartArea: false } }
+                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+                x: { grid: { display: false } }
+            },
+            plugins: {
+                legend: { display: false },
+                title: {
+                    display: true,
+                    text: 'Score = (XP / 10k) + (Boss * 5) + (Msgs * 2)',
+                    color: '#888',
+                    font: { size: 10, style: 'italic' },
+                    padding: { bottom: 10 }
+                }
             }
         }
     });
 }
 
-// --- HELPERS ---
-function formatNumber(num) {
-    if (num === undefined || num === null) return '0';
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
-    return num.toLocaleString();
-}
+function initComparator() {
+    const p1Input = document.getElementById('comp-p1');
+    const p2Input = document.getElementById('comp-p2');
+    const dl = document.getElementById('player-list');
 
-function getRoleBadge(role) {
-    if (!role) return 'member';
-    return role.toLowerCase().replace(/ /g, '-');
-}
+    if (!p1Input || !p2Input || !dl) return;
 
-function getRankImage(role) {
-    if (!role) return 'assets/rank_recruit.png';
-    // Normalize: "Zamorakian" -> "rank_zamorakian.png", "Deputy Owner" -> "rank_deputy_owner.png"
-    const normalized = role.toLowerCase().replace(/ /g, '_').replace(/'/g, '');
+    // Populate Datalist
+    dl.innerHTML = dashboardData.allMembers.map(m => `<option value="${m.username}">`).join('');
 
-    // We now have assets for almost all roles, even flavor ones.
-    // If specific one fails, the <img> onerror logic in the HTML (renderRosterData) will catch it.
-    return `assets/rank_${normalized}.png`;
-}
+    const updateComp = () => {
+        const p1 = dashboardData.allMembers.find(m => m.username === p1Input.value);
+        const p2 = dashboardData.allMembers.find(m => m.username === p2Input.value);
+        if (p1 && p2) renderComparator(p1, p2);
+    };
 
-function getBossImage(bossName) {
-    if (!bossName) return 'assets/boss_pet_rock.png';
-    // Normalize: "General Graardor" -> "boss_general_graardor.png"
-    const normalized = bossName.toLowerCase().replace(/ /g, '_').replace(/'/g, '').replace(/\(/g, '').replace(/\)/g, '').replace(/\./g, '');
-    return `assets/boss_${normalized}.png`;
-}
+    p1Input.addEventListener('change', updateComp);
+    p2Input.addEventListener('change', updateComp);
 
-function setupTableSearch(inputId, tableId) {
-    const input = document.getElementById(inputId);
-    const table = document.getElementById(tableId);
-    if (!input || !table) return;
-
-    input.addEventListener('input', (e) => {
-        const term = e.target.value.toLowerCase();
-        const rows = table.querySelectorAll('tbody tr');
-        rows.forEach(row => {
-            const text = row.textContent.toLowerCase();
-            row.style.display = text.includes(term) ? '' : 'none';
-        });
-    });
-}
-
-// --- SORT TABLE ---
-function sortTable(n) {
-    const table = document.getElementById("roster-table");
-    if (!table) return;
-    const tbody = table.querySelector('tbody');
-    const rows = Array.from(tbody.rows);
-    const ascending = table.getAttribute('data-order') !== 'asc'; // Toggle
-    table.setAttribute('data-order', ascending ? 'asc' : 'desc');
-
-    rows.sort((a, b) => {
-        const valA = getText(a.cells[n]);
-        const valB = getText(b.cells[n]);
-        const numA = parseNum(valA);
-        const numB = parseNum(valB);
-
-        if (!isNaN(numA) && !isNaN(numB)) return ascending ? numA - numB : numB - numA;
-        return ascending ? valA.localeCompare(valB) : valB.localeCompare(valA);
-    });
-
-    rows.forEach(row => tbody.appendChild(row));
-}
-
-const getText = (cell) => cell.textContent.trim();
-const parseNum = (str) => {
-    str = str.replace(/,/g, '').replace(/k/i, '000').replace(/m/i, '000000').replace(/\+/g, '');
-    return parseFloat(str);
-};
-
-// --- OMNI SEARCH LOGIC ---
-let omniOpen = false;
-let omniIndex = [];
-let omniSelection = 0;
-
-function toggleOmni() {
-    omniOpen = !omniOpen;
-    const overlay = document.getElementById('omni-search-overlay');
-    const input = document.getElementById('omni-input');
-    if (overlay) overlay.style.display = omniOpen ? 'flex' : 'none';
-    if (omniOpen && input) {
-        input.focus();
-        input.value = '';
-        buildOmniIndex();
-        renderOmniResults(omniIndex.slice(0, 10));
+    // Auto-select top 2 for demo
+    if (dashboardData.allMembers.length >= 2) {
+        p1Input.value = dashboardData.allMembers[0].username;
+        p2Input.value = dashboardData.allMembers[1].username;
+        updateComp();
     }
 }
 
-function buildOmniIndex() {
-    omniIndex = [
-        { name: 'General Dashboard', type: 'Section', action: () => switchSection('general') },
-        { name: 'Full Roster', type: 'Section', action: () => switchSection('roster') },
-        { name: 'Boss Activity', type: 'Section', action: () => switchSection('bosses') },
-        { name: 'Messages & Activity', type: 'Section', action: () => switchSection('messages') },
-        { name: 'XP Gains', type: 'Section', action: () => switchSection('xp-gains') },
-        { name: 'Comparators', type: 'Section', action: () => switchSection('comparator') },
+function renderComparator(p1, p2) {
+    const ctx = document.getElementById('comparator-radar');
+    const tbody = document.getElementById('comparator-body');
+
+    // 1. Radar
+    if (charts.comparator) charts.comparator.destroy();
+
+    // Normalize data for radar
+    const maxXP = Math.max(p1.xp_7d, p2.xp_7d, 100000);
+    const maxBoss = Math.max(p1.boss_7d, p2.boss_7d, 10);
+    const maxMsg = Math.max(p1.msgs_7d, p2.msgs_7d, 10);
+
+    const getData = (p) => [
+        (p.xp_7d / maxXP) * 100,
+        (p.boss_7d / maxBoss) * 100,
+        (p.msgs_7d / maxMsg) * 100
     ];
 
-    if (window.dashboardData && window.dashboardData.allMembers) {
-        window.dashboardData.allMembers.forEach(m => {
-            omniIndex.push({
-                name: m.username,
-                type: 'Player',
-                action: () => {
-                    switchSection('roster');
-                    const search = document.getElementById('search-roster');
-                    if (search) { search.value = m.username; search.dispatchEvent(new Event('input')); }
-                    toggleOmni();
+    charts.comparator = new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: ['XP Gain', 'Boss Kills', 'Messages'],
+            datasets: [
+                {
+                    label: p1.username,
+                    data: getData(p1),
+                    borderColor: '#00d4ff', // Blue
+                    backgroundColor: 'rgba(0, 212, 255, 0.2)',
+                },
+                {
+                    label: p2.username,
+                    data: getData(p2),
+                    borderColor: '#ffb84d', // Orange
+                    backgroundColor: 'rgba(255, 184, 77, 0.2)',
                 }
-            });
-        });
-    }
-}
-
-function renderOmniResults(items) {
-    const container = document.getElementById('omni-results');
-    if (!container) return;
-    container.innerHTML = items.map((item, idx) => `
-        <div class="omni-item ${idx === 0 ? 'selected' : ''}">
-            <div class="omni-item-text">${item.name}</div>
-            <div style="font-size:10px; color:#666;">${item.type}</div>
-        </div>
-    `).join('');
-    omniSelection = 0;
-
-    container.querySelectorAll('.omni-item').forEach((el, idx) => {
-        el.onclick = () => {
-            items[idx].action();
-            toggleOmni();
-        };
-    });
-}
-
-// Global Event Listeners
-document.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        toggleOmni();
-    }
-    if (e.key === 'Escape' && omniOpen) toggleOmni();
-
-    if (omniOpen) {
-        const results = document.querySelectorAll('.omni-item');
-        if (e.key === 'ArrowDown') {
-            omniSelection = Math.min(omniSelection + 1, results.length - 1);
-            updateSelection();
-        } else if (e.key === 'ArrowUp') {
-            omniSelection = Math.max(omniSelection - 1, 0);
-            updateSelection();
-        } else if (e.key === 'Enter') {
-            if (results[omniSelection]) results[omniSelection].click();
+            ]
+        },
+        options: {
+            scales: { r: { suggestedMin: 0, suggestedMax: 100, grid: { color: 'rgba(255,255,255,0.1)' } } },
+            plugins: { legend: { labels: { color: '#ccc' } } }
         }
-    }
-});
+    });
 
-function updateSelection() {
-    document.querySelectorAll('.omni-item').forEach((el, idx) => {
-        if (idx === omniSelection) {
-            el.classList.add('selected');
-            el.scrollIntoView({ block: 'nearest' });
+    // 2. Table
+    const compareRow = (label, v1, v2, isNum = true) => {
+        let diff = isNum ? (v1 - v2) : 0;
+        let diffStr = isNum ? (diff > 0 ? `+${formatNumber(diff)}` : formatNumber(diff)) : '';
+        let diffClass = diff > 0 ? 'diff-pos' : (diff < 0 ? 'diff-neg' : 'diff-neu');
+        if (diff === 0) diffClass = 'diff-neu';
+
+        // Invert for Orange (P2) advantage? No, Diff usually P1 - P2
+        // Just color P1 winning as Blue, P2 winning as Orange
+        if (v1 > v2) diffClass = 'diff-pos'; // Blue
+        else if (v2 > v1) diffClass = 'diff-neg'; // Orange
+
+        return `
+            <tr>
+                <td>${label}</td>
+                <td style="color:#00d4ff">${isNum ? formatNumber(v1) : v1}</td>
+                <td style="color:#ffb84d">${isNum ? formatNumber(v2) : v2}</td>
+                <td class="${diffClass}">${diffStr}</td>
+            </tr>
+        `;
+    };
+
+    tbody.innerHTML = `
+        ${compareRow('Role', p1.role, p2.role, false)}
+        ${compareRow('Total XP', p1.total_xp, p2.total_xp)}
+        ${compareRow('XP (7d)', p1.xp_7d, p2.xp_7d)}
+        ${compareRow('Boss Kills (7d)', p1.boss_7d, p2.boss_7d)}
+        ${compareRow('Messages (7d)', p1.msgs_7d, p2.msgs_7d)}
+    `;
+}
+
+function renderTime(id, isoDate) {
+    const el = document.getElementById(id);
+    if (el && isoDate) {
+        const d = new Date(isoDate);
+        el.innerText = d.toLocaleString('en-GB').replace(/\//g, '-');
+    }
+}
+
+// Player Profile Modal Handling
+window.openPlayerProfile = function (username) {
+    const m = dashboardData.allMembers.find(p => p.username === username);
+    if (!m) return;
+
+    const modal = document.getElementById('player-profile-modal');
+    if (!modal) return;
+
+    document.getElementById('pp-username').innerText = m.username;
+    document.getElementById('pp-role').innerText = m.role;
+
+    // Dynamic Profile Background
+    const header = document.querySelector('.profile-header');
+    if (header) {
+        if (m.favorite_boss_all_time_img && m.favorite_boss_all_time_img !== 'boss_pet_rock.png') {
+            header.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.9)), url('assets/${m.favorite_boss_all_time_img}')`;
+            header.style.backgroundSize = 'cover';
+            header.style.backgroundPosition = 'center';
         } else {
-            el.classList.remove('selected');
+            // Default Gradient
+            header.style.background = 'linear-gradient(180deg, rgba(255, 215, 0, 0.1) 0%, transparent 100%)';
         }
-    });
+    }
+    document.getElementById('pp-total-xp').innerText = formatNumber(m.total_xp);
+    document.getElementById('pp-total-boss').innerText = formatNumber(m.total_boss);
+    document.getElementById('pp-total-msg').innerText = formatNumber(m.msgs_total);
+    if (m.days_in_clan !== undefined) {
+        // document.getElementById('pp-days').innerText = m.days_in_clan + ' Days';
+        // If there is an element for Joined Date or Days
+    }
+
+    document.getElementById('pp-xp-7d').innerText = formatNumber(m.xp_7d);
+    document.getElementById('pp-boss-7d').innerText = m.boss_7d;
+
+    // Images
+    const rankImg = document.getElementById('pp-rank-img');
+    if (rankImg) rankImg.src = `assets/${m.rank_img || 'rank_minion.png'}`;
+
+    document.getElementById('pp-top-skill').innerText = m.favorite_boss || 'Unknown';
+    // Reusing Top Skill for Fav Boss for now as data structure suggests
+
+    modal.style.display = 'flex';
 }
 
-// Omni Input Listener
-const omniInput = document.getElementById('omni-input');
-if (omniInput) {
-    omniInput.addEventListener('input', (e) => {
-        const term = e.target.value.toLowerCase();
-        const filtered = omniIndex.filter(i => i.name.toLowerCase().includes(term));
-        renderOmniResults(filtered.slice(0, 10));
-    });
+window.closePlayerProfile = function () {
+    const modal = document.getElementById('player-profile-modal');
+    if (modal) modal.style.display = 'none';
 }
 
-// --- INIT ---
-window.addEventListener('load', () => {
-    switchSection('general');
-});

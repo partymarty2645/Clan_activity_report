@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import re
+import warnings
 from datetime import datetime
 
 logger = logging.getLogger("CoreUtils")
@@ -21,13 +22,25 @@ def load_json_list(filename):
 
 def normalize_user_string(s):
     """
+    DEPRECATED: Use core.usernames.UsernameNormalizer.normalize() instead.
+    
+    This function is maintained for backward compatibility only.
+    All new code should import UsernameNormalizer from core.usernames.
+    
     Normalizes a username for comparison by:
     1. Lowercasing
     2. Replacing underscores and hyphens with spaces
     3. Stripping whitespace
     """
-    if not s: return ""
-    return s.lower().replace('_', ' ').replace('-', ' ').strip()
+    warnings.warn(
+        "normalize_user_string() is deprecated. "
+        "Use core.usernames.UsernameNormalizer.normalize() instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    # Import here to avoid circular imports
+    from core.usernames import UsernameNormalizer
+    return UsernameNormalizer.normalize(s, for_comparison=True)
 
 def clean_int(val):
     try:

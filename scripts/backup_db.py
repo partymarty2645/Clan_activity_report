@@ -27,17 +27,21 @@ def backup_database():
         logger.info(f"Database backed up successfully to: {backup_file}")
         
         # Cleanup: Keep only last 2 backups
-        backups = sorted([
+        # Cleanup: Keep only last 2 backups (Strict Limit)
+        # We check both naming conventions (clan_data_ and pre_run_)
+        all_backups = sorted([
             os.path.join(BACKUP_DIR, f) 
             for f in os.listdir(BACKUP_DIR) 
-            if f.startswith('clan_data_') and f.endswith('.db')
+            if f.endswith('.db')
         ], key=os.path.getmtime)
         
-        while len(backups) > 2:
-            oldest = backups.pop(0)
+        while len(all_backups) > 2:
+            oldest = all_backups.pop(0)
             try:
                 os.remove(oldest)
-                logger.info(f"Deleted old backup: {oldest}")
+                logger.info(f"Rotated backup (Deleted): {oldest}")
+            except OSError as e:
+                logger.warning(f"Failed to delete old backup {oldest}: {e}")
             except OSError as e:
                 logger.warning(f"Failed to delete old backup {oldest}: {e}")
                 
