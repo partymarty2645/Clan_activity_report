@@ -11,6 +11,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select, func, and_
 
 from core.config import Config
+from core.roles import RoleAuthority, ClanRole
 from services.wom import wom_client
 from database.connector import SessionLocal
 from database.models import WOMSnapshot, DiscordMessage
@@ -18,10 +19,6 @@ from database.models import WOMSnapshot, DiscordMessage
 # Logging Setup
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 logger = logging.getLogger("Moderation")
-
-# CONSTANTS
-TIER_1_ROLES = ['owner', 'deputy_owner', 'zenyte', 'dragonstone', 'saviour']
-TIER_3_ROLES = ['prospector']
 
 async def get_discord_counts(days: int):
     """Returns a dict {username: count} for messages in the last N days."""
@@ -135,7 +132,8 @@ async def analyze_moderation(output_file=None):
         boss_7d = wom_7d.get(u, {}).get('boss', 0)
         
         # 1. Leadership Slump
-        if role in TIER_1_ROLES:
+        role_obj = RoleAuthority.from_api_name(role) if role else None
+        if role_obj and RoleAuthority.is_leadership(role_obj):
             if xp_7d == 0 and boss_7d == 0 and msg_7d == 0:
                 leadership_slump.append({'name': u, 'role': role})
                 

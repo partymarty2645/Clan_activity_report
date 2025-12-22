@@ -11,6 +11,7 @@ import logging
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Tuple
 
+from core.roles import RoleAuthority, ClanRole
 from services.wom import wom_client
 from database.connector import SessionLocal
 from database.models import WOMSnapshot
@@ -22,7 +23,6 @@ logger.setLevel(logging.INFO)
 
 DB_PATH = 'e:/Clan_activity_report/clan_data.db'
 ZAMORAKIAN_ALIASES = ['zamorakian', 'zenyte', 'dragonstone', 'administrator'] # Fallback ranks
-LEADERSHIP_ROLES = ['owner', 'deputy_owner', 'administrator', 'moderator', 'advisor']
 
 async def get_role_map(group_id) -> Dict[str, str]:
     """Fetches current members from API to get accurate roles."""
@@ -167,7 +167,9 @@ def generate_report(role_map, metrics):
         
         for user, data in metrics.items():
             role = role_map.get(user, 'unknown')
-            if role not in LEADERSHIP_ROLES and data['msgs_30d'] >= cutoff_val:
+            role_obj = RoleAuthority.from_api_name(role) if role else None
+            # Only recommend non-leadership members
+            if (not role_obj or not RoleAuthority.is_leadership(role_obj)) and data['msgs_30d'] >= cutoff_val:
                 # Avoid duplicate if already recommended? No, can be multiple reasons.
                 # But let's check duplicates later.
                 recommendations.append({
@@ -179,7 +181,7 @@ def generate_report(role_map, metrics):
     # --- Logic 3: The Carry Potential ---
     # Low Rank (Guest, Prospector, Member, etc.) with High Raids
     # Strategy: Exclude known High Ranks to capture all custom low roles
-    HIGH_RANKS = ['owner', 'deputy_owner', 'administrator', 'moderator', 'advisor', 'zenyte', 'dragonstone', 'zamorakian', 'saviour']
+    high_rank_names = [r.api_name for r in RoleAuthority.get_leadership_roles()] + [r.api_name for r in RoleAuthority.get_officer_roles()]
     
     # Defined Carry Threshold
     raid_counts = [m['total_raids'] for m in metrics.values() if m['total_raids'] > 0]
@@ -193,8 +195,9 @@ def generate_report(role_map, metrics):
         
         for user, data in metrics.items():
             role = role_map.get(user, 'unknown')
-            # Check if role is NOT in high ranks (fuzzy match)
-            is_high_rank = any(hr in role for hr in HIGH_RANKS)
+            # Check if role is NOT in high ranks (leadership or officers)
+            role_obj = RoleAuthority.from_api_name(role) if role else None
+            is_high_rank = role_obj and (RoleAuthority.is_leadership(role_obj) or RoleAuthority.is_officer(role_obj))
             
             if not is_high_rank and data['total_raids'] >= raid_threshold:
                 recommendations.append({

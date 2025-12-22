@@ -12,6 +12,7 @@ from sqlalchemy import select, func, and_
 import statistics
 
 from core.config import Config
+from core.roles import RoleAuthority, ClanRole
 from services.wom import wom_client
 from database.connector import SessionLocal
 from database.models import WOMSnapshot, DiscordMessage
@@ -19,9 +20,6 @@ from database.models import WOMSnapshot, DiscordMessage
 # Logging
 logging.basicConfig(level=logging.ERROR, format='%(message)s')
 logger = logging.getLogger("Enforcer")
-
-# Roles
-OFFICER_ROLES = ['owner', 'deputy_owner', 'zenyte', 'dragonstone', 'saviour', 'onyx']
 
 async def get_discord_counts(days: int):
     """Returns {username: count} for last N days."""
@@ -141,7 +139,12 @@ def run_officer_audit(stats, output_file=None):
     log(f"{'OFFICER':<20} | {'ROLE':<12} | {'MSGS':<8} | {'XP GAIN':<15} | {'STATUS'}")
     log("-" * 50)
     
-    officers = [s for s in stats if s['role'] in OFFICER_ROLES]
+    # Filter for officer roles (convert API names to ClanRole enum)
+    officers = []
+    for s in stats:
+        role_obj = RoleAuthority.from_api_name(s['role']) if s.get('role') else None
+        if role_obj and RoleAuthority.is_officer(role_obj):
+            officers.append(s)
     officers.sort(key=lambda x: x['msgs'], reverse=True)
     
     for o in officers:
