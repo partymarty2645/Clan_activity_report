@@ -624,8 +624,9 @@ def run_export():
         if 'gowi' in u_lower:
             print(f"[DEBUG LOOP] Processing '{u_lower}'. Total: {user_obj['msgs_total']}, 7d: {user_obj['msgs_7d']}, 30d: {user_obj['msgs_30d']}")
         
-        # FILTER: Exclude users with 0 messages (Assumed Banned/Kicked/Inactive per user request)
-        if user_obj['msgs_total'] == 0:
+        # FILTER: Exclude users with NO activity (0 messages AND 0 boss kills)
+        # Modified to allow silent boss killers (issue: dashboard was hiding members with only boss kills)
+        if user_obj['msgs_total'] == 0 and user_obj.get('total_boss', 0) == 0:
             continue
             
         output_data['allMembers'].append(user_obj)
