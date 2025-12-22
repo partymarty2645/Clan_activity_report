@@ -22,11 +22,15 @@ class WOMClient:
         self._semaphore = None
         self._last_request_time = 0
         self._delay_lock = None
+        self._creation_lock = asyncio.Lock()  # Prevent concurrent session creation
 
     async def _get_session(self):
-        if self._session is None or self._session.closed:
-            timeout = aiohttp.ClientTimeout(total=30)
-            self._session = aiohttp.ClientSession(timeout=timeout)
+        # Use creation lock to prevent race condition when creating session
+        # (prevents multiple concurrent calls from creating multiple session instances)
+        async with self._creation_lock:
+            if self._session is None or self._session.closed:
+                timeout = aiohttp.ClientTimeout(total=30)
+                self._session = aiohttp.ClientSession(timeout=timeout)
         if self._semaphore is None:
             self._semaphore = asyncio.Semaphore(self.max_concurrent)
         if self._delay_lock is None:
