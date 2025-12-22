@@ -7,6 +7,7 @@ class DiscordMessage(Base):
     __tablename__ = 'discord_messages'
 
     id = Column(Integer, primary_key=True, autoincrement=False) # Discord IDs are big ints, provided by API
+    user_id = Column(Integer, index=True)  # FK to clan_members.id
     author_id = Column(Integer)
     author_name = Column(String)
     content = Column(Text)
@@ -33,7 +34,8 @@ class WOMSnapshot(Base):
     __tablename__ = 'wom_snapshots'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    username = Column(String, index=True)
+    user_id = Column(Integer, index=True)  # FK to clan_members.id
+    username = Column(String, index=True)  # Keep for backward compatibility
     timestamp = Column(DateTime, index=True)
     total_xp = Column(Integer)
     total_boss_kills = Column(Integer)
@@ -44,26 +46,19 @@ class WOMSnapshot(Base):
 class ClanMember(Base):
     __tablename__ = 'clan_members'
 
-    username = Column(String, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    username = Column(String, unique=True, nullable=False, index=True)
     role = Column(String)
     joined_at = Column(DateTime)
     last_updated = Column(DateTime)
 
-class SkillSnapshot(Base):
-    __tablename__ = 'skill_snapshots'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    snapshot_id = Column(Integer, index=True) # Foreign Key relationship handled manually or via simple join for speed
-    skill_name = Column(String, index=True)
-    xp = Column(Integer)
-    level = Column(Integer)
-    rank = Column(Integer)
 
 class BossSnapshot(Base):
     __tablename__ = 'boss_snapshots'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    snapshot_id = Column(Integer, index=True)
+    wom_snapshot_id = Column(Integer, index=True)  # FK to wom_snapshots.id
+    snapshot_id = Column(Integer, index=True)  # Keep for backward compatibility (same as wom_snapshot_id)
     boss_name = Column(String, index=True)
     kills = Column(Integer)
     rank = Column(Integer)
