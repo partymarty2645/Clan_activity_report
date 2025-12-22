@@ -782,18 +782,40 @@ Tests cover:
 
 #### Tasks
 
-- [ ] **3.1.1 Create `core/timestamps.py`**
-  - File: `core/timestamps.py` (NEW)
-  - Status: ⬜ NOT STARTED
+- [x] **3.1.1 Create `core/timestamps.py`** ✅ COMPLETE
+  - File: `core/timestamps.py` (NEW, 107 lines) ✅
+  - Status: ✅ COMPLETE
   - Includes:
-    - `TimestampHelper` class with static methods:
-      - `now_utc()` - current UTC time
-      - `to_utc(dt)` - convert any datetime to UTC
-      - `cutoff_days_ago(days)` - UTC cutoff
-      - `validate_timestamp(ts)` - verify timestamp is reasonable
-      - `format_for_display(dt)` - format for user display
-  - Lines: ~80
+    - `TimestampHelper` class with 5 static methods:
+      - `now_utc()` - Returns timezone-aware UTC datetime ✅
+      - `to_utc(dt)` - Converts naive/aware datetimes to UTC, handles None ✅
+      - `cutoff_days_ago(days)` - Returns UTC cutoff N days in past ✅
+      - `validate_timestamp(ts)` - Validates timestamp bounds (2000-1yr future) ✅
+      - `format_for_display(dt)` - ISO 8601 format with UTC suffix ✅
+  - Lines: 107 (implemented with full docstrings)
   - Notes: All internal logic uses UTC, conversion only at display
+  - Commit: `c7f1728`
+
+#### Validation Completed
+- [x] `TimestampHelper.now_utc()` returns timezone-aware UTC datetime ✅
+- [x] `TimestampHelper.to_utc()` handles naive datetimes (assumes UTC) ✅
+- [x] `TimestampHelper.to_utc()` converts aware datetimes to UTC ✅
+- [x] `TimestampHelper.to_utc()` returns None when input is None ✅
+- [x] `TimestampHelper.cutoff_days_ago()` returns UTC cutoff correctly ✅
+- [x] `TimestampHelper.validate_timestamp()` rejects dates before 2000 ✅
+- [x] `TimestampHelper.validate_timestamp()` rejects dates >1 year in future ✅
+- [x] `TimestampHelper.format_for_display()` formats as ISO 8601 with UTC ✅
+- [x] All 30 tests passing (TestNowUTC, TestToUTC, TestCutoff, TestValidate, TestFormat, TestIntegration) ✅
+- [x] No regressions: 71/71 tests passing (41 existing + 30 new) ✅
+
+**Test Results:**
+```
+============================= 71 passed in 0.50s ==============================
+- test_timestamps.py: 30/30 PASSED ✅
+- test_database_integrity.py: 6/6 PASSED ✅
+- test_harvest.py: 9/9 PASSED ✅
+- test_usernames.py: 26/26 PASSED ✅
+```
 
 - [ ] **3.1.2 Update `scripts/harvest_sqlite.py`**
   - File: `scripts/harvest_sqlite.py`
