@@ -447,3 +447,72 @@ class AnalyticsService:
             'joined_at': member.joined_at
         }
 
+    def get_user_snapshots_bulk(self, user_ids: List[int]) -> Dict[int, WOMSnapshot]:
+        """
+        Bulk fetch latest snapshots for multiple user IDs in a single query.
+        Avoids N+1 query problem compared to fetching each user individually.
+        
+        Returns: {user_id: WOMSnapshot}
+        Performance: 1 query instead of N queries
+        
+        Requires: user_id FK populated in wom_snapshots (Phase 2.2.2)
+        """
+        if not user_ids:
+            return {}
+        
+        # Subquery: Max timestamp per user_id
+        subq = (
+            select(WOMSnapshot.user_id, func.max(WOMSnapshot.timestamp).label("max_ts"))
+            .where(WOMSnapshot.user_id.in_(user_ids))
+            .group_by(WOMSnapshot.user_id)
+            .subquery()
+        )
+        
+        # Join to get latest snapshot for each user
+        stmt = (
+            select(WOMSnapshot)
+            .join(subq, and_(
+                WOMSnapshot.user_id == subq.c.user_id,
+                WOMSnapshot.timestamp == subq.c.max_ts
+            ))
+        )
+        
+        results = self.db.execute(stmt).scalars().all()
+        return {r.user_id: r for r in results if r.user_id}
+
+    def get_discord_message_counts_bulk(self, author_names: List[str], 
+                                        start_date: datetime) -> Dict[str, int]:
+        """
+        Bulk count messages for multiple author names in a single query.
+        Avoids N+1 query problem by using IN() clause instead of individual queries.
+        
+        Returns: {normalized_author_name: message_count}
+        Performance: 1 query instead of N queries
+        """
+        if not author_names:
+            return {}
+        
+        # Normalize author names for case-insensitive comparison
+        normalized_names = [name.lower() for name in author_names]
+        
+        stmt = (
+            select(
+                func.lower(DiscordMessage.author_name).label("name"),
+                func.count(DiscordMessage.id).label("count")
+            )
+            .where(and_(
+                func.lower(DiscordMessage.author_name).in_(normalized_names),
+                DiscordMessage.created_at >= start_date
+            ))
+            .group_by(func.lower(DiscordMessage.author_name))
+        )
+        
+        results = self.db.execute(stmt).all()
+        
+        # Return with normalized keys
+        counts = {}
+        for row in results:
+            norm = normalize_user_string(row.name)
+            counts[norm] = row.count
+        
+        return counts
