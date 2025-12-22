@@ -21,8 +21,14 @@ logger = logging.getLogger("Orchestrator")
 
 # Import and validate configuration at startup
 try:
+    # Observability setup
+    from core.observability import setup_observability, get_trace_id
+    setup_observability(logger)
+    logger.info("PIPELINE_START")
+
     from core.config import Config
     Config.fail_fast()
+    logger.info("CHECKPOINT: Config Validation")
     Config.log_config()
 except ValueError as e:
     logger.critical(f"Configuration Error:\n{e}")
@@ -86,16 +92,21 @@ async def main():
     
     # Step 1: Harvest (Sync/SQLite)
     logger.info(">> STEP 1/4: HARVEST")
+    logger.info("CHECKPOINT: Harvest Start")
     if not run_script(os.path.join(scripts_dir, 'harvest_sqlite.py')):
         logger.error("Harvest failed. Aborting pipeline.")
         return sys.exit(1)
+    logger.info("CHECKPOINT: Harvest End")
 
     # Step 2: Report (SQLite)
     logger.info(">> STEP 2/4: REPORT")
+    logger.info("CHECKPOINT: Report Start")
     # Using report_sqlite.py
     if not run_script(os.path.join(scripts_dir, 'report_sqlite.py')):
         logger.error("Report generation failed.")
         # Non-fatal? Maybe we want dashboard at least.
+    else:
+        logger.info("CHECKPOINT: Report End")
         
     # Step 3: Dashboard Export (SQLite)
     logger.info(">> STEP 3/5: DASHBOARD EXPORT")
