@@ -477,7 +477,7 @@ FINAL: Testing & Deployment (Week 4+)
 ## 🔧 PHASE 2: Core Architecture (Weeks 2-3)
 
 ### Status
-**Overall:** ⬜ NOT STARTED  
+**Overall:** 🟡 PHASE 2 IN PROGRESS (1/4 Issues Started)  
 **Est. Start Date:** 2026-01-06  
 **Est. End Date:** 2026-01-20
 
@@ -488,82 +488,79 @@ FINAL: Testing & Deployment (Week 4+)
 **Priority:** 🔴 HIGH  
 **Complexity:** High  
 **Effort:** 2 days (16 hours)  
-**Files Affected:** 4  
-**Tests Required:** Yes
+**Files Affected:** 4 (NEW), 5 (MODIFY)  
+**Tests Required:** Yes  
+**Status:** 🟡 IN PROGRESS (1/5 tasks)
 
-#### Tasks
+#### Completion Summary (So Far)
 
-- [ ] **2.1.1 Create `services/factory.py`**
-  - File: `services/factory.py` (NEW)
-  - Status: ⬜ NOT STARTED
+**Commit:** `81c2b30` - Phase 2.1.1: Created ServiceFactory with lazy singleton and DI support
+
+**Files Created:**
+- ✅ `services/factory.py` (234 lines) - ServiceFactory class with lazy initialization and dependency injection
+
+**Completed Tasks:**
+
+- [x] **2.1.1 Create `services/factory.py`**
+  - Status: ✅ COMPLETE
+  - Lines: 234 total
   - Includes:
-    - `ServiceFactory` class with:
-      - `get_wom_client()` - lazy singleton with thread safety
-      - `get_discord_service()` - lazy singleton with thread safety
-      - `set_wom_client(client)` - for test injection
-      - `set_discord_service(service)` - for test injection
-      - `cleanup()` - graceful shutdown
-      - `reset()` - reset for testing
-  - Lines of Code: ~100
-  - Notes:
-    - Thread-safe using asyncio.Lock
-    - Lazy initialization (created only when first accessed)
-    - Allows dependency injection for testing
+    - `ServiceFactory` class with static methods
+    - `get_wom_client()` - async method, returns singleton WOMClient
+    - `get_discord_service()` - async method, returns singleton DiscordFetcher
+    - `set_wom_client(client)` - inject mock for testing
+    - `set_discord_service(service)` - inject mock for testing
+    - `cleanup()` - graceful shutdown of all services
+    - `reset()` - clear all instances (for testing between test cases)
+    - `get_status()` - debug method to check service state
+  - Features:
+    - Lazy initialization: services created only when first accessed
+    - Thread-safe: uses asyncio.Lock to prevent race conditions
+    - Double-check pattern: prevents multiple instances even with concurrent access
+    - Dependency injection ready: mocks can be injected via set_* methods
+    - Comprehensive logging for debugging
+  - Validation: ✅ Imports without errors, get_status() works correctly
 
-- [ ] **2.1.2 Update `services/wom.py` (Thread Safety)**
-  - File: `services/wom.py`
-  - Status: ⬜ NOT STARTED
-  - Changes:
-    - Add `_session_lock` asyncio.Lock
-    - Update `_get_session()` with lock
-    - Add `_validate_response()` method for response validation
-    - Add response caching validation
-  - Lines Modified: ~30
-  - Notes:
-    - Prevents session creation race conditions
-    - Validates API responses before caching
+**Pending Tasks:**
 
-- [ ] **2.1.3 Update `scripts/harvest_sqlite.py` (Accept Injection)**
-  - File: `scripts/harvest_sqlite.py`
-  - Status: ⬜ NOT STARTED
-  - Changes:
-    - Modify `run_sqlite_harvest()` to accept optional wom_client, discord_service args
-    - Use factory if not injected
-    - Remove global singleton imports at top level
-  - Lines Modified: ~20
-  - Validate: Can pass mock clients to harvest for testing
+- [ ] **2.1.2 Update `services/wom.py` (Thread Safety)** ⬜
+  - Add asyncio.Lock to _get_session() to prevent race conditions
+  - Add response validation method
+  - Lines: ~30
 
-- [ ] **2.1.4 Update `main.py` (Use Factory)**
-  - File: `main.py`
-  - Status: ⬜ NOT STARTED
-  - Changes:
-    - Import `ServiceFactory` instead of direct clients
-    - Add `await ServiceFactory.cleanup()` in finally block
-    - Log client initialization
-  - Lines Modified: ~10
-  - Validate: Pipeline works with factory pattern
+- [ ] **2.1.3 Update `scripts/harvest_sqlite.py` (Accept Injection)** ⬜
+  - Modify run_sqlite_harvest() to accept optional wom_client, discord_service args
+  - Use factory if not injected
+  - Lines: ~20
 
-- [ ] **2.1.5 Create `tests/test_harvest.py` (E2E Test)**
-  - File: `tests/test_harvest.py` (NEW)
-  - Status: ⬜ NOT STARTED
-  - Tests:
-    - `test_harvest_with_mock_wom()` - Full harvest with mock
-    - `test_harvest_handles_api_failure()` - Error handling
-    - `test_discord_messages_stored()` - Discord data persistence
-  - Lines of Code: ~150
-  - Notes: Tests use MockWOMClient and MockDiscordService from conftest
+- [ ] **2.1.4 Update `main.py` (Use Factory)** ⬜
+  - Replace direct client imports with ServiceFactory.get_*()
+  - Add ServiceFactory.cleanup() in finally block
+  - Lines: ~10
 
-#### Validation Checklist
-- [ ] `ServiceFactory.get_wom_client()` returns WOMClient instance
-- [ ] Mocking works: `ServiceFactory.set_wom_client(mock)` uses mock
-- [ ] Thread-safe: Multiple concurrent calls don't create multiple instances
-- [ ] `harvest_sqlite.py` can accept injected clients
-- [ ] `test_harvest.py` passes with mocked APIs
-- [ ] `ServiceFactory.cleanup()` closes all connections
-- [ ] No global singleton state remains
+- [ ] **2.1.5 Create `tests/test_harvest.py` (E2E Test)** ⬜
+  - Test harvest with mocked APIs
+  - Test error handling
+  - Test data persistence
+  - Lines: ~150, 3+ test cases
 
-**Blockers:** Phase 1 must be complete  
-**Dependencies:** Test infrastructure from Phase 1
+#### Current Work
+Completed Phase 2.1.1 (ServiceFactory creation). Factory is ready for use in harvest and main.py.
+
+#### Validation Checklist (Phase 2.1.1)
+- [x] `ServiceFactory` imports without errors
+- [x] `get_status()` returns correct dict
+- [x] Factory ready for injection
+
+**Next Steps (Phase 2.1.2+):**
+1. Add thread safety to WOMClient._get_session()
+2. Update harvest_sqlite.py to accept injected clients
+3. Update main.py to use factory
+4. Create E2E tests with mocked APIs
+5. Verify all tests pass
+
+**Blockers:** None ✅  
+**Dependencies:** Phase 1 complete ✅
 
 ---
 
