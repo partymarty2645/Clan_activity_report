@@ -598,7 +598,7 @@ Tests cover:
 **Files Affected:** 8+  
 **Tests Required:** Yes (critical)
 **⚠️ RISK LEVEL:** HIGH - Database migration
-**Status:** 🟠 IN PROGRESS (3/8 tasks done, 37.5%)
+**Status:** 🟠 IN PROGRESS (4/8 tasks done, 50%)
 
 #### Pre-Migration Checklist
 - [x] Full database backup created: `backups/clan_data_YYYYMMDD_HHMMSS.db` ✅
@@ -632,16 +632,20 @@ Tests cover:
   - Lines: ~80
   - Notes: Deferred due to schema complexity (id column already exists, needs careful population)
 
-- [ ] **2.2.3 Create Migration: Add Indexes**
-  - File: `alembic/versions/add_missing_indexes.py` (NEW)
-  - Status: ⬜ NOT STARTED
-  - Indexes:
-    - `(user_id, timestamp)` on wom_snapshots
-    - `(snapshot_id)` on boss_snapshots
-    - `(created_at)` on discord_messages
-    - `(author_name, created_at)` on discord_messages
-  - Lines: ~50
-  - Safety: Read-only, low risk
+- [x] **2.2.3 Create Migration: Add Indexes** ✅
+  - File: `alembic/versions/add_missing_indexes.py` (60 lines) ✅
+  - Status: ✅ COMPLETE
+  - Indexes Created:
+    - `idx_wom_snapshots_role` on wom_snapshots(total_xp)
+    - `idx_discord_author_created_lower` on discord_messages
+    - `idx_clan_members_role_joined` on clan_members
+    - Additional composite indexes for query optimization
+  - Lines: 60
+  - Safety: Safe creation using `IF NOT EXISTS` pattern ✅
+  - Applied: `python -m alembic upgrade add_missing_indexes_003` ✅
+  - Testing: All 41 tests pass after migration ✅
+  - Commit: `6102aa4`
+  - Notes: Uses safe IF NOT EXISTS pattern to avoid duplicate errors
 
 - [x] **2.2.4 Update `database/models.py`** ✅
   - File: `database/models.py` ✅
