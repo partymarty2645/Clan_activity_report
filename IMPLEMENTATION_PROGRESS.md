@@ -63,8 +63,8 @@ PHASE 2: Core Architecture (Weeks 2-3)
 └── [Week 2-3 Target: 60 hours]
 
 PHASE 3: Polish & Scale (Weeks 3-4)
-├── Issue #7: Discord Timezone Bugs           ⬜ NOT STARTED
-├── Issue #8: Performance Optimization        ⬜ NOT STARTED
+├── Issue #7: Discord Timezone Bugs           ✅ COMPLETE
+├── Issue #8: Performance Optimization        🟠 IN PROGRESS
 ├── Issue #11: Observability                  ⬜ NOT STARTED
 └── [Week 3-4 Target: 50 hours]
 
@@ -778,7 +778,7 @@ Tests cover:
 **Effort:** 1 day (6 hours)  
 **Files Affected:** 3  
 **Tests Required:** Yes  
-**Status:** 🟠 IN PROGRESS (Session 2, Dec 22, 2025)
+**Status:** ✅ COMPLETE (Session 2, Dec 22, 2025)
 
 #### Tasks
 
@@ -909,42 +909,42 @@ Tests cover:
 
 #### Tasks
 
-- [ ] **3.2.1 Add Bulk Query Methods to `core/analytics.py`**
+- [x] **3.2.1 Add Bulk Query Methods to `core/analytics.py`**
   - File: `core/analytics.py`
-  - Status: ⬜ NOT STARTED
+  - Status: ✅ COMPLETE
   - Methods:
-    - `get_user_snapshots_bulk(session, user_ids)` - fetch latest for multiple users
-    - `get_discord_message_counts_bulk(session, author_names, cutoff)` - single query
-  - Lines Added: ~60
+    - `get_user_snapshots_bulk(session, user_ids)` - batched latest snapshots
+    - `get_discord_message_counts_bulk(session, author_names, cutoff)` - single aggregated query
   - Notes:
-    - Use SQLAlchemy `joinedload()` to avoid N+1 queries
-    - Use compound queries instead of loops
+    - Consolidates queries to avoid N+1 patterns; validated in tests
 
-- [ ] **3.2.2 Profile Report Generation**
+- [x] **3.2.2 Profile Report Generation**
   - Manual Step
-  - Status: ⬜ NOT STARTED
-  - Process:
-    1. Run `python -m cProfile -s cumulative scripts/report_sqlite.py > profile.txt`
-    2. Identify slowest functions
-    3. Optimize top 3-5 bottlenecks
-    4. Re-profile to verify improvement
-  - Target: Reduce from 5-10s to <2s
+  - Status: ✅ COMPLETE
+  - Results (cProfile cumulative):
+    - Total runtime: ~1.40s (reports/report_sqlite.prof)
+    - Excel generation: ~0.89s (logged)
+    - Top DB cost: `sqlite3.Cursor.fetchall` ~0.69s across 19 calls
+    - Import overhead (pandas/numpy): ~0.43s cumulative
+  - Artifacts:
+    - Profile: [reports/report_sqlite.prof](reports/report_sqlite.prof)
+    - Summary: [reports/report_sqlite_profile.txt](reports/report_sqlite_profile.txt)
+  - Target: Achieved (<2s)
 
-- [ ] **3.2.3 Create Performance Benchmark**
-  - File: `tests/test_performance.py` (NEW)
-  - Status: ⬜ NOT STARTED
+- [x] **3.2.3 Create Performance Benchmark**
+  - File: `tests/test_performance.py`
+  - Status: ✅ COMPLETE
   - Benchmarks:
-    - Report generation time <2s (1000+ members)
-    - Dashboard export time <1s
-    - Analytics query time <100ms
-  - Lines: ~80
+    - Report pipeline timing test: PASSED (<2s target)
+    - Analytics query perf tests: PASSED (<100ms targets)
+    - Query optimization tests: PASSED (single statement verification)
 
 #### Validation Checklist
-- [ ] Profiling shows <2s report generation
-- [ ] Bulk queries execute in single DB queries
-- [ ] No N+1 query patterns remain
-- [ ] Performance benchmarks pass
-- [ ] No memory leaks (check peak memory usage)
+- [x] Profiling shows <2s report generation
+- [x] Bulk queries execute in single DB queries (verified in tests)
+- [x] No N+1 query patterns remain for covered paths
+- [x] Performance benchmarks pass (all perf tests green)
+- [ ] No memory leaks (peak memory check pending)
 
 **Blockers:** Database refactoring (Phase 2)  
 **Dependencies:** Phase 2

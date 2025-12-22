@@ -102,10 +102,18 @@ class AnalyticsService:
         return counts
 
     def calculate_gains(self, current_map: Dict[str, WOMSnapshot], 
-                        old_map: Dict[str, WOMSnapshot]) -> Dict[str, Dict[str, int]]:
+                        old_map: Dict[str, WOMSnapshot],
+                        staleness_limit_days: Optional[int] = None) -> Dict[str, Dict[str, int]]:
         """
         Calculates delta (XP, Boss Kills) between current and old snapshots.
+        Optionally filters out stale data where snapshot is older than limit.
+        
         Returns: {username: {'xp': int, 'boss': int}}
+        
+        Args:
+            current_map: Latest snapshots {username: WOMSnapshot}
+            old_map: Historical snapshots {username: WOMSnapshot}
+            staleness_limit_days: Max age in days. Exclude gains if old snap is older than this.
         """
         gains = {}
         for user, curr in current_map.items():
@@ -115,6 +123,13 @@ class AnalyticsService:
             boss_gain = 0
             
             if old:
+                # Check staleness if limit is set
+                if staleness_limit_days is not None:
+                    # If old snapshot is too old, skip this user (don't count gains)
+                    age_days = (curr.timestamp - old.timestamp).days if curr.timestamp and old.timestamp else 0
+                    if age_days > staleness_limit_days:
+                        continue  # Skip this user, don't include in gains
+                
                 xp_gain = (curr.total_xp or 0) - (old.total_xp or 0)
                 boss_gain = (curr.total_boss_kills or 0) - (old.total_boss_kills or 0)
             

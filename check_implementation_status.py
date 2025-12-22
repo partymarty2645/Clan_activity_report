@@ -40,11 +40,19 @@ def check_git_status_clean():
     return True, "Git status clean"
 
 def check_tests_pass():
-    """Verify all tests pass."""
-    result = os.popen('python -m pytest tests/ -q 2>&1').read()
-    if 'failed' in result.lower() or 'error' in result.lower():
+    """Verify all tests pass, preferring project venv if available."""
+    # Prefer workspace venv python on Windows
+    venv_python = Path('.venv') / 'Scripts' / 'python.exe'
+    if venv_python.exists():
+        cmd = f'"{venv_python}" -m pytest tests/ -q 2>&1'
+    else:
+        cmd = 'python -m pytest tests/ -q 2>&1'
+
+    result = os.popen(cmd).read()
+    lowered = result.lower()
+    if 'failed' in lowered or 'error' in lowered:
         return False, "Tests are failing - fix before commit"
-    if 'passed' in result.lower():
+    if 'passed' in lowered:
         return True, "All tests passing"
     return False, "Cannot determine test status"
 
