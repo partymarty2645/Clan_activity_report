@@ -1,5 +1,5 @@
 window.dashboardData = {
-  "generated_at": "2025-12-22T18:29:22.102129",
+  "generated_at": "2025-12-22T19:40:31.608134",
   "activity_heatmap": [
     1918,
     2111,
@@ -18,9 +18,9 @@ window.dashboardData = {
     1845,
     2131,
     2623,
-    2518,
-    2364,
-    2200,
+    2625,
+    2373,
+    2157,
     1969,
     2052,
     1771,
@@ -29,7 +29,7 @@ window.dashboardData = {
   "history": [
     {
       "date": "2025-11-22",
-      "xp": 31426755640,
+      "xp": 31591865437,
       "msgs": 1491
     },
     {
@@ -384,9 +384,9 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_pet_rock.png",
       "total_xp": 224904424,
       "total_boss": 620,
-      "msgs_7d": 423,
-      "msgs_30d": 1832,
-      "msgs_total": 2712
+      "msgs_7d": 443,
+      "msgs_30d": 1856,
+      "msgs_total": 2736
     },
     {
       "username": "batsward1933",
@@ -416,7 +416,7 @@ window.dashboardData = {
       "days_in_clan": 246,
       "xp_7d": 10285177,
       "boss_7d": 142,
-      "xp_30d": 41139656,
+      "xp_30d": 41069743,
       "boss_30d": 891,
       "favorite_boss": "Callisto",
       "favorite_boss_img": "boss_pet_rock.png",
@@ -424,9 +424,9 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_pet_rock.png",
       "total_xp": 135578472,
       "total_boss": 4018,
-      "msgs_7d": 242,
-      "msgs_30d": 2910,
-      "msgs_total": 14172
+      "msgs_7d": 244,
+      "msgs_30d": 2901,
+      "msgs_total": 14176
     },
     {
       "username": "fedexceo",
@@ -484,9 +484,9 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_pet_rock.png",
       "total_xp": 296073908,
       "total_boss": 10161,
-      "msgs_7d": 200,
-      "msgs_30d": 899,
-      "msgs_total": 4967
+      "msgs_7d": 203,
+      "msgs_30d": 915,
+      "msgs_total": 4983
     },
     {
       "username": "varela 3o",
@@ -549,26 +549,6 @@ window.dashboardData = {
       "msgs_total": 27
     },
     {
-      "username": "docofmed",
-      "role": "deputy_owner",
-      "rank_img": "rank_deputy_owner.png",
-      "joined_at": "2025-02-14",
-      "days_in_clan": 311,
-      "xp_7d": 5760000,
-      "boss_7d": 0,
-      "xp_30d": 22846331,
-      "boss_30d": 0,
-      "favorite_boss": "Cerberus",
-      "favorite_boss_img": "boss_pet_rock.png",
-      "favorite_boss_all_time": "Cerberus",
-      "favorite_boss_all_time_img": "boss_pet_rock.png",
-      "total_xp": 278585459,
-      "total_boss": 14771,
-      "msgs_7d": 70,
-      "msgs_30d": 824,
-      "msgs_total": 6745
-    },
-    {
       "username": "paddiefish",
       "role": "therapist",
       "rank_img": "rank_therapist.png",
@@ -604,9 +584,9 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_pet_rock.png",
       "total_xp": 576035053,
       "total_boss": 26555,
-      "msgs_7d": 122,
-      "msgs_30d": 1110,
-      "msgs_total": 7070
+      "msgs_7d": 138,
+      "msgs_30d": 1114,
+      "msgs_total": 7086
     },
     {
       "username": "ryomansukana",
@@ -624,9 +604,29 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_pet_rock.png",
       "total_xp": 90916848,
       "total_boss": 3604,
-      "msgs_7d": 83,
-      "msgs_30d": 556,
-      "msgs_total": 3240
+      "msgs_7d": 86,
+      "msgs_30d": 559,
+      "msgs_total": 3243
+    },
+    {
+      "username": "docofmed",
+      "role": "deputy_owner",
+      "rank_img": "rank_deputy_owner.png",
+      "joined_at": "2025-02-14",
+      "days_in_clan": 311,
+      "xp_7d": 5453047,
+      "boss_7d": 0,
+      "xp_30d": 22846331,
+      "boss_30d": 0,
+      "favorite_boss": "Cerberus",
+      "favorite_boss_img": "boss_pet_rock.png",
+      "favorite_boss_all_time": "Cerberus",
+      "favorite_boss_all_time_img": "boss_pet_rock.png",
+      "total_xp": 278585459,
+      "total_boss": 14771,
+      "msgs_7d": 70,
+      "msgs_30d": 824,
+      "msgs_total": 6745
     },
     {
       "username": "ares 0 6",
@@ -664,7 +664,7 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_pet_rock.png",
       "total_xp": 459325434,
       "total_boss": 24898,
-      "msgs_7d": 219,
+      "msgs_7d": 218,
       "msgs_30d": 831,
       "msgs_total": 15969
     },
@@ -745,7 +745,7 @@ window.dashboardData = {
       "total_xp": 144040233,
       "total_boss": 1120,
       "msgs_7d": 4,
-      "msgs_30d": 15,
+      "msgs_30d": 14,
       "msgs_total": 70
     },
     {
@@ -844,9 +844,9 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_pet_rock.png",
       "total_xp": 106802358,
       "total_boss": 3414,
-      "msgs_7d": 18,
-      "msgs_30d": 38,
-      "msgs_total": 304
+      "msgs_7d": 26,
+      "msgs_30d": 46,
+      "msgs_total": 312
     },
     {
       "username": "savage irl",
@@ -904,9 +904,9 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_pet_rock.png",
       "total_xp": 84426590,
       "total_boss": 4057,
-      "msgs_7d": 176,
-      "msgs_30d": 446,
-      "msgs_total": 1431
+      "msgs_7d": 178,
+      "msgs_30d": 448,
+      "msgs_total": 1433
     },
     {
       "username": "mr batgang",
@@ -964,29 +964,9 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_pet_rock.png",
       "total_xp": 39413100,
       "total_boss": 487,
-      "msgs_7d": 71,
+      "msgs_7d": 69,
       "msgs_30d": 100,
       "msgs_total": 100
-    },
-    {
-      "username": "hai ku",
-      "role": "wrath",
-      "rank_img": "rank_wrath.png",
-      "joined_at": "2025-09-01",
-      "days_in_clan": 112,
-      "xp_7d": 2973653,
-      "boss_7d": 186,
-      "xp_30d": 31897756,
-      "boss_30d": 1767,
-      "favorite_boss": "The Leviathan",
-      "favorite_boss_img": "boss_pet_rock.png",
-      "favorite_boss_all_time": "The Leviathan",
-      "favorite_boss_all_time_img": "boss_pet_rock.png",
-      "total_xp": 139307197,
-      "total_boss": 4432,
-      "msgs_7d": 15,
-      "msgs_30d": 245,
-      "msgs_total": 829
     },
     {
       "username": "sir jetix",
@@ -1004,8 +984,8 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_pet_rock.png",
       "total_xp": 428311259,
       "total_boss": 6885,
-      "msgs_7d": 53,
-      "msgs_30d": 352,
+      "msgs_7d": 52,
+      "msgs_30d": 351,
       "msgs_total": 674
     },
     {
@@ -1029,11 +1009,31 @@ window.dashboardData = {
       "msgs_total": 164
     },
     {
+      "username": "hai ku",
+      "role": "wrath",
+      "rank_img": "rank_wrath.png",
+      "joined_at": "2025-09-01",
+      "days_in_clan": 112,
+      "xp_7d": 2728404,
+      "boss_7d": 185,
+      "xp_30d": 31897756,
+      "boss_30d": 1767,
+      "favorite_boss": "The Leviathan",
+      "favorite_boss_img": "boss_pet_rock.png",
+      "favorite_boss_all_time": "The Leviathan",
+      "favorite_boss_all_time_img": "boss_pet_rock.png",
+      "total_xp": 139307197,
+      "total_boss": 4432,
+      "msgs_7d": 15,
+      "msgs_30d": 245,
+      "msgs_total": 829
+    },
+    {
       "username": "imchrism",
       "role": "gamer",
       "rank_img": "rank_gamer.png",
       "joined_at": "2025-08-14",
-      "days_in_clan": 129,
+      "days_in_clan": 130,
       "xp_7d": 2677109,
       "boss_7d": 2,
       "xp_30d": 10393351,
@@ -1104,9 +1104,9 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_vorkath.png",
       "total_xp": 119984555,
       "total_boss": 1345,
-      "msgs_7d": 95,
-      "msgs_30d": 367,
-      "msgs_total": 894
+      "msgs_7d": 121,
+      "msgs_30d": 393,
+      "msgs_total": 920
     },
     {
       "username": "masterturk68",
@@ -1244,9 +1244,9 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_pet_rock.png",
       "total_xp": 205884320,
       "total_boss": 11062,
-      "msgs_7d": 218,
-      "msgs_30d": 956,
-      "msgs_total": 13308
+      "msgs_7d": 232,
+      "msgs_30d": 972,
+      "msgs_total": 13324
     },
     {
       "username": "feetpic10gp",
@@ -1404,9 +1404,9 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_pet_rock.png",
       "total_xp": 44625717,
       "total_boss": 939,
-      "msgs_7d": 10,
-      "msgs_30d": 11,
-      "msgs_total": 11
+      "msgs_7d": 19,
+      "msgs_30d": 20,
+      "msgs_total": 20
     },
     {
       "username": "easy enough",
@@ -1444,9 +1444,9 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_pet_rock.png",
       "total_xp": 19198537,
       "total_boss": 297,
-      "msgs_7d": 12,
-      "msgs_30d": 16,
-      "msgs_total": 16
+      "msgs_7d": 16,
+      "msgs_30d": 20,
+      "msgs_total": 20
     },
     {
       "username": "stiffblickey",
@@ -1573,7 +1573,7 @@ window.dashboardData = {
       "role": "prodigy",
       "rank_img": "rank_prodigy.png",
       "joined_at": "2025-05-07",
-      "days_in_clan": 228,
+      "days_in_clan": 229,
       "xp_7d": 1637067,
       "boss_7d": 0,
       "xp_30d": 2831541,
@@ -1614,7 +1614,7 @@ window.dashboardData = {
       "rank_img": "rank_bob.png",
       "joined_at": "2025-02-14",
       "days_in_clan": 311,
-      "xp_7d": 1583000,
+      "xp_7d": 1553752,
       "boss_7d": 0,
       "xp_30d": 4495096,
       "boss_30d": 0,
@@ -1664,9 +1664,9 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_pet_rock.png",
       "total_xp": 37913918,
       "total_boss": 289,
-      "msgs_7d": 132,
-      "msgs_30d": 280,
-      "msgs_total": 1455
+      "msgs_7d": 137,
+      "msgs_30d": 285,
+      "msgs_total": 1460
     },
     {
       "username": "iamlou",
@@ -1784,7 +1784,7 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_vorkath.png",
       "total_xp": 159968451,
       "total_boss": 8891,
-      "msgs_7d": 99,
+      "msgs_7d": 96,
       "msgs_30d": 596,
       "msgs_total": 5511
     },
@@ -1824,9 +1824,9 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_pet_rock.png",
       "total_xp": 79418759,
       "total_boss": 1037,
-      "msgs_7d": 6,
-      "msgs_30d": 31,
-      "msgs_total": 147
+      "msgs_7d": 9,
+      "msgs_30d": 34,
+      "msgs_total": 150
     },
     {
       "username": "grubsmacker",
@@ -1844,7 +1844,7 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_pet_rock.png",
       "total_xp": 25642689,
       "total_boss": 105,
-      "msgs_7d": 9,
+      "msgs_7d": 8,
       "msgs_30d": 38,
       "msgs_total": 53
     },
@@ -1885,7 +1885,7 @@ window.dashboardData = {
       "total_xp": 161292950,
       "total_boss": 9630,
       "msgs_7d": 9,
-      "msgs_30d": 416,
+      "msgs_30d": 403,
       "msgs_total": 3085
     },
     {
@@ -1924,7 +1924,7 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_pet_rock.png",
       "total_xp": 132117191,
       "total_boss": 1850,
-      "msgs_7d": 22,
+      "msgs_7d": 17,
       "msgs_30d": 131,
       "msgs_total": 522
     },
@@ -2065,7 +2065,7 @@ window.dashboardData = {
       "total_xp": 747989146,
       "total_boss": 63977,
       "msgs_7d": 1,
-      "msgs_30d": 10,
+      "msgs_30d": 9,
       "msgs_total": 493
     },
     {
@@ -2125,7 +2125,7 @@ window.dashboardData = {
       "total_xp": 193906597,
       "total_boss": 9571,
       "msgs_7d": 35,
-      "msgs_30d": 159,
+      "msgs_30d": 155,
       "msgs_total": 2477
     },
     {
@@ -2545,8 +2545,8 @@ window.dashboardData = {
       "total_xp": 267577059,
       "total_boss": 5041,
       "msgs_7d": 9,
-      "msgs_30d": 15,
-      "msgs_total": 82
+      "msgs_30d": 16,
+      "msgs_total": 83
     },
     {
       "username": "gim mustyyy",
@@ -2585,7 +2585,7 @@ window.dashboardData = {
       "total_xp": 233078095,
       "total_boss": 17731,
       "msgs_7d": 7,
-      "msgs_30d": 115,
+      "msgs_30d": 114,
       "msgs_total": 709
     },
     {
@@ -2645,7 +2645,7 @@ window.dashboardData = {
       "total_xp": 110839097,
       "total_boss": 1412,
       "msgs_7d": 0,
-      "msgs_30d": 178,
+      "msgs_30d": 175,
       "msgs_total": 622
     },
     {
@@ -2865,7 +2865,7 @@ window.dashboardData = {
       "total_xp": 13908735,
       "total_boss": 0,
       "msgs_7d": 1,
-      "msgs_30d": 49,
+      "msgs_30d": 48,
       "msgs_total": 322
     },
     {
@@ -2896,7 +2896,7 @@ window.dashboardData = {
       "days_in_clan": 129,
       "xp_7d": 382931,
       "boss_7d": 29,
-      "xp_30d": 5329646,
+      "xp_30d": 5134639,
       "boss_30d": 58,
       "favorite_boss": "Scurrius",
       "favorite_boss_img": "boss_pet_rock.png",
@@ -2904,9 +2904,9 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_pet_rock.png",
       "total_xp": 20107866,
       "total_boss": 103,
-      "msgs_7d": 20,
-      "msgs_30d": 268,
-      "msgs_total": 1545
+      "msgs_7d": 29,
+      "msgs_30d": 277,
+      "msgs_total": 1554
     },
     {
       "username": "pyzdushreder",
@@ -3065,7 +3065,7 @@ window.dashboardData = {
       "total_xp": 231276656,
       "total_boss": 2215,
       "msgs_7d": 11,
-      "msgs_30d": 140,
+      "msgs_30d": 139,
       "msgs_total": 1094
     },
     {
@@ -3093,7 +3093,7 @@ window.dashboardData = {
       "role": "doctor",
       "rank_img": "rank_doctor.png",
       "joined_at": "2025-05-05",
-      "days_in_clan": 230,
+      "days_in_clan": 231,
       "xp_7d": 238692,
       "boss_7d": 1,
       "xp_30d": 1131094,
@@ -3225,7 +3225,7 @@ window.dashboardData = {
       "total_xp": 605390634,
       "total_boss": 36502,
       "msgs_7d": 6,
-      "msgs_30d": 93,
+      "msgs_30d": 92,
       "msgs_total": 878
     },
     {
@@ -3465,7 +3465,7 @@ window.dashboardData = {
       "total_xp": 126443368,
       "total_boss": 863,
       "msgs_7d": 0,
-      "msgs_30d": 101,
+      "msgs_30d": 100,
       "msgs_total": 412
     },
     {
@@ -3593,7 +3593,7 @@ window.dashboardData = {
       "role": "prospector",
       "rank_img": "rank_prospector.png",
       "joined_at": "2025-09-13",
-      "days_in_clan": 99,
+      "days_in_clan": 100,
       "xp_7d": 55213,
       "boss_7d": 0,
       "xp_30d": 404600,
@@ -3764,9 +3764,9 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_pet_rock.png",
       "total_xp": 176617,
       "total_boss": 0,
-      "msgs_7d": 7,
-      "msgs_30d": 7,
-      "msgs_total": 7
+      "msgs_7d": 8,
+      "msgs_30d": 8,
+      "msgs_total": 8
     },
     {
       "username": "naomh peadar",
@@ -3845,7 +3845,7 @@ window.dashboardData = {
       "total_xp": 217269216,
       "total_boss": 2845,
       "msgs_7d": 5,
-      "msgs_30d": 134,
+      "msgs_30d": 130,
       "msgs_total": 4429
     },
     {
@@ -3885,7 +3885,7 @@ window.dashboardData = {
       "total_xp": 396350618,
       "total_boss": 6510,
       "msgs_7d": 1,
-      "msgs_30d": 1715,
+      "msgs_30d": 1703,
       "msgs_total": 2913
     },
     {
@@ -3905,7 +3905,7 @@ window.dashboardData = {
       "total_xp": 481348087,
       "total_boss": 5657,
       "msgs_7d": 0,
-      "msgs_30d": 7,
+      "msgs_30d": 5,
       "msgs_total": 51
     },
     {
@@ -4145,7 +4145,7 @@ window.dashboardData = {
       "total_xp": 305907431,
       "total_boss": 9104,
       "msgs_7d": 0,
-      "msgs_30d": 348,
+      "msgs_30d": 344,
       "msgs_total": 3081
     },
     {
@@ -4633,7 +4633,7 @@ window.dashboardData = {
       "role": "prospector",
       "rank_img": "rank_prospector.png",
       "joined_at": "2025-12-20",
-      "days_in_clan": 1,
+      "days_in_clan": 2,
       "xp_7d": 0,
       "boss_7d": 0,
       "xp_30d": 0,
@@ -4653,7 +4653,7 @@ window.dashboardData = {
       "role": "prospector",
       "rank_img": "rank_prospector.png",
       "joined_at": "2025-12-20",
-      "days_in_clan": 1,
+      "days_in_clan": 2,
       "xp_7d": 0,
       "boss_7d": 0,
       "xp_30d": 0,
@@ -4833,7 +4833,7 @@ window.dashboardData = {
       "role": "doctor",
       "rank_img": "rank_doctor.png",
       "joined_at": "2025-08-14",
-      "days_in_clan": 129,
+      "days_in_clan": 130,
       "xp_7d": 0,
       "boss_7d": 0,
       "xp_30d": 0,
@@ -4985,7 +4985,7 @@ window.dashboardData = {
       "total_xp": 9982301,
       "total_boss": 98,
       "msgs_7d": 0,
-      "msgs_30d": 13,
+      "msgs_30d": 10,
       "msgs_total": 98
     },
     {
@@ -5325,7 +5325,7 @@ window.dashboardData = {
       "total_xp": 405226923,
       "total_boss": 21592,
       "msgs_7d": 0,
-      "msgs_30d": 3,
+      "msgs_30d": 2,
       "msgs_total": 903
     },
     {
@@ -5696,7 +5696,7 @@ window.dashboardData = {
       "days_in_clan": 311,
       "xp_7d": 0,
       "boss_7d": 0,
-      "xp_30d": 4805671,
+      "xp_30d": 4778752,
       "boss_30d": 0,
       "favorite_boss": "Kraken",
       "favorite_boss_img": "boss_pet_rock.png",
@@ -5784,9 +5784,9 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_vorkath.png",
       "total_xp": 121288549,
       "total_boss": 10540,
-      "msgs_7d": 67,
-      "msgs_30d": 67,
-      "msgs_total": 67
+      "msgs_7d": 88,
+      "msgs_30d": 88,
+      "msgs_total": 88
     },
     {
       "username": "dropbear93",
@@ -5873,7 +5873,7 @@ window.dashboardData = {
       "role": "short_green_guy",
       "rank_img": "rank_short_green_guy.png",
       "joined_at": "2025-08-07",
-      "days_in_clan": 136,
+      "days_in_clan": 137,
       "xp_7d": 0,
       "boss_7d": 0,
       "xp_30d": 0,
@@ -5904,9 +5904,9 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_pet_rock.png",
       "total_xp": 109956705,
       "total_boss": 7119,
-      "msgs_7d": 0,
-      "msgs_30d": 18,
-      "msgs_total": 5032
+      "msgs_7d": 2,
+      "msgs_30d": 20,
+      "msgs_total": 5034
     },
     {
       "username": "amanwhocared",
@@ -5996,7 +5996,7 @@ window.dashboardData = {
       "days_in_clan": 156,
       "xp_7d": 0,
       "boss_7d": 0,
-      "xp_30d": 2254,
+      "xp_30d": 0,
       "boss_30d": 0,
       "favorite_boss": "None",
       "favorite_boss_img": "boss_pet_rock.png",
@@ -6033,7 +6033,7 @@ window.dashboardData = {
       "role": "prospector",
       "rank_img": "rank_prospector.png",
       "joined_at": "2025-12-20",
-      "days_in_clan": 1,
+      "days_in_clan": 2,
       "xp_7d": 0,
       "boss_7d": 0,
       "xp_30d": 0,
@@ -6053,7 +6053,7 @@ window.dashboardData = {
       "role": "prospector",
       "rank_img": "rank_prospector.png",
       "joined_at": "2025-12-20",
-      "days_in_clan": 1,
+      "days_in_clan": 2,
       "xp_7d": 0,
       "boss_7d": 0,
       "xp_30d": 0,
@@ -6106,7 +6106,7 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_pet_rock.png",
       "total_xp": 459325434,
       "total_boss": 24898,
-      "msgs_7d": 219,
+      "msgs_7d": 218,
       "msgs_30d": 831,
       "msgs_total": 15969
     },
@@ -6206,9 +6206,9 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_pet_rock.png",
       "total_xp": 296073908,
       "total_boss": 10161,
-      "msgs_7d": 200,
-      "msgs_30d": 899,
-      "msgs_total": 4967
+      "msgs_7d": 203,
+      "msgs_30d": 915,
+      "msgs_total": 4983
     },
     {
       "username": "batsward1933",
@@ -6268,9 +6268,9 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_pet_rock.png",
       "total_xp": 224904424,
       "total_boss": 620,
-      "msgs_7d": 423,
-      "msgs_30d": 1832,
-      "msgs_total": 2712
+      "msgs_7d": 443,
+      "msgs_30d": 1856,
+      "msgs_total": 2736
     },
     {
       "username": "batsward1933",
@@ -6300,7 +6300,7 @@ window.dashboardData = {
       "days_in_clan": 246,
       "xp_7d": 10285177,
       "boss_7d": 142,
-      "xp_30d": 41139656,
+      "xp_30d": 41069743,
       "boss_30d": 891,
       "favorite_boss": "Callisto",
       "favorite_boss_img": "boss_pet_rock.png",
@@ -6308,9 +6308,9 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_pet_rock.png",
       "total_xp": 135578472,
       "total_boss": 4018,
-      "msgs_7d": 242,
-      "msgs_30d": 2910,
-      "msgs_total": 14172
+      "msgs_7d": 244,
+      "msgs_30d": 2901,
+      "msgs_total": 14176
     },
     {
       "username": "fedexceo",
@@ -6368,9 +6368,9 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_pet_rock.png",
       "total_xp": 296073908,
       "total_boss": 10161,
-      "msgs_7d": 200,
-      "msgs_30d": 899,
-      "msgs_total": 4967
+      "msgs_7d": 203,
+      "msgs_30d": 915,
+      "msgs_total": 4983
     },
     {
       "username": "varela 3o",
@@ -6447,6 +6447,6 @@ window.dashboardData = {
   },
   "risingStar": {
     "name": "psilocyn",
-    "msgs": 423
+    "msgs": 443
   }
 };
