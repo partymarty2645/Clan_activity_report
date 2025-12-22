@@ -19,6 +19,18 @@ logging.basicConfig(
 )
 logger = logging.getLogger("Orchestrator")
 
+# Import and validate configuration at startup
+try:
+    from core.config import Config
+    Config.fail_fast()
+    Config.log_config()
+except ValueError as e:
+    logger.critical(f"Configuration Error:\n{e}")
+    sys.exit(1)
+except Exception as e:
+    logger.critical(f"Unexpected error during configuration:\n{e}")
+    sys.exit(1)
+
 def run_script(script_path):
     """Runs a script using subprocess and streams output."""
     process = None

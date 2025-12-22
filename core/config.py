@@ -1,8 +1,12 @@
 import os
 import yaml
+import logging
+from typing import List, Tuple, Optional
 from dotenv import load_dotenv
 
 load_dotenv(override=True)
+
+logger = logging.getLogger("Config")
 
 def load_yaml_config():
     if os.path.exists('config.yaml'):
@@ -74,3 +78,69 @@ class Config:
     EXCEL_ZERO_HIGHLIGHT = _zeros.get('highlight', True)
     EXCEL_ZERO_BG_COLOR = _zeros.get('bg_color', '#262626')
     EXCEL_ZERO_FONT_COLOR = _zeros.get('font_color', '#FF0000')
+
+    @staticmethod
+    def validate() -> Tuple[bool, List[str]]:
+        """
+        Validate all critical configuration values.
+        
+        Returns:
+            Tuple of (is_valid: bool, errors: List[str])
+            - is_valid=True if all critical config values are present
+            - errors contains list of missing/invalid values
+        """
+        errors = []
+        
+        # Critical API Keys
+        if not Config.WOM_API_KEY or Config.WOM_API_KEY.strip() == '':
+            errors.append("WOM_API_KEY is missing or empty")
+        
+        if not Config.DISCORD_TOKEN or Config.DISCORD_TOKEN.strip() == '':
+            errors.append("DISCORD_TOKEN is missing or empty")
+        
+        # Critical IDs
+        if not Config.WOM_GROUP_ID:
+            errors.append("WOM_GROUP_ID is missing")
+        
+        if not Config.RELAY_CHANNEL_ID:
+            errors.append("RELAY_CHANNEL_ID is missing")
+        
+        # Optional but important
+        if not Config.WOM_GROUP_SECRET or Config.WOM_GROUP_SECRET.strip() == '':
+            logger.warning("WOM_GROUP_SECRET is not set (some operations may be limited)")
+        
+        if not Config.DB_FILE:
+            errors.append("DB_FILE is missing")
+        
+        return (len(errors) == 0, errors)
+    
+    @staticmethod
+    def fail_fast() -> None:
+        """
+        Fail fast if configuration is invalid.
+        
+        Raises:
+            ValueError: If any critical configuration is missing
+        """
+        is_valid, errors = Config.validate()
+        
+        if not is_valid:
+            error_msg = "Configuration invalid:\n" + "\n".join([f"  - {err}" for err in errors])
+            error_msg += "\n\nPlease check your .env file or config.yaml"
+            raise ValueError(error_msg)
+    
+    @staticmethod
+    def log_config() -> None:
+        """Log all loaded configuration values (with sensitive values redacted)."""
+        logger.info("=" * 60)
+        logger.info("Configuration Loaded")
+        logger.info("=" * 60)
+        logger.info(f"Database: {Config.DB_FILE}")
+        logger.info(f"WOM Group ID: {Config.WOM_GROUP_ID}")
+        logger.info(f"Discord Token: {'***' if Config.DISCORD_TOKEN else 'NOT SET'}")
+        logger.info(f"WOM API Key: {'***' if Config.WOM_API_KEY else 'NOT SET'}")
+        logger.info(f"Discord Relay Channel: {Config.RELAY_CHANNEL_ID}")
+        logger.info(f"Days Lookback: {Config.DAYS_LOOKBACK}")
+        logger.info(f"Discord Batch Size: {Config.DISCORD_BATCH_SIZE}")
+        logger.info(f"WOM Rate Limit: {Config.WOM_RATE_LIMIT_DELAY}s delay, {Config.WOM_TARGET_RPM} RPM target")
+        logger.info("=" * 60)
