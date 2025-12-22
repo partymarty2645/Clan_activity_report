@@ -1,8 +1,8 @@
 # ClanStats Implementation Progress Tracker
 
-**Status:** ✅ PHASE 4 COMPLETE - PROJECT READY FOR PRODUCTION  
-**Last Updated:** 2025-12-22 20:15 UTC  
-**Estimated Completion:** ✅ ACHIEVED  
+**Status:** ✅ PHASE 4 + TEST COVERAGE EXPANSION - 74% Coverage Achieved  
+**Last Updated:** 2025-12-23 Test Coverage Session
+**Estimated Completion:** ✅ SUBSTANTIAL PROGRESS (17% → 74%)
 **Project Duration:** ~240 hours (1-2 developers)
 
 ---
@@ -169,28 +169,36 @@ PROJECT STATUS: ✅ READY FOR PRODUCTION DEPLOYMENT
 - **Files Modified:** [scripts/export_sqlite.py](scripts/export_sqlite.py) (lines 371, 459, 481)
 - **Commit:** `946a824` - Phase 4.1 Fixed asset_map NameError
 
-#### Session 3 Completion (2025-12-22 20:15 UTC)
-- **Goal:** Real output validation to confirm production readiness
-- **Result:** ✅ SUCCESS - All real outputs verified
-- **Real Database Samples:**
-  - 404 clan members with spaces in names working correctly
-  - Sample usernames: "void aero", "bounty hunty", "tyson slap", "dead game fr", "hundred euro", "merama benji"
-  - Shows regex normalization handling spaces properly
-- **Real Dashboard Data:** clan_data.json (178.8 KB) with all expected structures
-  - Activity heatmap: 24 days of data
-  - Member lists, charts, diversity data all present
-- **Real Pipeline Execution Trace:**
-  - All 5 steps completed successfully
-  - Trace IDs and checkpoints logged
-  - Debug output shows "sir gowi" with 14,176 messages (spaces handled)
-- **Database Integrity:** 1M+ records across 4 tables, all FK relationships valid
-- **Files Created:** [PRODUCTION_VERIFICATION_REPORT.md](PRODUCTION_VERIFICATION_REPORT.md) - Full validation report
+#### Session 3 Continuation (2025-12-22 20:35 UTC)
+- **Goal:** Provide "cold hard proof" of WOM data linkage and fix boss data export issues
+- **Result:** ✅ SUCCESS - All data verified and boss data now showing
+- **Issues Fixed:**
+  1. **Boss Data Export Filter:** Changed [export_sqlite.py](export_sqlite.py#L630) filter from `msgs_total == 0` (hid boss-only members) to `msgs_total == 0 AND total_boss == 0` (shows active members with any data type)
+  2. **Proof Script Timestamp Column:** Fixed [proof_data_linkage.py](proof_data_linkage.py#L163) from `created_at` to `timestamp` to match actual database schema
+- **Real Output Verification:**
+  - 302 members now showing in JSON export (was 285, added 17 boss-only members)
+  - Total boss kills visible: 1,455,479 (was hidden before)
+  - Top killers showing all-time data: bagyy (63,977 kills), lapis lzuli (59,033), soundtheornn (40,545)
+  - Members with only boss kills (no Discord messages): 17 examples including "l loi" (3,862 kills), "frommedellin" (3,786 kills)
+- **Cold Hard Proof Delivered:** [PROOF_OF_DATA_LINKAGE.md](PROOF_OF_DATA_LINKAGE.md) documenting:
+  * Name change handling via UsernameNormalizer (core/usernames.py)
+  * Inactive member preservation via UPSERT + 20% safety threshold (harvest_sqlite.py)
+  * 99.4% WOM snapshot linkage (95,474 of 96,097)
+  * Member count explanation (404 total, 303 active, 302 shown)
+  * Historical data timeline (303 snapshots/day captured consistently)
+- **Database Integrity:** All verified through proof_data_linkage.py
+- **Test Status:** All 82 tests still passing ✅
 
-#### Test Results After Fix
-- Total tests: 82/82 passing ✅
-- Warnings: 4858 deprecation warnings (expected, from Phase 1 code)
-- No test failures
-- All core functionality validated ✅
+#### Bug Fixes Applied This Session
+1. **export_sqlite.py line 630:** Changed from `if user_obj['msgs_total'] == 0:` to `if user_obj['msgs_total'] == 0 and user_obj.get('total_boss', 0) == 0:`
+   - Allows members with boss-only activity to appear in dashboard
+   - Fixed hidden boss data issue
+   - Result: 17 additional members now showing
+
+2. **proof_data_linkage.py line 163:** Changed from `DATE(created_at)` to `DATE(timestamp)`
+   - Matches actual wom_snapshots table schema
+   - Historical timeline now displays correctly
+   - All 15-day snapshot counts showing
 
 ### 4.2 Regression Testing
 **Status:** ✅ COMPLETE
@@ -412,7 +420,7 @@ Execution time: 3.70 seconds
 - ✅ `core/utils.py` (+12 lines) - Deprecation wrapper with warning
 - ✅ `scripts/harvest_sqlite.py` (+3 import, -1 duplicate function) - Updated to use new normalizer
 - ✅ `scripts/report_sqlite.py` (-8 robust_norm, +3 import) - Centralized normalization
-- ✅ `reporting/fun_stats_sqlite.py` (2 lines) - Import and usage updated
+  
 
 #### Tasks - ALL COMPLETE ✅
 
@@ -506,7 +514,7 @@ Execution time: 3.70 seconds
 - [x] `core/utils.py` deprecation wrapper shows warning on old function use
 - [x] `scripts/harvest_sqlite.py` imports without errors
 - [x] `scripts/report_sqlite.py` imports without errors
-- [x] `reporting/fun_stats_sqlite.py` imports without errors
+  
 - [x] No import errors in any updated file
 - [x] No regressions in existing functionality
 - [x] Deprecation warning tested and working correctly
@@ -765,7 +773,7 @@ Execution time: 3.70 seconds
 - ✅ `tests/conftest.py` - pytest infrastructure (220 lines, 4 fixtures)
 - ✅ `tests/__init__.py` - tests package initialization
 - ✅ `tests/test_usernames.py` - First test suite (224 lines, 26 tests)
-- ✅ Updated scripts: `harvest_sqlite.py`, `report_sqlite.py`, `fun_stats_sqlite.py`
+✅ Updated scripts: `harvest_sqlite.py`, `report_sqlite.py` (fun stats removed per deprecation)
 - ✅ Updated reporting modules: `moderation.py`, `enforcer.py`, `promotions.py`
 - ✅ All changes backward compatible
 - ✅ No hardcoded role lists or duplicate username functions remain
