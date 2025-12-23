@@ -4,6 +4,7 @@ import logging
 from datetime import datetime, timezone, timedelta
 from core.config import Config
 from core.timestamps import TimestampHelper
+from core.usernames import UsernameNormalizer
 from database.connector import SessionLocal
 from database.models import DiscordMessage
 
@@ -77,10 +78,13 @@ class DiscordFetcher:
                         break
                     
                     # Convert to Model
+                    # Normalize display name so name variants map to the same user
+                    normalized_name = UsernameNormalizer.normalize(msg.author.display_name)
+
                     model = DiscordMessage(
                         id=msg.id,
                         author_id=msg.author.id,
-                        author_name=msg.author.display_name, # Use Server Nickname (matches RSN better)
+                        author_name=normalized_name,
                         content=msg.content,
                         channel_id=msg.channel.id,
                         channel_name=msg.channel.name,
@@ -93,7 +97,7 @@ class DiscordFetcher:
                     if str(msg.author) == "Osrs clanchat#0000":
                         match = relay_regex.search(msg.content)
                         if match:
-                            model.author_name = match.group(1).strip()
+                            model.author_name = UsernameNormalizer.normalize(match.group(1).strip())
 
                     batch.append(model)
                     total_fetched += 1

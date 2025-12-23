@@ -83,6 +83,8 @@ if not exist ".env" (
     echo WOM_API_KEY=YOUR_KEY_HERE >> .env
     echo # Group Verification Secret (Required for group updates) >> .env
     echo WOM_GROUP_SECRET= >> .env
+    echo # Base API URL (optional; defaults to https://api.wiseoldman.net/v2) >> .env
+    echo WOM_BASE_URL=https://api.wiseoldman.net/v2 >> .env
     echo. >> .env
     echo # --- Report Settings --- >> .env
     echo # Date to calculate "Since Start" stats from (YYYY-MM-DD) >> .env

@@ -1,0 +1,30 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - aiohttp/3.13.2
+    method: GET
+    uri: https://api.wiseoldman.net/v2/groups/1/members?limit=50&offset=0
+  response:
+    body:
+      string: '[{"id":1,"username":"party_marty","displayName":"party marty","role":"owner","joinedAt":"2023-01-15T00:00:00.000Z"},{"id":2,"username":"lapis_lzuli","displayName":"lapis lzuli","role":"member","joinedAt":"2023-02-20T00:00:00.000Z"},{"id":3,"username":"soundtheornn","displayName":"soundtheornn","role":"member","joinedAt":"2023-03-10T00:00:00.000Z"}]'
+    headers:
+      Content-Type:
+      - application/json
+      Content-Length:
+      - '456'
+      Date:
+      - Mon, 23 Dec 2025 12:00:00 GMT
+      Cache-Control:
+      - max-age=300
+    status:
+      code: 200
+      message: OK
+version: 1

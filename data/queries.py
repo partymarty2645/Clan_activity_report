@@ -34,10 +34,13 @@ class Queries:
     # --- REPORT / EXPORT / SHARED ---
     
     GET_LATEST_SNAPSHOTS = '''
-        SELECT id, username, timestamp, total_xp, total_boss_kills 
-        FROM wom_snapshots 
-        GROUP BY username 
-        HAVING timestamp = MAX(timestamp)
+        SELECT id, username, timestamp, total_xp, total_boss_kills
+        FROM (
+            SELECT id, username, timestamp, total_xp, total_boss_kills,
+                   ROW_NUMBER() OVER (PARTITION BY username ORDER BY timestamp DESC, id DESC) AS rn
+            FROM wom_snapshots
+        ) ranked
+        WHERE rn = 1
     '''
     
     # Complex join to get the MIN timestamp row for each user
@@ -53,10 +56,13 @@ class Queries:
     
     GET_SNAPSHOTS_AT_CUTOFF = '''
         SELECT id, username, timestamp, total_xp, total_boss_kills
-        FROM wom_snapshots
-        WHERE timestamp <= ?
-        GROUP BY username
-        HAVING timestamp = MAX(timestamp)
+        FROM (
+            SELECT id, username, timestamp, total_xp, total_boss_kills,
+                   ROW_NUMBER() OVER (PARTITION BY username ORDER BY timestamp DESC, id DESC) AS rn
+            FROM wom_snapshots
+            WHERE timestamp <= ?
+        ) ranked
+        WHERE rn = 1
     '''
 
     GET_DISCORD_MSG_COUNTS_SINCE = '''

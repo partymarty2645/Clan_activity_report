@@ -28,12 +28,7 @@ echo Running Orchestrator...
 ".venv\Scripts\python.exe" main.py
 if errorlevel 1 goto error
 
-echo Generating Weekly Clan Spotlight (Fun Stats)...
-".venv\Scripts\python.exe" reporting/fun_stats_sqlite.py
-
-if errorlevel 1 (
-    echo WARNING: Fun Stats Analysis failed. Continuing...
-)
+REM Fun Stats disabled by request; removing weekly spotlight generation.
 
 
 echo ========================================

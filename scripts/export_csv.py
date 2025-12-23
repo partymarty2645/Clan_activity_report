@@ -40,21 +40,7 @@ def export_csv_report():
         
         cursor = conn.cursor()
         
-        # Get Latest Snapshots
-        cursor.execute(Queries.GET_LATEST_SNAPSHOTS)
-        latest_snaps = {}
-        for row in cursor.fetchall():
-            # id, player_id, timestamp, total_xp, total_boss, overall_rank
-            latest_snaps[row[1]] = { # player_id is FK, but we need username linkage
-                'xp': row[3], 
-                'boss': row[4],
-                'rank': row[5],
-                'snapshot_id': row[0]
-            }
-        
-        # We need a map of player_id -> username or join with members
-        # The GET_LATEST_SNAPSHOTS query in Queries.py might need checking. 
-        # Actually, let's write a targeted JOIN query for the CSV to be efficient.
+        # Build a targeted JOIN query for the CSV to be efficient.
         
         csv_query = """
         SELECT 
@@ -63,13 +49,12 @@ def export_csv_report():
             m.joined_at,
             COALESCE(ws.total_xp, 0) as total_xp,
             COALESCE(ws.total_boss_kills, 0) as total_boss_kills,
-            COALESCE(ws.overall_rank, 0) as overall_rank,
-            (SELECT COUNT(*) FROM discord_messages dm WHERE dm.username = m.username) as total_messages
+            (SELECT COUNT(*) FROM discord_messages dm WHERE lower(dm.author_name) = lower(m.username)) as total_messages
         FROM clan_members m
-        LEFT JOIN wom_snapshots ws ON m.id = ws.player_id
+        LEFT JOIN wom_snapshots ws ON m.id = ws.user_id
         WHERE ws.timestamp = (
-            SELECT MAX(timestamp) FROM wom_snapshots WHERE player_id = m.id
-        ) OR ws.player_id IS NULL
+            SELECT MAX(timestamp) FROM wom_snapshots WHERE user_id = m.id
+        ) OR ws.user_id IS NULL
         GROUP BY m.username
         ORDER BY total_xp DESC
         """
@@ -80,7 +65,9 @@ def export_csv_report():
         df_report['joined_at'] = pd.to_datetime(df_report['joined_at']).dt.strftime('%Y-%m-%d')
         
         # Output Path
-        output_dir = os.path.join(Config.PROJECT_ROOT, 'data', 'exports')
+        # Use project root fallback if not configured
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        output_dir = os.path.join(base_dir, 'data', 'exports')
         os.makedirs(output_dir, exist_ok=True)
         timestamp = datetime.now().strftime('%Y%m%d')
         filename = f"clan_export_{timestamp}.csv"

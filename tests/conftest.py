@@ -5,6 +5,7 @@ This module provides:
 - Pytest fixtures for async testing
 - Mock API clients that can be injected into tests
 - Fixtures for database and configuration testing
+- VCR cassette fixtures for recorded API responses
 - Automatic cleanup after each test
 """
 
@@ -13,9 +14,18 @@ import asyncio
 from typing import Dict, List, Any, Optional
 import sys
 import os
+import vcr
 
 # Add workspace root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# VCR configuration
+vcr_config = vcr.VCR(
+    cassette_library_dir=os.path.join(os.path.dirname(__file__), 'cassettes'),
+    record_mode='once',  # Record once, replay thereafter
+    match_on=['method', 'uri'],  # Match requests by HTTP method and URI
+    decode_compressed_response=True,
+)
 
 
 @pytest.fixture(scope="function")
@@ -219,6 +229,19 @@ def test_config():
     }
 
 
+@pytest.fixture
+def vcr_with_cassette():
+    """
+    Fixture providing VCR instance for cassette-based API recording/playback.
+    
+    Usage:
+        def test_wom_api(vcr_with_cassette):
+            with vcr_with_cassette.use_cassette('wom_get_group_members.yaml'):
+                members = await wom_client.get_group_members('11114')
+    """
+    return vcr_config
+
+
 # Pytest configuration
 def pytest_configure(config):
     """Configure pytest with custom markers."""
@@ -227,6 +250,7 @@ def pytest_configure(config):
     )
     config.addinivalue_line("markers", "integration: mark test as an integration test")
     config.addinivalue_line("markers", "unit: mark test as a unit test")
+    config.addinivalue_line("markers", "vcr: mark test as using VCR cassettes")
 
 
 # Pytest collection

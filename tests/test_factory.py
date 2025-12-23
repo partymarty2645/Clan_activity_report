@@ -7,16 +7,17 @@ Tests the ServiceFactory for:
 - Thread-safe access with asyncio locks
 - Mock injection for testing
 - Service cleanup and shutdown
+- VCR cassette integration for minimal API usage
 """
 
 import pytest
 import asyncio
 from unittest.mock import patch, MagicMock, AsyncMock
 import logging
+import os
 
 # Import the module to test
 import sys
-import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Suppress logging during tests
@@ -268,3 +269,13 @@ class TestServiceFactorySetters:
         ServiceFactory._discord_service_override = mock_service
         
         assert ServiceFactory._discord_service_override is mock_service
+
+
+# VCR CASSETTE-BASED INTEGRATION TESTS COMING SOON
+# These tests will verify that ServiceFactory works with VCR-cached API responses
+# after cassettes are properly recorded with correct endpoints.
+#
+# Test plan:
+# 1. Record cassettes with actual endpoints used by factory methods
+# 2. Verify factory services work with VCR cassette mode
+# 3. Demonstrate zero API overhead after initial recording

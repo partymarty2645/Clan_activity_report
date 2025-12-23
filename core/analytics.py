@@ -13,13 +13,14 @@ Timestamps: All methods use UTC internally. Use TimestampHelper for creating cut
 """
 import logging
 import json
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Any
 from sqlalchemy import select, func, and_
 from sqlalchemy.orm import Session
 
 from database.models import WOMSnapshot, DiscordMessage, ClanMember
-from core.utils import normalize_user_string
+from core.usernames import UsernameNormalizer
 from core.timestamps import TimestampHelper
 from core.config import Config
 
@@ -29,53 +30,48 @@ class AnalyticsService:
     def __init__(self, db_session: Session):
         self.db = db_session
 
+    def _latest_snapshots_windowed(self, cutoff_date: Optional[datetime] = None) -> List[WOMSnapshot]:
+        """Return the latest snapshot per username with deterministic ordering."""
+        window_stmt = select(
+            WOMSnapshot.id,
+            WOMSnapshot.username,
+            WOMSnapshot.timestamp,
+            WOMSnapshot.total_xp,
+            WOMSnapshot.total_boss_kills,
+            func.row_number().over(
+                partition_by=WOMSnapshot.username,
+                order_by=(WOMSnapshot.timestamp.desc(), WOMSnapshot.id.desc())
+            ).label("rn")
+        )
+
+        if cutoff_date is not None:
+            window_stmt = window_stmt.where(WOMSnapshot.timestamp <= cutoff_date)
+
+        subq = window_stmt.subquery()
+
+        stmt = (
+            select(WOMSnapshot)
+            .join(subq, WOMSnapshot.id == subq.c.id)
+            .where(subq.c.rn == 1)
+        )
+
+        return self.db.execute(stmt).scalars().all()
+
     def get_latest_snapshots(self) -> Dict[str, WOMSnapshot]:
         """
         Fetches the absolute latest snapshot for every user.
         Returns: {normalized_username: WOMSnapshot}
         """
-        # Subquery: Max timestamp per user
-        subq = (
-            select(WOMSnapshot.username, func.max(WOMSnapshot.timestamp).label("max_ts"))
-            .group_by(WOMSnapshot.username)
-            .subquery()
-        )
-        
-        # Join
-        stmt = (
-            select(WOMSnapshot)
-            .join(subq, and_(
-                WOMSnapshot.username == subq.c.username,
-                WOMSnapshot.timestamp == subq.c.max_ts
-            ))
-        )
-        
-        results = self.db.execute(stmt).scalars().all()
-        return {normalize_user_string(r.username): r for r in results}
+        results = self._latest_snapshots_windowed()
+        return {UsernameNormalizer.normalize(r.username): r for r in results}
 
     def get_snapshots_at_cutoff(self, cutoff_date: datetime) -> Dict[str, WOMSnapshot]:
         """
         Fetches the snapshot closest to (available at or after) the cutoff date.
         Used for calculating gains (Current - Old).
         """
-        # We want MIN(timestamp) where timestamp >= cutoff
-        subq = (
-            select(WOMSnapshot.username, func.min(WOMSnapshot.timestamp).label("min_ts"))
-            .where(WOMSnapshot.timestamp >= cutoff_date)
-            .group_by(WOMSnapshot.username)
-            .subquery()
-        )
-        
-        stmt = (
-            select(WOMSnapshot)
-            .join(subq, and_(
-                WOMSnapshot.username == subq.c.username,
-                WOMSnapshot.timestamp == subq.c.min_ts
-            ))
-        )
-        
-        results = self.db.execute(stmt).scalars().all()
-        return {normalize_user_string(r.username): r for r in results}
+        results = self._latest_snapshots_windowed(cutoff_date)
+        return {UsernameNormalizer.normalize(r.username): r for r in results}
 
     def get_message_counts(self, start_date: datetime) -> Dict[str, int]:
         """
@@ -96,7 +92,7 @@ class AnalyticsService:
         # Normalize keys
         counts = {}
         for row in results:
-            norm = normalize_user_string(row.name)
+            norm = UsernameNormalizer.normalize(row.name)
             counts[norm] = counts.get(norm, 0) + row.count
             
         return counts
@@ -141,48 +137,57 @@ class AnalyticsService:
             
         return gains
 
+    def _get_boss_kills_by_snapshot(self, snapshot_ids: List[int]) -> Dict[int, Dict[str, int]]:
+        """Fetch boss kills per snapshot ID in a single query to avoid N+1 patterns."""
+        if not snapshot_ids:
+            return {}
+
+        from database.models import BossSnapshot
+
+        stmt = (
+            select(BossSnapshot.snapshot_id, BossSnapshot.boss_name, BossSnapshot.kills)
+            .where(BossSnapshot.snapshot_id.in_(snapshot_ids))
+        )
+
+        data: Dict[int, Dict[str, int]] = {}
+        for row in self.db.execute(stmt).all():
+            snap_id, boss_name, kills = row
+            if snap_id not in data:
+                data[snap_id] = {}
+            data[snap_id][boss_name] = (kills or 0)
+        return data
+
     def get_detailed_boss_gains(self, current_map: Dict[str, WOMSnapshot],
                               old_map: Dict[str, WOMSnapshot]) -> Dict[str, int]:
         """
-        Calculates specific boss kills gained using SQL Aggregation on BossSnapshot.
-        Faster and more reliable than parsing JSON.
+        Calculates specific boss kills gained using a single bulk fetch across snapshots.
         Returns: {'Kraken': 500, 'Zulrah': 200, ...}
         """
-        from database.models import BossSnapshot
-        
-        # We need to query the DB for the IDs in the maps.
-        # It's more efficient to do this in bulk.
-        
         curr_ids = [s.id for s in current_map.values() if s.id]
         old_ids = [s.id for s in old_map.values() if s.id]
-        
+
         if not curr_ids:
             return {}
-            
-        # Helper to sum kills by boss for a list of snapshot IDs
-        def get_sums(ids):
-            if not ids: return {}
-            stmt = (
-                select(BossSnapshot.boss_name, func.sum(BossSnapshot.kills))
-                .where(BossSnapshot.snapshot_id.in_(ids))
-                .group_by(BossSnapshot.boss_name)
-            )
-            return {row[0]: (row[1] or 0) for row in self.db.execute(stmt).all()}
 
-        # 1. Get Totals for CURRENT snapshots
-        curr_sums = get_sums(curr_ids)
-        
-        # 2. Get Totals for OLD snapshots
-        old_sums = get_sums(old_ids)
-        
-        # 3. Diff
+        all_ids = list(set(curr_ids + old_ids))
+        boss_data = self._get_boss_kills_by_snapshot(all_ids)
+
+        curr_sums: Dict[str, int] = defaultdict(int)
+        old_sums: Dict[str, int] = defaultdict(int)
+        curr_set = set(curr_ids)
+
+        for snap_id, bosses in boss_data.items():
+            target = curr_sums if snap_id in curr_set else old_sums
+            for boss, kills in bosses.items():
+                target[boss] += kills
+
         gains = {}
         for boss, kills in curr_sums.items():
             prev = old_sums.get(boss, 0)
             delta = kills - prev
             if delta > 0:
                 gains[boss] = delta
-                
+
         return gains
 
     def get_user_top_boss_gains(self, current_map: Dict[str, WOMSnapshot], 
@@ -192,33 +197,16 @@ class AnalyticsService:
         Returns: {username: (boss_name, delta_count)}
         Example: {'party_marty': ('vorkath', 50)}
         """
-        from database.models import BossSnapshot
-        
         # 1. Collect all IDs
         curr_ids = [s.id for s in current_map.values() if s.id]
         old_ids = [s.id for s in old_map.values() if s.id]
-        
+
         if not curr_ids:
             return {}
 
-        # 2. Bulk Fetch Helper: Returns {snapshot_id: {boss_name: kills}}
-        def get_snapshot_boss_data(ids):
-            if not ids: return {}
-            stmt = (
-                select(BossSnapshot.snapshot_id, BossSnapshot.boss_name, BossSnapshot.kills)
-                .where(BossSnapshot.snapshot_id.in_(ids))
-            )
-            rows = self.db.execute(stmt).all()
-            data = {}
-            for row in rows:
-                if row.snapshot_id not in data:
-                    data[row.snapshot_id] = {}
-                data[row.snapshot_id][row.boss_name] = row.kills
-            return data
-
-        # 3. Fetch Data
-        curr_data = get_snapshot_boss_data(curr_ids)
-        old_data = get_snapshot_boss_data(old_ids)
+        boss_data = self._get_boss_kills_by_snapshot(list(set(curr_ids + old_ids)))
+        curr_data = {sid: boss_data.get(sid, {}) for sid in curr_ids}
+        old_data = {sid: boss_data.get(sid, {}) for sid in old_ids}
         
         # 4. Compare
         results = {}

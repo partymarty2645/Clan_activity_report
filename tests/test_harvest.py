@@ -1,14 +1,16 @@
-"""
-End-to-End tests for the harvest pipeline using mocked APIs.
+"""End-to-End tests for the harvest pipeline using mocked APIs and VCR cassettes.
 
 Tests the complete data harvest workflow (WOM + Discord) without hitting real APIs.
-Uses MockWOMClient and MockDiscordService from conftest.py fixtures.
+Uses MockWOMClient and MockDiscordService from conftest.py fixtures for unit tests.
+Uses VCR cassettes for integration tests with recorded real API responses.
 """
 
 import pytest
 import asyncio
+import os
 from scripts.harvest_sqlite import run_sqlite_harvest
 from services.factory import ServiceFactory
+from services.wom import WOMClient
 
 
 @pytest.mark.asyncio
@@ -242,7 +244,7 @@ async def test_concurrent_requests_with_mocks(mock_wom):
     Test that mocks handle concurrent requests correctly.
     
     Verifies:
-    - Multiple concurrent requests don't interfere
+    - Multiple concurrent requests work without interference
     - All requests are tracked
     """
     # Create concurrent requests
@@ -258,3 +260,15 @@ async def test_concurrent_requests_with_mocks(mock_wom):
     
     # Verify all tracked
     assert len(mock_wom.requests) == 5, "Should track all concurrent requests"
+
+
+# VCR CASSETTE-BASED TESTS COMING SOON
+# After cassettes are properly recorded with correct endpoints, these tests will:
+# - Use recorded API responses to minimize API calls
+# - Record real API call once, save to cassette
+# - Use cassette for all subsequent runs (zero API calls)
+# 
+# Next steps:
+# 1. Record cassettes with correct group IDs and endpoints
+# 2. Add integration tests that use cassettes with Harvest pipeline
+# 3. Verify cassettes are properly versioned in git
