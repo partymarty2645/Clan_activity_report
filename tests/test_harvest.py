@@ -262,13 +262,57 @@ async def test_concurrent_requests_with_mocks(mock_wom):
     assert len(mock_wom.requests) == 5, "Should track all concurrent requests"
 
 
-# VCR CASSETTE-BASED TESTS COMING SOON
-# After cassettes are properly recorded with correct endpoints, these tests will:
-# - Use recorded API responses to minimize API calls
-# - Record real API call once, save to cassette
-# - Use cassette for all subsequent runs (zero API calls)
-# 
-# Next steps:
-# 1. Record cassettes with correct group IDs and endpoints
-# 2. Add integration tests that use cassettes with Harvest pipeline
-# 3. Verify cassettes are properly versioned in git
+# ============= VCR CASSETTE-BASED INTEGRATION TESTS =============
+# These tests call REAL APIs on first run (VCR records cassettes)
+# Subsequent runs replay from cassettes (zero API calls, instant)
+
+
+@pytest.mark.asyncio
+async def test_record_wom_group_members(vcr_with_cassette):
+    """
+    Integration test: Record real WOM group members API response.
+    
+    First run: Makes real API call to WOM, saves response to cassette
+    Subsequent runs: Uses cached cassette response, zero API calls
+    
+    Note: Uses actual group ID that exists in WOM
+    """
+    client = WOMClient()
+    
+    try:
+        with vcr_with_cassette.use_cassette('tests/cassettes/tests/cassettes/wom_group_members_real.yaml'):
+            # Using real group ID that should exist
+            members = await client.get_group_members('11114')
+        
+        # Verify response structure
+        assert members is not None, "Should return members"
+        assert isinstance(members, list), "Should return list"
+        if members:
+            first_member = members[0]
+            assert 'username' in first_member, "Members should have username"
+            assert 'role' in first_member, "Members should have role"
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_record_wom_player_details(vcr_with_cassette):
+    """
+    Integration test: Record real WOM player details API response.
+    
+    First run: Makes real API call, saves to cassette
+    Subsequent runs: Uses cassette, zero API calls
+    """
+    client = WOMClient()
+    
+    try:
+        with vcr_with_cassette.use_cassette('tests/cassettes/tests/cassettes/wom_player_details_real.yaml'):
+            # Using a real player that exists in WOM
+            player = await client.get_player_details('party_marty')
+        
+        assert player is not None, "Should return player details"
+        assert isinstance(player, dict), "Should return dict"
+        if player:
+            assert 'username' in player or 'name' in player, "Player should have name field"
+    finally:
+        await client.close()
