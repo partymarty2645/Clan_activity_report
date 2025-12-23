@@ -13,6 +13,7 @@ sys.path.append(os.getcwd())
 from services.wom import wom_client, WOMClient
 from services.discord import discord_service, DiscordFetcher
 from services.factory import ServiceFactory
+from services.identity_service import resolve_member_by_name
 from core.config import Config
 from core.usernames import UsernameNormalizer
 from core.timestamps import TimestampHelper
@@ -290,55 +291,68 @@ async def run_sqlite_harvest(wom_client_inject: Optional[WOMClient] = None, disc
         
         ts_now = datetime.datetime.now(timezone.utc)
         
-        for username, data in results:
-            if not data: continue
-            
-            u_clean = UsernameNormalizer.normalize(username)
-            snap = data.get('latestSnapshot')
-            if not snap: continue
-            
-            # Parse
-            snap_data = snap.get('data', {})
-            skills = snap_data.get('skills', {})
-            bosses = snap_data.get('bosses', {})
-            
-            xp = skills.get('overall', {}).get('experience', 0)
-            ehp = data.get('ehp', 0)
-            ehb = data.get('ehb', 0)
-            
-            total_boss = sum(b.get('kills', 0) for b in bosses.values() if b.get('kills', 0) > 0)
-            
-            raw_json = json.dumps(data)
-            
-            try:
-                # 1. Insert Snapshot
-                cursor.execute(Queries.INSERT_SNAPSHOT, (u_clean, ts_now, xp, total_boss, ehp, ehb, raw_json))
+        # Open ORM session for member resolution
+        from database.connector import SessionLocal
+        db = SessionLocal()
+        
+        try:
+            for username, data in results:
+                if not data: continue
                 
-                snap_id = cursor.lastrowid
-                count_snaps += 1
+                u_clean = UsernameNormalizer.normalize(username)
+                snap = data.get('latestSnapshot')
+                if not snap: continue
                 
-                # 2. Insert Bosses
-                boss_rows = []
-                for b_name, b_val in bosses.items():
-                    kills = b_val.get('kills', -1)
-                    rank = b_val.get('rank', -1)
-                    if kills > -1:
-                        boss_rows.append((snap_id, b_name, kills, rank))
+                # Parse
+                snap_data = snap.get('data', {})
+                skills = snap_data.get('skills', {})
+                bosses = snap_data.get('bosses', {})
                 
-                if boss_rows:
-                    cursor.executemany(Queries.INSERT_BOSS_SNAPSHOT, boss_rows)
-                    count_bosses += len(boss_rows)
+                xp = skills.get('overall', {}).get('experience', 0)
+                ehp = data.get('ehp', 0)
+                ehb = data.get('ehb', 0)
+                
+                total_boss = sum(b.get('kills', 0) for b in bosses.values() if b.get('kills', 0) > 0)
+                
+                raw_json = json.dumps(data)
+                
+                # Resolve member_id via alias lookup
+                member_id = resolve_member_by_name(db, u_clean)
+                if not member_id:
+                    logger.warning(f"Could not resolve member_id for snapshot username '{u_clean}'. Snapshot will be saved with user_id=NULL.")
+                
+                try:
+                    # 1. Insert Snapshot with resolved member_id
+                    cursor.execute(Queries.INSERT_SNAPSHOT, (u_clean, ts_now, xp, total_boss, ehp, ehb, raw_json, member_id))
                     
-            except Exception as e:
-                # UNIQUE constraint might trigger here
-                if "UNIQUE constraint failed" in str(e):
-                    # print(f"Skipping duplicate snapshot for {u_clean}")
-                    pass
-                else:
-                    print(f"Error saving {u_clean}: {e}")
+                    snap_id = cursor.lastrowid
+                    count_snaps += 1
+                    
+                    # 2. Insert Bosses
+                    boss_rows = []
+                    for b_name, b_val in bosses.items():
+                        kills = b_val.get('kills', -1)
+                        rank = b_val.get('rank', -1)
+                        if kills > -1:
+                            boss_rows.append((snap_id, b_name, kills, rank))
+                    
+                    if boss_rows:
+                        cursor.executemany(Queries.INSERT_BOSS_SNAPSHOT, boss_rows)
+                        count_bosses += len(boss_rows)
+                        
+                except Exception as e:
+                    # UNIQUE constraint might trigger here
+                    if "UNIQUE constraint failed" in str(e):
+                        # print(f"Skipping duplicate snapshot for {u_clean}")
+                        pass
+                    else:
+                        print(f"Error saving {u_clean}: {e}")
 
-        conn.commit()
-        print(f"Done. Saved {count_snaps} snapshots and {count_bosses} boss records.")
+            conn.commit()
+            print(f"Done. Saved {count_snaps} snapshots and {count_bosses} boss records.")
+            
+        finally:
+            db.close()
 
     finally:
         print("DEBUG: Closing WOM Client...")

@@ -176,6 +176,16 @@ class WOMClient:
         params = {'username': username, 'status': 'approved', 'limit': limit}
         return await self._request('GET', '/names', params=params)
 
+    async def get_player_name_changes(self, username):
+        """Fetch approved name changes for a single player.
+
+        Docs: GET /players/:username/names
+        Returns an array of NameChange objects.
+        """
+        if not username:
+            return []
+        return await self._request('GET', f'/players/{username}/names')
+
     @timed_operation("WOM Update Group")
     async def update_group(self, group_id, secret_code):
         data = {'verificationCode': secret_code}

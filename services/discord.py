@@ -7,6 +7,7 @@ from core.timestamps import TimestampHelper
 from core.usernames import UsernameNormalizer
 from database.connector import SessionLocal
 from database.models import DiscordMessage
+from services.identity_service import resolve_member_by_name
 
 logger = logging.getLogger('DiscordService')
 
@@ -99,6 +100,13 @@ class DiscordFetcher:
                         if match:
                             model.author_name = UsernameNormalizer.normalize(match.group(1).strip())
 
+                    # Resolve member_id via alias lookup
+                    member_id = resolve_member_by_name(db, model.author_name)
+                    if member_id:
+                        model.user_id = member_id
+                    else:
+                        logger.debug(f"Could not resolve member_id for Discord author '{model.author_name}'")
+
                     batch.append(model)
                     total_fetched += 1
                     # Optional per-run cap
@@ -118,7 +126,14 @@ class DiscordFetcher:
 
     def _save_batch(self, db, batch):
         try:
+            from services.identity_service import resolve_member_by_name
+            
             for msg in batch:
+                # Resolve member_id via alias lookup before saving
+                if msg.author_name:
+                    member_id = resolve_member_by_name(db, msg.author_name)
+                    msg.user_id = member_id
+                
                 db.merge(msg) 
             db.commit()
             logger.info(f"Saved {len(batch)} messages.")

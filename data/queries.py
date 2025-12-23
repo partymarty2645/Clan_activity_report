@@ -14,8 +14,8 @@ class Queries:
     SELECT_MEMBERS_TO_DELETE = "SELECT COUNT(*) FROM clan_members WHERE username NOT IN ({})"
 
     INSERT_SNAPSHOT = '''
-        INSERT INTO wom_snapshots (username, timestamp, total_xp, total_boss_kills, ehp, ehb, raw_data)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO wom_snapshots (username, timestamp, total_xp, total_boss_kills, ehp, ehb, raw_data, user_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     '''
     
     INSERT_BOSS_SNAPSHOT = '''

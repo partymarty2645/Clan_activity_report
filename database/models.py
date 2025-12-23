@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Float, DateTime
+from sqlalchemy import Column, Integer, String, Text, Float, DateTime, Boolean
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
@@ -51,6 +51,25 @@ class ClanMember(Base):
     role = Column(String)
     joined_at = Column(DateTime)
     last_updated = Column(DateTime)
+
+
+class PlayerNameAlias(Base):
+    __tablename__ = 'player_name_aliases'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    # Points to ClanMember.id; kept as integer to avoid hard FK migrations
+    member_id = Column(Integer, index=True)
+    # Normalized for comparison & lookups; keep unique to prevent silent collisions
+    normalized_name = Column(String, unique=True, index=True, nullable=False)
+    # Canonical for display; preserves original casing & spacing
+    canonical_name = Column(String, nullable=False)
+    # Source of the alias: 'wom', 'game', 'discord', etc.
+    source = Column(String, default='unknown', index=True)
+    # First/last time this alias was observed
+    first_seen_at = Column(DateTime, index=True)
+    last_seen_at = Column(DateTime, index=True)
+    # Marks the alias currently active according to authoritative source
+    is_current = Column(Boolean, default=False, index=True)
 
 
 class BossSnapshot(Base):
