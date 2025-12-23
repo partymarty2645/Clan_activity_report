@@ -306,9 +306,9 @@ async def test_record_wom_player_details(vcr_with_cassette):
     client = WOMClient()
     
     try:
-        with vcr_with_cassette.use_cassette('tests/cassettes/tests/cassettes/wom_player_details_real.yaml'):
-            # Using a real player that exists in WOM
-            player = await client.get_player_details('party_marty')
+        with vcr_with_cassette.use_cassette('tests/cassettes/tests/cassettes/wom_partymarty94_details.yaml', record_mode='new_episodes'):
+            # Using the correct player - partymarty94
+            player = await client.get_player_details('partymarty94')
         
         assert player is not None, "Should return player details"
         assert isinstance(player, dict), "Should return dict"
