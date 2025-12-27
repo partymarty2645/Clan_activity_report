@@ -1,0 +1,34 @@
+{
+  "items": [
+    [
+      {
+        "connectionType": "STDIO",
+        "command": "docker",
+        "args": [
+          "mcp",
+          "gateway",
+          "run"
+        ],
+        "url": "",
+        "cwd": "",
+        "oauth": "",
+        "clientName": "openmcp.connect.STDIO",
+        "clientVersion": "0.0.1",
+        "env": {
+          "HOME": "C:\\Users\\Martijn",
+          "LOGNAME": "Martijn",
+          "PATH": "C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\ProgramData\\chocolatey\\bin;C:\\Program Files\\dotnet\\;C:\\Users\\Martijn\\.local\\bin;C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common;C:\\wordpress\\;C:\\Users\\Martijn\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Program Files\\Docker\\Docker;C:\\Users\\Martijn;C:\\Program Files (x86)\\Google\\Cloud SDK\\google-cloud-sdk\\bin;C:\\xampp\\php;C:\\Program Files\\Git\\cmd;C:\\Program Files\\nodejs\\;C:\\Program Files\\Docker\\Docker\\resources\\bin;C:\\Program Files\\PowerShell\\7-preview\\preview;C:\\Users\\Martijn\\AppData\\Local\\Programs\\Python\\Python312;C:\\Users\\Martijn\\AppData\\Local\\Programs\\Python\\Python312\\Scripts;C:\\Users\\Martijn\\AppData\\Local\\Programs\\Python\\Python313;C:\\Users\\Martijn\\AppData\\Local\\Programs\\Python\\Python313\\Scripts;C:\\Users\\Martijn\\AppData\\Local\\Programs\\Python\\Launcher;C:\\Program Files\\nodejs;C:\\Users\\Martijn\\AppData\\Local\\Programs\\Python\\Python313\\Scripts\\;C:\\Users\\Martijn\\AppData\\Local\\Programs\\Python\\Python313\\;C:\\Users\\Martijn\\AppData\\Local\\Programs\\Python\\Python312\\Scripts\\;C:\\Users\\Martijn\\AppData\\Local\\Programs\\Python\\Python312\\;C:\\Users\\Martijn\\AppData\\Local\\Programs\\Python\\Launcher\\;c:\\Users\\Martijn\\AppData\\Roaming\\Code - Insiders\\User\\globalStorage\\github.copilot-chat\\debugCommand;c:\\Users\\Martijn\\AppData\\Roaming\\Code - Insiders\\User\\globalStorage\\github.copilot-chat\\copilotCli;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\ProgramData\\chocolatey\\bin;C:\\Program Files\\dotnet\\;C:\\Users\\Martijn\\.local\\bin;C:\\Users\\Martijn\\bin;C:\\Users\\Martijn\\.lmstudio\\bin;C:\\Users\\Martijn\\AppData\\Local\\Programs\\Antigravity;C:\\Users\\Martijn\\AppData\\Local\\PowerToys\\DSCModules\\;C:\\Users\\Martijn\\AppData\\Local\\Programs\\Microsoft VS Code Insiders\\bin;C:\\xampp\\php;C:\\Users\\Martijn\\AppData\\Local\\Microsoft\\WinGet\\Links;C:\\Users\\Martijn\\AppData\\Local\\Programs\\Antigravity\\bin;C:\\Users\\Martijn\\AppData\\Roaming\\npm",
+          "SHELL": "C:\\WINDOWS\\system32\\cmd.exe",
+          "TERM": "未设置 (Windows 默认终端)",
+          "USER": "Martijn"
+        },
+        "serverInfo": {
+          "name": "Docker AI MCP Gateway",
+          "version": "2.0.1"
+        },
+        "name": "Docker AI MCP Gateway",
+        "version": "2.0.1"
+      }
+    ]
+  ]
+}

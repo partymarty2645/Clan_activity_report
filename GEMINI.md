@@ -74,10 +74,10 @@ python main.py
 * **Database:** Use Alembic for all schema changes. Do not modify the SQLite file structure manually.
 * **Assets:** OSRS boss images are stored in `assets/` and referenced by the dashboard generator.
 * **Logging:** The orchestrator logs to `app.log`. Check this file for pipeline debugging.
-* **Legacy Scripts:** Old verification and one-off scripts are archived in `scripts/legacy`.
+* **Legacy Scripts:** Old verification and one-off scripts are archived in `archive/legacy_scripts`.
 
 ## Maintenance
 
 * **Database Optimization:** Handled automatically by `run_auto.bat` (via `scripts/optimize_database.py`).
 * **Backups:** Stored in `backups/` before every run.
-* **Cleanup:** Use `scripts/legacy` for deprecated logic instead of deleting immediately.
+* **Cleanup:** Use `archive/legacy_scripts` for deprecated logic instead of deleting immediately.

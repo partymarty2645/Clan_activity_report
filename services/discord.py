@@ -80,7 +80,9 @@ class DiscordFetcher:
                     
                     # Convert to Model
                     # Normalize display name so name variants map to the same user
-                    normalized_name = UsernameNormalizer.normalize(msg.author.display_name)
+                    # Improved: Clean potential tags first (e.g. "Name [Role]" -> "Name")
+                    clean_display_name = UsernameNormalizer.clean_discord_nickname(msg.author.display_name)
+                    normalized_name = UsernameNormalizer.normalize(clean_display_name)
 
                     model = DiscordMessage(
                         id=msg.id,
@@ -115,16 +117,16 @@ class DiscordFetcher:
                         break
                     
                     if len(batch) >= Config.DISCORD_BATCH_SIZE:
-                        self._save_batch(db, batch)
+                        self._save_batch(db, batch, total_fetched)
                         batch = []
                         await asyncio.sleep(Config.DISCORD_RATE_LIMIT_DELAY)
 
                 if batch:
-                    self._save_batch(db, batch)
+                    self._save_batch(db, batch, total_fetched)
         finally:
             db.close()
 
-    def _save_batch(self, db, batch):
+    def _save_batch(self, db, batch, current_total=None):
         try:
             from services.identity_service import resolve_member_by_name
             
@@ -136,7 +138,9 @@ class DiscordFetcher:
                 
                 db.merge(msg) 
             db.commit()
-            logger.info(f"Saved {len(batch)} messages.")
+            
+            total_str = f" (Total: {current_total})" if current_total else ""
+            logger.info(f"Saved {len(batch)} messages{total_str}.")
             # self.fetched_messages.extend(batch) # optimization: don't hold in memory
         except Exception as e:
             logger.error(f"DB Error: {e}")
@@ -192,5 +196,5 @@ class DiscordFetcher:
         except Exception as e:
             logger.error(f"Embed send failed: {e}")
 
-discord_service = DiscordFetcher()
+# REMOVED: Global singleton - Use ServiceFactory.get_discord_service() instead
 

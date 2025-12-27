@@ -9,4 +9,4 @@ description: Run the full Clan Stats Pipeline (Harvest -> Report -> Export -> Ve
 python main.py
 
 2. Verify the output was created
-python scripts/verify_json_msgs.py
+python scripts/generate_validation_report.py --format text

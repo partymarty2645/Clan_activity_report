@@ -1,0 +1,13 @@
+=== Deep Database Diagnostics (clan_data.db) ===
+
+1. Orphaned Data Check
+Warning: 452 users have messages but are not in 'clan_members' (Left clan or renamed?)
+
+2. Data Staleness (WOM Snapshots)
+   Last Snapshot: 2025-12-26T00:26:06.985081+00:00
+Staleness check failed: Invalid comparison between dtype=datetime64 and datetime
+
+3. Logic Anomaly Detection
+
+4. Integrity Check: Boss Snapshots
+CRITICAL: 19401/19401 boss_snapshots have invalid 'wom_snapshot_id' (Time correlation broken)

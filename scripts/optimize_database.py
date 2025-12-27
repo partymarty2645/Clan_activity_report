@@ -27,6 +27,16 @@ def optimize():
     console.print(f"[bold cyan]Starting Optimization... (Current Size: {size_before:.2f} MB)[/bold cyan]")
 
     conn = sqlite3.connect(DB_PATH)
+    # Set a 60-second timeout to wait for locks to clear (harvesting etc)
+    conn.execute("PRAGMA busy_timeout = 60000")
+    
+    # Enable WAL mode for better concurrency (Writer doesn't block Readers)
+    try:
+        conn.execute("PRAGMA journal_mode=WAL")
+        console.print("  + Enabled WAL (Write-Ahead Logging) mode.")
+    except Exception as e:
+        console.print(f"  ! Failed to enable WAL mode: {e}")
+            
     cursor = conn.cursor()
 
     # 0. INTEGRITY CHECK (Fail fast if corrupt)
@@ -50,16 +60,23 @@ def optimize():
         "idx_discord_messages_created",      # Duplicate of idx_discord_messages_created_at
         "ix_discord_messages_created_at",    # Triplicate?
         "idx_wom_snapshot_date",             # Drop if exists to recreate
-        "idx_discord_author_lower"           # Drop if exists to recreate
     ]
 
     console.print("[yellow]Phase 1: Pruning Redundant Indexes...[/yellow]")
+    count_dropped = 0
     for idx in droplist:
         try:
-            cursor.execute(f"DROP INDEX IF EXISTS {idx}")
-            console.print(f"  - Dropped {idx}")
+            # Check existence first to avoid noisy logs
+            exists = cursor.execute("SELECT 1 FROM sqlite_master WHERE type='index' AND name=?", (idx,)).fetchone()
+            if exists:
+                cursor.execute(f"DROP INDEX {idx}")
+                console.print(f"  - Dropped {idx}")
+                count_dropped += 1
         except Exception as e:
             console.print(f"  - Error dropping {idx}: {e}")
+            
+    if count_dropped == 0:
+        console.print("  - No redundant indexes found.")
 
     # 2. CREATE OPTIMIZED INDEXES (The Top 3 + Cleanups)
     
@@ -67,16 +84,21 @@ def optimize():
     # The new harvester checks `timestamp >= ?`, so we need a direct index on timestamp, not date()
     console.print("[green]Phase 2: Forging New Indexes...[/green]")
     try:
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_wom_snapshots_timestamp ON wom_snapshots(timestamp)")
-        console.print("  + Created index: idx_wom_snapshots_timestamp (Speeds up Harvest Freshness Check)")
+        # Check if already exists to silence log
+        exists = cursor.execute("SELECT 1 FROM sqlite_master WHERE type='index' AND name='idx_wom_snapshots_timestamp'").fetchone()
+        if not exists:
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_wom_snapshots_timestamp ON wom_snapshots(timestamp)")
+            console.print("  + Created index: idx_wom_snapshots_timestamp (Speeds up Harvest Freshness Check)")
     except Exception as e:
         console.print(f"  ! Failed idx_wom_snapshots_timestamp: {e}")
 
     # Index 2: Functional Index for Report (Author Grouping)
     # Speeds up message counting by author case-insensitively
     try:
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_discord_author_lower ON discord_messages(lower(author_name))")
-        console.print("  + Created functional index: idx_discord_author_lower (Speeds up Report Message Counts)")
+        exists = cursor.execute("SELECT 1 FROM sqlite_master WHERE type='index' AND name='idx_discord_author_lower'").fetchone()
+        if not exists:
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_discord_author_lower ON discord_messages(lower(author_name))")
+            console.print("  + Created functional index: idx_discord_author_lower (Speeds up Report Message Counts)")
     except Exception as e:
         console.print(f"  ! Failed idx_discord_author_lower: {e}")
 
@@ -86,7 +108,8 @@ def optimize():
         # We ensure we have the clean standard indexes too
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_discord_messages_created_at ON discord_messages(created_at)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_wom_snapshots_username_timestamp ON wom_snapshots(username, timestamp)")
-        console.print("  + Verified core covering indexes.")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_snapshots_username ON wom_snapshots(username)")
+        # console.print("  + Verified core covering indexes.") # Silence verified message
     except Exception as e:
         console.print(f"  ! Error verifying core indexes: {e}")
 
@@ -112,6 +135,11 @@ def optimize():
             
             console.print("  - Running PRAGMA optimize (Updates query planner statistics)...")
             cursor.execute("PRAGMA optimize")
+            
+            console.print("  - Running WAL Checkpoint (Cleaning up temporary .wal file)...")
+            # TRUNCATE resets the WAL file length to zero, freeing disk space immediately
+            cursor.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            
             console.print("  - Optimize finished.")
             
         except sqlite3.OperationalError as e:

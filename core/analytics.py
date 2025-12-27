@@ -16,10 +16,10 @@ import json
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Any
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, and_, text
 from sqlalchemy.orm import Session
 
-from database.models import WOMSnapshot, DiscordMessage, ClanMember
+from database.models import WOMSnapshot, DiscordMessage, ClanMember, BossSnapshot
 from core.usernames import UsernameNormalizer
 from core.timestamps import TimestampHelper
 from core.config import Config
@@ -65,6 +65,65 @@ class AnalyticsService:
         results = self._latest_snapshots_windowed()
         return {UsernameNormalizer.normalize(r.username): r for r in results}
 
+    def get_active_members(self) -> List[ClanMember]:
+        """
+        Fetch all active clan members from the source of truth table.
+        Returns list of ClanMember ORM objects.
+        """
+        stmt = select(ClanMember)
+        return self.db.execute(stmt).scalars().all()
+
+
+    def get_min_timestamps(self) -> Dict[str, WOMSnapshot]:
+        """
+        Fetches the FIRST seen snapshot for every user.
+        Used for calculating 'Days in Clan' fallback or lifetime gains.
+        Returns: {normalized_username: WOMSnapshot}
+        """
+        # Subquery: Min timestamp per user
+        subq = (
+            select(WOMSnapshot.username, func.min(WOMSnapshot.timestamp).label("min_ts"))
+            .group_by(WOMSnapshot.username)
+            .subquery()
+        )
+        
+        stmt = (
+            select(WOMSnapshot)
+            .join(subq, and_(
+                WOMSnapshot.username == subq.c.username,
+                WOMSnapshot.timestamp == subq.c.min_ts
+            ))
+        )
+        
+        results = self.db.execute(stmt).scalars().all()
+        return {UsernameNormalizer.normalize(r.username): r for r in results}
+
+    def get_clan_records(self) -> List[Dict[str, Any]]:
+        """
+        MCP-Enabled Feature: Fetch global max kills for each boss.
+        """
+        query = """
+        SELECT 
+            b.boss_name, 
+            w.username, 
+            MAX(b.kills) as record_kills
+        FROM boss_snapshots b
+        JOIN wom_snapshots w ON w.id = b.snapshot_id
+        WHERE b.kills > 0
+        GROUP BY b.boss_name
+        ORDER BY record_kills DESC
+        """
+        try:
+            results = self.db.execute(text(query)).fetchall()
+            # Convert to list of dicts
+            return [
+                {"boss": r[0].replace('_', ' ').title(), "holder": r[1], "kills": r[2], "boss_id": r[0]}
+                for r in results
+            ]
+        except Exception as e:
+            logger.error(f"Failed to fetch clan records: {e}")
+            return []
+
     def get_snapshots_at_cutoff(self, cutoff_date: datetime) -> Dict[str, WOMSnapshot]:
         """
         Fetches the snapshot closest to (available at or after) the cutoff date.
@@ -99,10 +158,12 @@ class AnalyticsService:
 
     def calculate_gains(self, current_map: Dict[str, WOMSnapshot], 
                         old_map: Dict[str, WOMSnapshot],
-                        staleness_limit_days: Optional[int] = None) -> Dict[str, Dict[str, int]]:
+                        staleness_limit_days: Optional[int] = None,
+                        fallback_map: Optional[Dict[str, WOMSnapshot]] = None) -> Dict[str, Dict[str, int]]:
         """
         Calculates delta (XP, Boss Kills) between current and old snapshots.
         Optionally filters out stale data where snapshot is older than limit.
+        Optionally falls back to a secondary map (e.g., first seen) if old snapshot is missing.
         
         Returns: {username: {'xp': int, 'boss': int}}
         
@@ -110,16 +171,22 @@ class AnalyticsService:
             current_map: Latest snapshots {username: WOMSnapshot}
             old_map: Historical snapshots {username: WOMSnapshot}
             staleness_limit_days: Max age in days. Exclude gains if old snap is older than this.
+            fallback_map: Fallback snapshots to use if user is missing from old_map.
         """
         gains = {}
         for user, curr in current_map.items():
             old = old_map.get(user)
+            
+            # If no snapshot at cutoff, try fallback (e.g., first seen)
+            if old is None and fallback_map:
+                old = fallback_map.get(user)
             
             xp_gain = 0
             boss_gain = 0
             
             if old:
                 # Check staleness if limit is set
+
                 if staleness_limit_days is not None:
                     # If old snapshot is too old, skip this user (don't count gains)
                     age_days = (curr.timestamp - old.timestamp).days if curr.timestamp and old.timestamp else 0
@@ -496,7 +563,36 @@ class AnalyticsService:
             return {}
         
         # Normalize author names for case-insensitive comparison
-        normalized_names = [name.lower() for name in author_names]
+        # Normalize inputs
+        normalized_names = [UsernameNormalizer.normalize(name) for name in author_names]
+        
+        # Build query
+        # Since we store 'author_name' which might be raw discord name, we might need alias lookup?
+        # Actually, Discord messages usually store the author_name from the event.
+        # But we are querying.
+        
+        # If we have normalized names, we need to match against normalized column or lower(column)
+        # But DiscordMessage.author_name is just string.
+        # The most robust way is to fetch matches where lower(author_name) in normalized_names
+        # BUT normalized_names might have spaces vs underscores.
+        
+        # Let's rely on the fact that identity_service likely links user_id correctly.
+        # If we have user_ids, use those.
+        # But this function takes 'author_names'.
+        
+        # For strict correctness, we should resolve names to user_ids first?
+        # analytics.py shouldn't depend on too many things.
+        
+        # Let's stick to the requested change: use normalize() where we used .lower()
+        pass 
+        # Actually, line 536 corresponds to `get_discord_activity`.
+        # The query probably filters by author_name.
+        
+        # Let's assume the DB stores `author_name` as it appeared on Discord.
+        # If we are searching by a list of names, we should try to match loosely.
+        # But replacing .lower() with normalize() is safer for dictionary keys.
+        
+        normalized_names = [UsernameNormalizer.normalize(name) for name in author_names]
         
         stmt = (
             select(
@@ -513,9 +609,187 @@ class AnalyticsService:
         results = self.db.execute(stmt).all()
         
         # Return with normalized keys
+        from core.usernames import UsernameNormalizer
         counts = {}
         for row in results:
-            norm = normalize_user_string(row.name)
+            norm = UsernameNormalizer.normalize(row.name, for_comparison=True)
             counts[norm] = row.count
         
         return counts
+
+    # --- Chart & Dashboard Analytics (Migrated from export_sqlite.py) ---
+
+    def get_boss_diversity(self, snapshot_ids: List[int]) -> Dict[str, Any]:
+        """Calculates boss diversity for the given snapshot IDs."""
+        if not snapshot_ids: return {"labels": [], "datasets": [{"data": []}]}
+        from data.queries import Queries
+        placeholders = ','.join('?' * len(snapshot_ids))
+        rows = self.db.connection().exec_driver_sql(Queries.GET_BOSS_DIVERSITY.format(placeholders), tuple(snapshot_ids)).fetchall()
+        
+        sorted_data = sorted(rows, key=lambda x: x[1], reverse=True)
+        labels = [row[0].replace('_', ' ').title() for row in sorted_data if row[1] > 0]
+        values = [row[1] for row in sorted_data if row[1] > 0]
+        return {"labels": labels, "datasets": [{"data": values}]}
+
+    def get_raids_performance(self, snapshot_ids: List[int]) -> Dict[str, Any]:
+        """Calculates total raids KC for CoX, ToB, ToA."""
+        if not snapshot_ids: return {"labels": [], "datasets": [{"data": []}]}
+        from data.queries import Queries
+        placeholders = ','.join('?' * len(snapshot_ids))
+        rows = self.db.connection().exec_driver_sql(Queries.GET_BOSS_SUMS_FOR_IDS.format(placeholders), tuple(snapshot_ids)).fetchall()
+        
+        raids_map = {
+            'Chambers Of Xeric': 'CoX', 'Chambers Of Xeric Challenge Mode': 'CoX',
+            'Theatre Of Blood': 'ToB', 'Theatre Of Blood Hard Mode': 'ToB',
+            'Tombs Of Amascut': 'ToA', 'Tombs Of Amascut Expert': 'ToA'
+        }
+        raids_counts = {'CoX': 0, 'ToB': 0, 'ToA': 0}
+        for name_raw, count in rows:
+            name = name_raw.replace('_', ' ').title()
+            if name in raids_map:
+                raids_counts[raids_map[name]] += count
+        return {"labels": list(raids_counts.keys()), "datasets": [{"data": list(raids_counts.values())}]}
+
+    def get_skill_mastery(self, snapshot_ids: List[int]) -> Dict[str, Any]:
+        """Counts 99s across all skills using the 'raw_data' JSON column."""
+        if not snapshot_ids: return {"labels": [], "datasets": [{"data": []}]}
+        from data.queries import Queries
+        placeholders = ','.join('?' * len(snapshot_ids))
+        rows = self.db.connection().exec_driver_sql(Queries.GET_RAW_DATA_FOR_IDS.format(placeholders), tuple(snapshot_ids)).fetchall()
+        
+        skill_counts = defaultdict(int)
+        for (json_str,) in rows:
+            if not json_str: continue
+            try:
+                data = json.loads(json_str)
+                # Handle varying WOM JSON structure
+                skills = data.get('data', {}).get('skills', {}) or data.get('skills', {})
+                for skill, stats in skills.items():
+                    if skill != 'overall' and stats.get('level', 0) >= 99:
+                        skill_counts[skill] += 1
+            except json.JSONDecodeError: continue
+            
+        sorted_skills = sorted(skill_counts.items(), key=lambda x: x[1], reverse=True)
+        return {"labels": [s[0].title() for s in sorted_skills], "datasets": [{"data": [s[1] for s in sorted_skills]}]}
+
+    def get_discord_stats_simple(self, days: Optional[int] = None) -> Dict[str, int]:
+        """Returns {lower_username: msg_count} for the given timeframe (using basic SQL)."""
+        from data.queries import Queries
+        conn = self.db.connection()
+        if days:
+            cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+            rows = conn.exec_driver_sql(Queries.GET_DISCORD_MSG_COUNTS_SINCE_SIMPLE, (cutoff,)).fetchall()
+        else:
+            rows = conn.exec_driver_sql(Queries.GET_DISCORD_MSG_COUNTS_TOTAL).fetchall()
+        return {row[0]: row[1] for row in rows}
+
+    def get_activity_heatmap(self, days: int = 30) -> List[int]:
+        """Returns 24-hour activity distribution for the last N days."""
+        from data.queries import Queries
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+        rows = self.db.connection().exec_driver_sql(Queries.GET_HOURLY_ACTIVITY, (cutoff,)).fetchall()
+        heatmap = {str(h).zfill(2): 0 for h in range(24)}
+        for hr, count in rows:
+            if hr: heatmap[hr] = count
+        return [heatmap[str(h).zfill(2)] for h in range(24)]
+
+    def get_clan_trend(self, days: int = 30) -> List[Dict[str, Any]]:
+        """Calculates Daily Clan XP Gains and Message Counts for the last N days."""
+        from data.queries import Queries
+        start_date = datetime.now(timezone.utc) - timedelta(days=days+1)
+        cutoff_ts = start_date.isoformat()
+        conn = self.db.connection()
+        
+        # XP Totals
+        daily_xp = defaultdict(int)
+        for day, _, xp in conn.exec_driver_sql(Queries.GET_DAILY_XP_MAX, (cutoff_ts,)).fetchall():
+            daily_xp[day] += xp
+
+        # Message Counts
+        trend_data = defaultdict(lambda: {'msgs': 0, 'xp_gain': 0})
+        for day, count in conn.exec_driver_sql(Queries.GET_DAILY_MSGS, (cutoff_ts,)).fetchall():
+            trend_data[day]['msgs'] = count
+            
+        # Calculate Gains
+        sorted_days = sorted(daily_xp.keys())
+        for i in range(1, len(sorted_days)):
+            curr, prev = sorted_days[i], sorted_days[i-1]
+            gain = daily_xp[curr] - daily_xp[prev]
+            if gain > 0: trend_data[curr]['xp_gain'] = gain
+
+        # Format
+        result = []
+        display_start = datetime.now(timezone.utc) - timedelta(days=days)
+        for i in range(days):
+            d_str = (display_start + timedelta(days=i)).strftime('%Y-%m-%d')
+            val = trend_data[d_str]
+            result.append({'date': d_str, 'xp': val['xp_gain'], 'msgs': val['msgs']})
+        return result
+
+    def get_boss_data(self, snapshot_ids: List[int]) -> Dict[int, Dict[str, int]]:
+        """
+        Fetch boss kills for the given list of snapshot IDs.
+        Returns: {snapshot_id: {'boss_name': kills, ...}}
+        """
+        if not snapshot_ids:
+            return {}
+            
+        ids = list(set(snapshot_ids))
+        result = {}
+        chunk_size = 900
+        
+        for i in range(0, len(ids), chunk_size):
+            chunk = ids[i:i + chunk_size]
+            rows = self.db.query(BossSnapshot).filter(BossSnapshot.snapshot_id.in_(chunk)).all()
+            
+            for row in rows:
+                if row.snapshot_id not in result:
+                    result[row.snapshot_id] = {}
+                result[row.snapshot_id][row.boss_name] = row.kills
+                
+        return result
+
+    def get_trending_boss(self, days: int = 30) -> Optional[Dict[str, Any]]:
+        """Identifies the trending boss (highest gain) over the last N days."""
+        latest_snaps = self.get_latest_snapshots()
+        if not latest_snaps: return None
+        
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+        past_snaps = self.get_snapshots_at_cutoff(cutoff)
+        
+        latest_ids = [s.id for s in latest_snaps.values()]
+        past_ids = [s.id for s in past_snaps.values()]
+        if not latest_ids: return None
+
+        from data.queries import Queries
+        conn = self.db.connection()
+        def get_sums(ids):
+            if not ids: return {}
+            return {r[0]: r[1] for r in conn.exec_driver_sql(Queries.GET_BOSS_SUMS_FOR_IDS.format(','.join('?' * len(ids))), tuple(ids)).fetchall()}
+            
+        now_sums = get_sums(latest_ids)
+        old_sums = get_sums(past_ids)
+        
+        deltas = {boss: kills - old_sums.get(boss, 0) for boss, kills in now_sums.items() if kills - old_sums.get(boss, 0) > 0}
+        if not deltas: return None
+        
+        top_boss = max(deltas, key=deltas.get)
+        
+        # Daily Data
+        daily_raw = {r[0]: r[1] for r in conn.exec_driver_sql(Queries.GET_DAILY_BOSS_KILLS, (cutoff.isoformat(), top_boss)).fetchall()}
+        if not daily_raw: daily_raw = {datetime.now(timezone.utc).strftime('%Y-%m-%d'): now_sums.get(top_boss, 0)}
+        
+        sorted_days = sorted(daily_raw.keys())
+        labels, values = [], []
+        for i in range(1, len(sorted_days)):
+            curr, prev = sorted_days[i], sorted_days[i-1]
+            gain = daily_raw[curr] - daily_raw[prev]
+            if gain < 0: gain = 0
+            labels.append(curr)
+            values.append(gain)
+            
+        return {
+            "boss_name": top_boss.replace('_', ' ').title(),
+            "total_gain": deltas[top_boss],
+            "chart_data": {"labels": labels, "datasets": [{"data": values, "label": "Daily Kills"}]}
+        }

@@ -12,7 +12,7 @@ from sqlalchemy import select, func, and_
 
 from core.config import Config
 from core.roles import RoleAuthority, ClanRole
-from services.wom import wom_client
+from services.factory import ServiceFactory
 from database.connector import SessionLocal
 from database.models import WOMSnapshot, DiscordMessage
 
@@ -32,7 +32,10 @@ async def get_discord_counts(days: int):
             .group_by(DiscordMessage.author_name)
         )
         results = db.execute(stmt).all()
-        return {r[0].lower(): r[1] for r in results if r[0]}
+        from core.usernames import UsernameNormalizer
+        # Normalize keys for lookup
+        # Note: author_name from Discord might need normalization
+        return {UsernameNormalizer.normalize(r[0]): r[1] for r in results if r[0]}
     finally:
         db.close()
 
@@ -105,13 +108,15 @@ async def analyze_moderation(output_file=None):
         out_lines.append(str(msg))
 
     log("Fetching Clan Members...")
-    members = await wom_client.get_group_members(Config.WOM_GROUP_ID)
+    wom = await ServiceFactory.get_wom_client()
+    members = await wom.get_group_members(Config.WOM_GROUP_ID)
     if not members:
         log("Failed to fetch members.")
         return
 
-    usernames = [m['username'].lower() for m in members]
-    role_map = {m['username'].lower(): m['role'] for m in members}
+    from core.usernames import UsernameNormalizer
+    usernames = [UsernameNormalizer.normalize(m['username']) for m in members]
+    role_map = {UsernameNormalizer.normalize(m['username']): m['role'] for m in members}
     
     log("Fetching Activity Data...")
     discord_7d = await get_discord_counts(7)
@@ -187,5 +192,10 @@ async def analyze_moderation(output_file=None):
             logger.error(f"Failed to write output file: {e}")
 
 if __name__ == "__main__":
-    asyncio.run(analyze_moderation("moderation_report.txt"))
+    async def run():
+        try:
+            await analyze_moderation("moderation_report.txt")
+        finally:
+            await ServiceFactory.cleanup()
+    asyncio.run(run())
     asyncio.run(wom_client.close())

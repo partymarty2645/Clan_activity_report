@@ -18,6 +18,7 @@ class WOMClient:
         self._session = None
         self._cache = {} 
         self._cache_ttl = 300
+        self._max_cache_size = 1000  # BUG-001: Prevent unbounded growth
         self._rate_limit_hits = []
         self._semaphore = None
         self._last_request_time = 0
@@ -40,6 +41,8 @@ class WOMClient:
     async def close(self):
         if self._session and not self._session.closed:
             await self._session.close()
+            # Wait for underlying connections to close properly
+            await asyncio.sleep(0.25)
     
     def _get_cache_key(self, endpoint, params):
         params_str = json.dumps(params or {}, sort_keys=True)
@@ -56,6 +59,22 @@ class WOMClient:
         return None
     
     def _set_cache(self, cache_key, data):
+        # BUG-001 Fix: Enforce cache limits
+        if len(self._cache) >= self._max_cache_size:
+            now = asyncio.get_event_loop().time()
+            # 1. Prune all expired items first
+            expired = [k for k, (ts, _) in self._cache.items() if now - ts >= self._cache_ttl]
+            for k in expired:
+                del self._cache[k]
+            
+            # 2. If still full, remove the oldest item (FIFO - Python dicts preserve insertion order)
+            if len(self._cache) >= self._max_cache_size:
+                try:
+                    # Efficiently get the first key (oldest inserted)
+                    del self._cache[next(iter(self._cache))]
+                except StopIteration:
+                    pass # Should not happen if len check passed
+
         self._cache[cache_key] = (asyncio.get_event_loop().time(), data)
 
     def _adjust_rate_limit(self):
@@ -239,5 +258,4 @@ class WOMClient:
                 
         return all_snapshots
 
-# Singleton
-wom_client = WOMClient()
+# REMOVED: Global singleton - Use ServiceFactory.get_wom_client() instead

@@ -12,20 +12,20 @@ from core.config import Config
 from data.queries import Queries
 
 # Setup Logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(message)s')
 logger = logging.getLogger(__name__)
 
 def export_csv_report():
     """Generates a CSV report of clan member activity."""
     conn = None
     try:
+        print("Starting CSV Data Export...")
         db_path = Config.DB_FILE
         if not os.path.exists(db_path):
-            logger.error(f"Database not found at {db_path}")
+            print(f"Error: Database not found at {db_path}")
             return False
 
         conn = sqlite3.connect(db_path)
-        logger.info(f"Connected to database: {db_path}")
 
         # 1. Fetch Membership Data
         # We'll key everything by username for easy merging
@@ -75,25 +75,23 @@ def export_csv_report():
         
         # Save CSV
         df_report.to_csv(file_path, index=False)
-        logger.info(f"CSV Report generated: {file_path}")
+        print(f"Snapshot saved: {os.path.basename(file_path)}")
         
         # Also save a "latest" version for the dashboard to link to easily?
         # Or simply 'clan_data.csv' that is always overwritten? 
         # User wants "Download CSV" on dashboard. A static link is easiest.
         static_path = os.path.join(output_dir, "clan_data.csv")
         df_report.to_csv(static_path, index=False)
-        logger.info(f"Static CSV updated: {static_path}")
+        print(f"Static CSV updated (ready for dashboard).")
         
         # Copy to Drive if configured?
         # report_sqlite.py does it. Let's stick to local first, dashboard can serve it if we put it in assets?
         # Actually, the dashboard is static HTML. It can't serve files from 'data/exports' unless that folder is deployed.
         # We should copy 'clan_data.csv' to the deployment folder (GDrive or just 'dist' folder logic).
         
-        if Config.GDRIVE_PATH and os.path.exists(Config.GDRIVE_PATH):
-            import shutil
-            gdrive_csv = os.path.join(Config.GDRIVE_PATH, "clan_data.csv")
-            shutil.copy2(static_path, gdrive_csv)
-            logger.info(f"Copied CSV to Drive: {gdrive_csv}")
+        if Config.LOCAL_DRIVE_PATH:
+            from core.drive import DriveExporter
+            DriveExporter.export_file(static_path, target_filename="clan_data.csv")
 
         return True
 

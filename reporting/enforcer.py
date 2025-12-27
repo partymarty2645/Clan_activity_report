@@ -13,7 +13,7 @@ import statistics
 
 from core.config import Config
 from core.roles import RoleAuthority, ClanRole
-from services.wom import wom_client
+from services.factory import ServiceFactory
 from database.connector import SessionLocal
 from database.models import WOMSnapshot, DiscordMessage
 
@@ -95,9 +95,10 @@ async def get_clan_stats(days=30):
         print("Failed to fetch members.")
         return []
 
-    usernames = [m['username'].lower() for m in members]
-    role_map = {m['username'].lower(): m['role'] for m in members}
-    join_map = {m['username'].lower(): m['joined_at'] for m in members}
+    from core.usernames import UsernameNormalizer
+    usernames = [UsernameNormalizer.normalize(m['username']) for m in members]
+    role_map = {UsernameNormalizer.normalize(m['username']): m['role'] for m in members}
+    join_map = {UsernameNormalizer.normalize(m['username']): m['joined_at'] for m in members}
     
     discord_data = await get_discord_counts(days)
     wom_data = await get_wom_gains(usernames, days)
@@ -235,19 +236,20 @@ async def main():
     parser.add_argument("--all", action="store_true", help="Run Complete Suite (for pipeline)")
     args = parser.parse_args()
     
-    if args.all:
-        await run_enforcer_suite()
-    else:
-        # Default behavior if specific flags used
-        stats = await get_clan_stats(30)
-        if not stats: return
-        
-        if args.audit:
-            run_officer_audit(stats)
-        if args.purge:
-            run_purge_generator(stats)
+    try:
+        if args.all:
+            await run_enforcer_suite()
+        else:
+            # Default behavior if specific flags used
+            stats = await get_clan_stats(30)
+            if not stats: return
             
-    await wom_client.close()
+            if args.audit:
+                run_officer_audit(stats)
+            if args.purge:
+                run_purge_generator(stats)
+    finally:
+        await ServiceFactory.cleanup()
 
 if __name__ == "__main__":
     asyncio.run(main())

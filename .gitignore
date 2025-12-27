@@ -56,5 +56,8 @@ reports/
 .coverage
 clan_data.json
 clan_data.js
-docs/clan_data.json
-docs/clan_data.js
+
+# Documentation (Allowed for GitHub Pages)
+!docs/clan_data.json
+!docs/clan_data.js
+

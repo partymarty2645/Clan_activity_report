@@ -14,18 +14,43 @@ class Theme:
     # Primary Identity
     GOLD = Config.COLOR_IDENTITY if Config.COLOR_IDENTITY else '#FFD700'
     GOLD_BOLD = '#FFA500' # Deep Orange-ish Gold for extra pop
-    
-    # Neon Accents
     RED_NEON = Config.COLOR_BOSS if Config.COLOR_BOSS else '#FF3333'
-    GREEN_NEON = Config.COLOR_XP if Config.COLOR_XP else '#33FF33'
-    BLUE_NEON = Config.COLOR_MESSAGES if Config.COLOR_MESSAGES else '#33CCFF'
-    CYAN_NEON = '#00FFFF' # Specific Cyan for messages if needed
+
+    # =================
+    # MULTI-COLOR THEME (NEON GLOW)
+    # =================
     
-    # Backgrounds
-    BG_BLACK = Config.EXCEL_BG_COLOR if Config.EXCEL_BG_COLOR else '#050505'
-    BG_DARK = '#1a1a1a'
-    BG_CARD = '#121212' # Darker cards
-    BG_HEADER = '#000000'
+    # 1. Identity (Slate/Gray)
+    BG_ID_ODD = '#121212'   # Deepest Gray
+    BG_ID_EVEN = '#1a1a1a'  # Slightly lighter
+    TEXT_ID = '#E0E0E0'     # Soft White
+    BORDER_ID = '#444444'   # Gray Glow
+
+    # 2. Messages (Electric Blue)
+    BG_MSG_ODD = '#05051a'  # Deep Navy
+    BG_MSG_EVEN = '#0a0a24' # Lighter Navy
+    TEXT_MSG = '#00FFFF'    # Electric Cyan
+    BORDER_MSG = '#00BFFF'  # Deep Sky Blue Glow
+
+    # 3. XP (Radioactive Green)
+    BG_XP_ODD = '#051405'   # Deep Emerald
+    BG_XP_EVEN = '#0a1f0a'  # Lighter Emerald
+    TEXT_XP = '#00FF00'     # Lime Green
+    BORDER_XP = '#00FF00'   # Matrix Green Glow
+
+    # 4. Boss (Toxic Orange)
+    BG_BOSS_ODD = '#2a1a0a' # Deep Orange BG
+    BG_BOSS_EVEN = '#3e261a' # Lighter Orange
+    TEXT_BOSS = '#ffaa00'   # Neon Orange
+    BORDER_BOSS = '#ff8800' # Orange Glow
+
+    BG_CARD = '#2D2D30'  # Cards
+    BG_HEADER = '#000000' # Pitch Black Headings
+    
+    # Zeros (Neon Alert)
+    # Dark Red Background + Bright White Text + Red Border behavior (if applied)
+    BG_ZERO = '#4d0000' # Deep Red Background
+    TEXT_ZERO = '#ffcccc' # Whitish Red Text
     
     # TEXT
     TEXT_WHITE = Config.EXCEL_FONT_COLOR if Config.EXCEL_FONT_COLOR else '#E0E0E0'
@@ -47,41 +72,25 @@ class ExcelFormats:
             'font_name': 'Inter', # Modern look
             'font_size': 10,
             'font_color': Theme.TEXT_WHITE,
-            'bg_color': Theme.BG_BLACK,
+            'bg_color': Theme.BG_ID_ODD, # Default
             'border': 1,
             'border_color': Theme.BORDER_GREY,
             'valign': 'vcenter'
         }
 
     @staticmethod
-    def header(workbook):
+    def get_header_format(workbook, color, border_color):
+        """Dynamic Header Generator"""
         return {
             'bold': True,
-            'font_color': Theme.GOLD_BOLD,
+            'font_color': color,
             'bg_color': Theme.BG_HEADER,
-            'border': 1,
-            'border_color': Theme.GOLD,
+            'bottom': 2, # Thick glowing bottom
+            'bottom_color': border_color,
             'align': 'center',
             'valign': 'vcenter',
-            'font_size': 12
-        }
-
-    @staticmethod
-    def neon_header(workbook):
-        """Bold Gold headers with a dark neon vibe"""
-        return {
-            'bold': True,
-            'font_color': '#FFFA00', # Electric Gold
-            'bg_color': '#000000',
-            'border': 2,
-            'top_color': '#FFFA00',
-            'bottom_color': '#FFFA00',
-            'left_color': '#FFFA00',
-            'right_color': '#FFFA00',
-            'align': 'center',
-            'valign': 'vcenter',
-            'font_size': 13,
-            'font_name': 'Cinzel' # OSRS-like font if available, fallback to Serif
+            'font_size': 12,
+            'font_name': 'Segoe UI' # Clean Modern
         }
 
     @staticmethod
@@ -139,42 +148,3 @@ class ExcelFormats:
             'right_color': '#FFFFFF',
             'font_name': 'Impact'
         }
-
-    @staticmethod
-    def neon_button(workbook, color='#00FF00'):
-        """Specific neon buttons with glow effect (border)"""
-        return {
-            'bold': True,
-            'font_color': '#000000',
-            'bg_color': color,
-            'align': 'center',
-            'valign': 'vcenter',
-            'font_size': 14,
-            'border': 2,
-            'top_color': '#FFFFFF',
-            'bottom_color': '#FFFFFF',
-            'left_color': '#FFFFFF',
-            'right_color': '#FFFFFF'
-        }
-
-    @staticmethod
-    def rank_gold(workbook):
-        return {
-            'bg_color': '#221a00', # Darker Gold background
-            'font_color': '#FFD700',
-            'border': 1,
-            'top_color': '#FFD700',
-            'bottom_color': '#FFD700',
-            'left_color': '#FFD700',
-            'right_color': '#FFD700'
-        }
-
-    @staticmethod
-    def rank_silver(workbook):
-        return {
-            'bg_color': '#0f0f0f', 
-            'font_color': '#CCCCCC',
-            'border': 1,
-            'border_color': '#444444'
-        }
-

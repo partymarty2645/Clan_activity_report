@@ -1,0 +1,56 @@
+tools:
+  read_query:
+    kind: mcp
+    server: database-server
+    tool: read_query
+    description: Execute a SELECT query on the SQLite database
+    
+  write_query:
+    kind: mcp
+    server: database-server
+    tool: write_query
+    description: Execute an INSERT, UPDATE, or DELETE query on the SQLite database
+
+  list_tables:
+    kind: mcp
+    server: database-server
+    tool: list_tables
+    description: List all tables in the SQLite database
+
+  describe_table:
+    kind: mcp
+    server: database-server
+    tool: describe_table
+    description: Get the schema information for a specific table
+    parameters:
+      table_name:
+        type: string
+        description: Name of the table to describe
+
+  database_stats:
+    kind: mcp
+    server: database-server
+    tool: database_stats
+    description: Get database performance and usage statistics
+
+  vacuum_database:
+    kind: mcp
+    server: database-server
+    tool: vacuum_database
+    description: Optimize database by reclaiming unused space and defragmenting
+
+  integrity_check:
+    kind: mcp
+    server: database-server
+    tool: integrity_check
+    description: Check database integrity and report any corruption
+
+  backup_database:
+    kind: mcp
+    server: database-server
+    tool: backup_database
+    description: Create a backup of the database to a file
+    parameters:
+      backup_path:
+        type: string
+        description: Path where backup file will be created

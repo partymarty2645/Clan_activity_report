@@ -86,46 +86,53 @@ def resolve_member_by_name(db: Session, name: str) -> Optional[int]:
         return None
 
     alias = db.query(PlayerNameAlias).filter(PlayerNameAlias.normalized_name == norm).one_or_none()
-    return alias.member_id if alias else None
+    if alias:
+        return alias.member_id
+
+    # Fallback: resolve directly from ClanMember on normalized username
+    member = db.query(ClanMember).filter(ClanMember.username == norm).one_or_none()
+    return member.id if member else None
 
 
 def _wom_headers() -> Dict[str, str]:
     return {
         "x-api-key": Config.WOM_API_KEY or "",
         "accept": "application/json",
+        "User-Agent": "NevrLucky (Contact: partymarty94)",
     }
 
 
 def _fetch_wom_name_changes_by_username(username: str) -> Optional[List[Dict]]:
     """
     Try fetching name changes from WOM by username.
-
-    The WOM API offers name change data; exact route may differ by version.
-    We attempt common patterns and return the first successful payload.
+    Query: GET /players/username/{username}/names
     """
-    base = Config.WOM_BASE_URL.rstrip("/")
-    candidates = [
-        f"{base}/players/username/{username}/name-changes",
-        f"{base}/name-changes?username={username}",
-        f"{base}/players/{username}/name-changes",
-    ]
-
-    for url in candidates:
-        try:
-            resp = requests.get(url, headers=_wom_headers(), timeout=20)
-            if resp.status_code == 200:
-                data = resp.json()
-                # Normalise expected payload to list of entries
-                if isinstance(data, dict) and "data" in data:
-                    data = data["data"]
-                if isinstance(data, list):
-                    return data
-            elif resp.status_code == 404:
-                continue
-        except Exception as e:
-            logger.debug(f"WOM name changes fetch failed for {url}: {e}")
-            continue
-    return None
+    # Direct endpoint for v2
+    url = f"{Config.WOM_BASE_URL}/players/username/{username}/names"
+    
+    try:
+        response = requests.get(url, headers=_wom_headers(), timeout=20)
+        
+        if response.status_code == 200:
+            data = response.json()
+            # Expecting a list of name change objects
+            if isinstance(data, list):
+                return data
+            # Handle potential wrapped response (though v2 /names is usually a list)
+            if isinstance(data, dict) and "data" in data:
+                 return data["data"]
+            return data # Return as is if it's something else, let caller handle or fail
+            
+        elif response.status_code == 404:
+            # Player not found or no history
+            return []
+        else:
+            logger.warning(f"WOM API Error {response.status_code} for {username}: {response.text}")
+            return None
+            
+    except Exception as e:
+        logger.debug(f"WOM name changes fetch failed for {url}: {e}")
+        return None
 
 
 def sync_wom_name_changes(db: Session, member_id: int, primary_name: str) -> int:

@@ -81,7 +81,8 @@ class DataValidator:
         warnings = []
         
         for idx, entry in enumerate(data_list):
-            username = entry.get('Username', '').lower()
+            from core.usernames import UsernameNormalizer
+            username = UsernameNormalizer.normalize(entry.get('Username', ''))
             
             # Validate username
             if not DataValidator.validate_username(username):

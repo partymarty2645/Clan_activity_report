@@ -7,4 +7,4 @@ python main.py
 
 2. Verify Results
 // turbo
-python scripts/verify_gowi.py
+python scripts/generate_validation_report.py --format text

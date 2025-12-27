@@ -23,9 +23,13 @@ from services.identity_service import (
 
 def print_changes(username: str, changes: Optional[List[dict]]) -> None:
     print(f"=== WOM name changes for: {username} ===")
-    if not changes:
-        print("No changes found or endpoint unavailable.")
+    if changes is None:
+        print("API Error or Endpoint Unavailable.")
         return
+    if not changes:
+        print("No name changes found.")
+        return
+
     for idx, entry in enumerate(changes, start=1):
         old_name = entry.get("oldName") or entry.get("old_name")
         new_name = entry.get("newName") or entry.get("new_name")
@@ -57,7 +61,7 @@ def print_aliases(db: Session, member_id: int) -> None:
 def main(argv: List[str]) -> int:
     parser = argparse.ArgumentParser(description="Show WOM name changes and optional alias application")
     parser.add_argument("--username", "-u", action="append", help="OSRS username to check (can repeat)")
-    parser.add_argument("--limit", "-n", type=int, default=5, help="When no username provided, show first N clan members")
+    parser.add_argument("--limit", "-n", type=int, default=1000, help="When no username provided, show first N clan members")
     parser.add_argument("--apply", action="store_true", help="Apply changes to aliases if member can be resolved")
     args = parser.parse_args(argv)
 
@@ -75,7 +79,12 @@ def main(argv: List[str]) -> int:
                 print("No clan members found. Provide --username to query directly.")
                 return 0
 
-        for uname in usernames:
+        import time # Added for rate limiting
+
+        for i, uname in enumerate(usernames):
+            if i > 0:
+                time.sleep(0.7) # Respect WOM rate limit (~90 RPM)
+
             changes = _fetch_wom_name_changes_by_username(uname)
             print_changes(uname, changes)
 

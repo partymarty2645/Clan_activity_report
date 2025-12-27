@@ -1,6 +1,7 @@
 # ClanStats: Advanced OSRS Clan Tracking
 
 A robust, enterprise-grade tool for tracking Old School RuneScape (OSRS) clan statistics by correlating **Wise Old Man (WOM)** XP data with **Discord** activity.
+
 ## ✅ Current Status
 
 - **WOM API Connectivity:** Verified working (HTTP 200). Group `11114` (Nevr Lucky) returns `membersCount: 303`.
@@ -10,39 +11,39 @@ A robust, enterprise-grade tool for tracking Old School RuneScape (OSRS) clan st
 
 ## 🚀 Key Features
 
-* **Integrated Tracking**: Merges game progress (XP/Bosses) with social engagement (Discord messages).
-* **Discord Sync**: Tracks message counts, "questions asked", and "favorite words" via efficient local database caching.
-* **Visual Dashboard**: A deployed HTML/JS Dashboard (via Google Drive) featuring:
-  * **Activity Heatmaps**
-  * **Performance Analytics**: Scatter plots ("Chatterbox vs Grinder"), Trend lines, and Skill Mastery clouds.
-  * **Boss Highlight Grids**
-  * **Purging Candidates**: Auto-lists inactive members (>30d tenure, 0 messages/XP).
-  * **Live Search & Filtering**
-* **Excel Reporting**: Generates a polished, conditionally formatted Excel report with:
-  * **Custom Columns**: `7d`, `30d`, `Total` periods.
-  * **Auto-Styling**: Color-coded columns (Identity, XP, Messages, Bosses).
+- **Integrated Tracking**: Merges game progress (XP/Bosses) with social engagement (Discord messages).
+- **Discord Sync**: Tracks message counts, "questions asked", and "favorite words" via efficient local database caching.
+- **Visual Dashboard**: A deployed HTML/JS Dashboard (via Google Drive) featuring:
+  - **Activity Heatmaps**
+  - **Performance Analytics**: Scatter plots ("Chatterbox vs Grinder"), Trend lines, and Skill Mastery clouds.
+  - **Boss Highlight Grids**
+  - **Purging Candidates**: Auto-lists inactive members (>30d tenure, 0 messages/XP).
+  - **Live Search & Filtering**
+- **Excel Reporting**: Generates a polished, conditionally formatted Excel report with:
+  - **Custom Columns**: `7d`, `30d`, `Total` periods.
+  - **Auto-Styling**: Color-coded columns (Identity, XP, Messages, Bosses).
 
 ## 🛠️ Architecture
 
 The project follows a modular **Process Isolation** design (no shared memory state):
 
 1. **Harvest (`scripts/harvest_sqlite.py`)**:
-    * Fetches data from WOM API and Discord API.
-    * Writes incrementally to `clan_data.db`.
-    * Runs as an isolated subprocess.
+    - Fetches data from WOM API and Discord API.
+    - Writes incrementally to `clan_data.db`.
+    - Runs as an isolated subprocess.
 
 2. **Report (`scripts/report_sqlite.py`)**:
-    * Generates the classic `clan_report_summary_merged.xlsx` (Excel).
-    * Syncs Excel files to Google Drive.
+    - Generates the classic `clan_report_summary_merged.xlsx` (Excel).
+    - Syncs Excel files to Google Drive.
 
 3. **Export (`scripts/export_sqlite.py`)**:
-    * **The Dashboard Engine**.
-    * Generates `clan_data.json` (Raw Data) and `clan_data.js` (Frontend Loader).
-    * Deploys the static HTML Dashboard (`clan_dashboard.html` + `assets`) to the `docs/` folder (GitHub Pages ready).
+    - **The Dashboard Engine**.
+    - Generates `clan_data.json` (Raw Data) and `clan_data.js` (Frontend Loader).
+    - Deploys the static HTML Dashboard (`clan_dashboard.html` + `assets`) to the `docs/` folder (GitHub Pages ready).
 
 4. **Orchestrator (`main.py`)**:
-    * The "Conductor". Sequentially runs Harvest -> Report -> Export.
-    * Ensures clean exits and error handling.
+    - The "Conductor". Sequentially runs Harvest -> Report -> Export.
+    - Ensures clean exits and error handling.
 
 ## 🔎 Quick Connectivity Check (WOM)
 
@@ -53,11 +54,13 @@ D:/Clan_activity_report/.venv/Scripts/python.exe wom_ping.py
 ```
 
 Expected output (example):
+
 - Status: 200
 - Group: Nevr Lucky (ID: 11114)
 - Members count: 303
 
 If `requests` is missing:
+
 ```powershell
 D:/Clan_activity_report/.venv/Scripts/pip.exe install requests
 ```
@@ -66,14 +69,14 @@ D:/Clan_activity_report/.venv/Scripts/pip.exe install requests
 
 ### Prerequisites
 
-* **Python 3.10+**: [Download](https://www.python.org/downloads/) (IMPORTANT: Check the box **"Add Python to PATH"** during installation).
+- **Python 3.10+**: [Download](https://www.python.org/downloads/) (IMPORTANT: Check the box **"Add Python to PATH"** during installation).
 
 ### 1. Setup
 
 1. Unzip the project folder.
 2. Double-click `setup.bat`.
-    * It creates a virtual environment and installs dependencies.
-    * It generates a `.env` file for your keys.
+    - It creates a virtual environment and installs dependencies.
+    - It generates a `.env` file for your keys.
 
 ### 2. Configuration (`.env`)
 
@@ -112,33 +115,37 @@ If using an AI Agent (like me), you can run these workflows directly:
 
 ### 1. Excel Report (`clan_report_summary_merged.xlsx`)
 
-* The classic spreadsheet with conditional formatting (Green/Yellow/Red).
-* Tracks XP, Messages, Boss Kills over 7d/30d/All-Time.
+- The classic spreadsheet with conditional formatting (Green/Yellow/Red).
+- Tracks XP, Messages, Boss Kills over 7d/30d/All-Time.
 
 ### 2. Visual Dashboard (`clan_dashboard.html`)
 
-* **Live Web View**: Open `clan_dashboard.html` from your Google Drive folder.
-* **Features**:
-  * **Top Messenger / Top XP** Cards.
-  * **Performance Analytics**:
-    * **Activity Matrix**: Scatter plot identifying playstyles.
-    * **Boss Trends**: Monthly trend lines for top kills.
-    * **Diversity & Mastery**: Donut and bar charts for broad activity tracking.
-  * **Boss Highlights Grid**: 3x3 grid of top boss killers with background art.
-  * **Activity Heatmap**: When are your clan members sending messages?
-  * **Full Roster**: Sortable table with Rank Icons.
+- **Live Web View**: Open `clan_dashboard.html` from your Google Drive folder.
+- **Features**:
+  - **Top Messenger / Top XP** Cards.
+  - **Performance Analytics**:
+    - **Activity Matrix**: Scatter plot identifying playstyles.
+    - **Boss Trends**: Monthly trend lines for top kills.
+    - **Diversity & Mastery**: Donut and bar charts for broad activity tracking.
+  - **Boss Highlights Grid**: 3x3 grid of top boss killers with background art.
+  - **Activity Heatmap**: When are your clan members sending messages?
+  - **Full Roster**: Sortable table with Rank Icons.
 
 ## 📑 Proof & Troubleshooting
 
-- **Comprehensive Proof:** See [PROOF_OF_DATA_LINKAGE.md](PROOF_OF_DATA_LINKAGE.md) for cold hard proof of data linkage (303 active members tracked, 99.4% WOM linkage, boss data verified).
+- **Comprehensive Proof:** See [archive/PROOF_OF_DATA_LINKAGE.md](archive/PROOF_OF_DATA_LINKAGE.md) for cold hard proof of data linkage (303 active members tracked, 99.4% WOM linkage, boss data verified).
 - **Regenerate Dashboard:**
+
   ```powershell
   D:/Clan_activity_report/.venv/Scripts/python.exe scripts/export_sqlite.py
   ```
+
 - **Run Tests:**
+
   ```powershell
   D:/Clan_activity_report/.venv/Scripts/python.exe -m pytest tests/ -v --tb=short
   ```
+
 - **Common Fixes:**
   - Missing packages: `D:/Clan_activity_report/.venv/Scripts/pip.exe install -r requirements.txt`
   - Verify env: `.env` must include `WOM_API_KEY`, `WOM_GROUP_ID=11114`, `DISCORD_TOKEN`, `WOM_BASE_URL=https://api.wiseoldman.net/v2`

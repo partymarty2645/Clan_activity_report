@@ -2,6 +2,7 @@ import os
 import yaml
 import logging
 from typing import List, Tuple, Optional
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 
 load_dotenv(override=True)
@@ -46,9 +47,9 @@ class Config:
     WOM_TARGET_RPM = int(os.getenv('WOM_TARGET_RPM', _w_conf.get('target_rpm', 90)))
     WOM_RATE_LIMIT_DELAY = float(os.getenv('WOM_RATE_LIMIT_DELAY', _w_conf.get('rate_limit_delay', 0.67)))
     WOM_MAX_CONCURRENT = int(os.getenv('WOM_MAX_CONCURRENT', _w_conf.get('max_concurrent', 2)))
-    # Short update delay: If true, wait 10s after triggering update. If false, wait 5 min (300s).
-    WOM_SHORT_UPDATE_DELAY = str(os.getenv('WOM_SHORT_UPDATE_DELAY', _w_conf.get('short_update_delay', True))).lower() == 'true'
-    WOM_UPDATE_WAIT = int(os.getenv('WOM_UPDATE_WAIT', 10 if WOM_SHORT_UPDATE_DELAY else 300))
+    # Short update delay: If true, wait 10s after triggering update. If false, wait 3 minutes (180s).
+    WOM_SHORT_UPDATE_DELAY = str(os.getenv('WOM_SHORT_UPDATE_DELAY', _w_conf.get('short_update_delay', False))).lower() == 'true'
+    WOM_UPDATE_WAIT = int(os.getenv('WOM_UPDATE_WAIT', 10 if WOM_SHORT_UPDATE_DELAY else 180))
     
     # --- Reporting ---
     OUTPUT_FILE_XLSX = 'clan_report_summary_merged.xlsx'
@@ -59,6 +60,32 @@ class Config:
         'owner': 100, 'deputy_owner': 90, 'zenyte': 80, 'dragonstone': 80,
         'administrator': 70, 'saviour': 60, 'prospector': 10, 'guest': 0
     })
+
+    # --- Analysis / Logic Constants ---
+    LEADERBOARD_WEIGHT_BOSS = int(os.getenv('LEADERBOARD_WEIGHT_BOSS', 3))
+    LEADERBOARD_WEIGHT_MSGS = int(os.getenv('LEADERBOARD_WEIGHT_MSGS', 6))
+    
+    # Purge Thresholds (Defaults set to 0 as requested)
+    PURGE_THRESHOLD_DAYS = int(os.getenv('PURGE_THRESHOLD_DAYS', 60))
+    PURGE_MIN_XP = int(os.getenv('PURGE_MIN_XP', 0))
+    PURGE_MIN_BOSS = int(os.getenv('PURGE_MIN_BOSS', 0))
+    PURGE_MIN_MSGS = int(os.getenv('PURGE_MIN_MSGS', 0)) # Was "Ghost Msg Count"
+
+    # Harvest Safety
+    HARVEST_STALE_THRESHOLD_SECONDS = int(os.getenv('HARVEST_STALE_THRESHOLD_SECONDS', 86400))
+    HARVEST_SAFE_DELETE_RATIO = float(os.getenv('HARVEST_SAFE_DELETE_RATIO', 0.20))
+
+    # Dashboard Limits
+    LEADERBOARD_SIZE = int(os.getenv('LEADERBOARD_SIZE', 10))
+    TOP_BOSS_CARDS = int(os.getenv('TOP_BOSS_CARDS', 4))
+    
+    # --- Key Dates ---
+    # Parse CUSTOM_START_DATE or default
+    try:
+        _yr, _mo, _dy = map(int, CUSTOM_START_DATE.split('-'))
+        CLAN_FOUNDING_DATE = datetime(_yr, _mo, _dy, tzinfo=timezone.utc)
+    except:
+        CLAN_FOUNDING_DATE = datetime(2025, 2, 14, tzinfo=timezone.utc)
 
     # --- Aesthetics ---
     _aesthetics = _report_conf.get('aesthetics', {})

@@ -12,7 +12,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Tuple
 
 from core.roles import RoleAuthority, ClanRole
-from services.wom import wom_client
+from services.factory import ServiceFactory
 from database.connector import SessionLocal
 from database.models import WOMSnapshot
 
@@ -27,7 +27,8 @@ ZAMORAKIAN_ALIASES = ['zamorakian', 'zenyte', 'dragonstone', 'administrator'] # 
 async def get_role_map(group_id) -> Dict[str, str]:
     """Fetches current members from API to get accurate roles."""
     print("Fetching live role data from WOM...")
-    members = await wom_client.get_group_members(group_id)
+    wom = await ServiceFactory.get_wom_client()
+    members = await wom.get_group_members(group_id)
     role_map = {}
     for m in members:
         if m['role']:
@@ -243,11 +244,13 @@ async def main():
         print("Error: WOM_GROUP_ID not set in environment or config.")
         return
 
-    role_map = await get_role_map(Config.WOM_GROUP_ID)
-    metrics = get_recent_metrics()
-    recommendations = generate_report(role_map, metrics)
-    print_markdown_report(recommendations)
-    await wom_client.close()
+    try:
+        role_map = await get_role_map(Config.WOM_GROUP_ID)
+        metrics = get_recent_metrics()
+        recommendations = generate_report(role_map, metrics)
+        print_markdown_report(recommendations)
+    finally:
+        await ServiceFactory.cleanup()
 
 if __name__ == "__main__":
     asyncio.run(main())

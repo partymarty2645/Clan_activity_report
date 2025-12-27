@@ -13,16 +13,19 @@ from core.config import Config
 from core.usernames import UsernameNormalizer
 from database.connector import init_db, SessionLocal
 from database.models import ClanMember
-from services.wom import wom_client
+from services.factory import ServiceFactory
 from services.identity_service import ensure_member_alias, upsert_alias
 
 
-async def apply_for_member(session, member: ClanMember) -> int:
+async def apply_for_member(session, member: ClanMember, wom_name_override: str = None) -> int:
     # Ensure their primary alias exists (current)
     ensure_member_alias(session, member, source="wom")
 
     # Fetch approved name changes via WOM client and upsert aliases
-    changes = await wom_client.get_player_name_changes(member.username)
+    # Use override if provided (fresh from API), else fallback to DB username
+    lookup_name = wom_name_override or member.username
+    wom = await ServiceFactory.get_wom_client()
+    changes = await wom.get_player_name_changes(lookup_name)
     updated = 0
     for entry in changes or []:
         status = entry.get("status")
@@ -55,7 +58,8 @@ async def main() -> int:
     session = SessionLocal()
     try:
         # Get members from WOM
-        members = await wom_client.get_group_members(Config.WOM_GROUP_ID)
+        wom = await ServiceFactory.get_wom_client()
+        members = await wom.get_group_members(Config.WOM_GROUP_ID)
         # Build a lookup of member info by canonical/normalized username
         member_info: Dict[str, dict] = {}
         for m in members:
@@ -112,7 +116,8 @@ async def main() -> int:
                         continue
 
             try:
-                updated = await apply_for_member(session, cm)
+                # Use uname (from WOM API) as the override to ensure correct spacing/casing
+                updated = await apply_for_member(session, cm, wom_name_override=uname)
                 if updated:
                     print(f"[OK] {uname}: {updated} alias updates")
                     applied_total += updated
@@ -122,7 +127,7 @@ async def main() -> int:
         print(f"Done. Members seen: {len(usernames)} | Aliases upserted: {applied_total} | Newly added ClanMember rows: {created_total}")
         return 0
     finally:
-        await wom_client.close()
+        await ServiceFactory.cleanup()
         session.close()
 
 

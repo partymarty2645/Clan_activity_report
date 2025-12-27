@@ -3,15 +3,78 @@ import os
 import json
 import sqlite3
 import datetime
+import logging
 from datetime import timezone, timedelta
+
+logger = logging.getLogger(__name__)
 
 # Setup path
 sys.path.append(os.getcwd())
 from core.config import Config
+from core.usernames import UsernameNormalizer
+from core.assets import BOSS_ASSET_MAP, DEFAULT_BOSS_IMAGE
+from core.analytics import AnalyticsService
 from data.queries import Queries
+from core.ai_concepts import AIInsightGenerator
 
 DB_PATH = "clan_data.db"
 OUTPUT_FILE = "clan_data.json"
+
+
+
+
+
+
+
+def generate_ai_insights(members):
+    """
+    Generates procedural 'AI' insights using the expanded random pool.
+    Returns a dict with 'insights' (list of cards) and 'pulse' (list of ticker strings).
+    """
+    # Initialize Generator
+    generator = AIInsightGenerator(members)
+    
+    # Get 9 random insights
+    selected_insights = generator.get_selection(9)
+    
+    # Generate Pulse separately or extract from insights?
+    # For now, let's keep pulse simple or generate it:
+    
+    pulse = []
+    # Dynamic Pulse from the selected insights
+    for item in selected_insights:
+        if item['type'] in ['milestone', 'trend', 'fun', 'system']:
+            # Shorten message for ticker - intelligent split
+            # Split by '. ' to avoid breaking "3.5M"
+            msg = item['message']
+            if '. ' in msg:
+                short_msg = msg.split('. ')[0]
+            elif msg.endswith('.'):
+                short_msg = msg[:-1]
+            else:
+                short_msg = msg
+            
+            pulse.append(short_msg)
+            
+    # Add some generic clan stats to pulse
+    total_xp = sum(m.get('xp_7d', 0) for m in members)
+    if total_xp > 0:
+        pulse.append(f"Clan gained {total_xp//1_000_000}M XP this week")
+        
+    # Ensure pulse loop has content
+    if len(pulse) < 3:
+        pulse.append("System operational.")
+        pulse.append("Updates generated.")
+
+    return {
+        "insights": selected_insights,
+        "pulse": pulse
+    }
+
+def format_number(num):
+    if num >= 1000000: return f"{num/1000000:.1f}M"
+    if num >= 1000: return f"{num/1000:.1f}k"
+    return str(num)
 
 def get_db_connection():
     return sqlite3.connect(DB_PATH)
@@ -20,6 +83,8 @@ def get_latest_snapshots(cursor):
     # Get latest snapshot for each user
     cursor.execute(Queries.GET_LATEST_SNAPSHOTS)
     rows = cursor.fetchall()
+    return {r[1]: {'id': r[0], 'ts': r[2], 'xp': r[3], 'boss': r[4]} for r in rows}
+
     return {r[1]: {'id': r[0], 'ts': r[2], 'xp': r[3], 'boss': r[4]} for r in rows}
 
 def get_min_timestamps(cursor):
@@ -274,421 +339,448 @@ def get_trending_boss_monthly(cursor, days=30):
     }
 
 
-def run_export():
-    print("--- STARTING SQLITE EXPORT ---")
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-# Helper for Discord Stats
-def get_discord_stats(cursor, days=None):
-    if days:
-        cutoff = (datetime.datetime.now() - datetime.timedelta(days=days)).isoformat()
-        cursor.execute(Queries.GET_DISCORD_MSG_COUNTS_SINCE_SIMPLE, (cutoff,))
-    else:
-        cursor.execute(Queries.GET_DISCORD_MSG_COUNTS_TOTAL)
-        
-    return {row[0]: row[1] for row in cursor.fetchall()}
-
-def get_activity_heatmap(cursor, days=30):
-    cutoff = (datetime.datetime.now() - datetime.timedelta(days=days)).isoformat()
-    cursor.execute(Queries.GET_HOURLY_ACTIVITY, (cutoff,))
-    
-    heatmap = {str(h).zfill(2): 0 for h in range(24)}
-    for row in cursor.fetchall():
-        if row[0]: 
-            heatmap[row[0]] = row[1]
-    
-    return [heatmap[str(h).zfill(2)] for h in range(24)]
-
 
 def run_export():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
+    logger.info("Starting Web Dashboard Export...")
     
-    # 0. Load Members (Source of Truth)
-    cursor.execute(Queries.GET_ALL_MEMBERS_METADATA)
-    members = cursor.fetchall()
-    active_users = {m[0].lower(): {'role': m[1], 'joined': m[2]} for m in members}
-    print(f"Loaded {len(active_users)} active members.")
+    # Initialize Core Services
+    conn = get_db_connection() # Keep raw connection for some legacy parts if needed, but prefer ORM
     
-    # 1. Snapshots
-    latest_snaps = get_latest_snapshots(cursor)
-    past_7d_snaps = get_past_snapshots(cursor, 7)
-    past_30d_snaps = get_past_snapshots(cursor, 30)
+    # We need a Session for AnalyticsService
+    from database.connector import get_db
+    db_session = next(get_db())
+    analytics = AnalyticsService(db_session)
     
-    print(f"Latest Snaps: {len(latest_snaps)}")
-    
-    # 2. Boss Data
-    latest_ids = [s['id'] for s in latest_snaps.values()]
-    old_ids = [s['id'] for s in past_7d_snaps.values()]
-    
-    print("Fetching Boss Data...")
-    latest_boss_data = get_boss_data(cursor, latest_ids)
-    old_boss_data = get_boss_data(cursor, old_ids) # 7d
-    
-    old_ids_30 = [s['id'] for s in past_30d_snaps.values()]
-    old_boss_data_30 = get_boss_data(cursor, old_ids_30)
-    
-    # 3. Discord Stats (NEW)
-    print("Fetching Discord Stats...")
-    msg_stats_total = get_discord_stats(cursor)
-    msg_stats_7d = get_discord_stats(cursor, 7)
-    msg_stats_30d = get_discord_stats(cursor, 30)
-    
-    print("Fetching Activity Heatmap (30d)...")
-    activity_heatmap = get_activity_heatmap(cursor, 30)
-
-    print("Fetching Clan Trend History...")
-    clan_history = get_clan_trend(cursor, 30)
-
-    # --- NEW CHART DATA FETCH ---
-    print("Generating New Charts Data...")
-    
-    # 1. Boss Diversity
-    boss_diversity = get_boss_diversity(cursor, latest_ids)
-    
-    # 2. Raids
-    raids_performance = get_raids_performance(cursor, latest_ids)
-    
-    # 3. Skill Mastery
-    skill_mastery = get_skill_mastery(cursor, latest_ids)
-    
-    # 4. Trending Boss
-    trending_boss = get_trending_boss_monthly(cursor, 30)
-
-    
-    # DEBUG: Check Sir Gowi
-    if 'sir gowi' in msg_stats_total:
-         print(f"[DEBUG] 'sir gowi' FOUND in msg_stats_total. Count: {msg_stats_total['sir gowi']}")
-         print(f"[DEBUG] Key Hex: {list(msg_stats_total.keys())[list(msg_stats_total.keys()).index('sir gowi')].encode('utf-8').hex()}")
-    else:
-         print(f"[DEBUG] 'sir gowi' NOT FOUND in msg_stats_total keys. Showing closest matches:")
-         for k in msg_stats_total.keys():
-             if 'gowi' in k: print(f" - '{k}'")
-    
-    # 4. Asset Map (deprecated)
-    # asset_map = load_assets_map() - removed, not used in output_data
-    
-    output_data = {
-        "generated_at": datetime.datetime.now().isoformat(),
-        "activity_heatmap": activity_heatmap, # [c0, c1, ... c23]
-        "history": clan_history, 
+    try:
+        cursor = conn.cursor()
         
-        # New Chart Data
-        "chart_boss_diversity": boss_diversity,
-        "chart_raids": raids_performance,
-        "chart_skills": skill_mastery,
-        "chart_boss_trend": trending_boss,
+        # 0. Load Members (Source of Truth)
+        # BUG-002: Refactored to usage of AnalyticsService
+        member_objs = analytics.get_active_members()
+        active_users = {
+            # Use UsernameNormalizer to ensure keys match the rest of the pipeline
+            UsernameNormalizer.normalize(m.username): {
+                'role': m.role, 
+                'joined': m.joined_at.isoformat() if m.joined_at else None
+            } 
+            for m in member_objs
+        }
+        logger.info(f"Metadata: {len(active_users)} active members ready for export.")
         
-        "allMembers": [],
-        "topBossers": [],
-        "topXPGainers": []
-    }
+        # 1. Snapshots
+        latest_snaps = analytics.get_latest_snapshots()
+        past_7d_snaps = analytics.get_snapshots_at_cutoff(datetime.datetime.now(timezone.utc) - timedelta(days=7))
+        past_30d_snaps = analytics.get_snapshots_at_cutoff(datetime.datetime.now(timezone.utc) - timedelta(days=30))
+        
+        logger.info(f"Data Points: {len(latest_snaps)} recent snapshots loaded.")
+        
+        # 2. Boss Data
+        latest_ids = [s.id for s in latest_snaps.values()]
+        old_ids = [s.id for s in past_7d_snaps.values()]
+        old_ids_30 = [s.id for s in past_30d_snaps.values()]
+        
+        logger.info("Analysing Boss Kills...")
+        latest_boss_data = analytics.get_boss_data(latest_ids)
+        old_boss_data = analytics.get_boss_data(old_ids) # 7d
+        old_boss_data_30 = analytics.get_boss_data(old_ids_30)
+        
+        # 3. Discord Stats
+        logger.info("Compiling Discord activity stats...")
+        msg_stats_total = analytics.get_discord_stats_simple()
+        msg_stats_7d = analytics.get_discord_stats_simple(days=7)
+        msg_stats_30d = analytics.get_discord_stats_simple(days=30)
+        
+        logger.info("Generating secondary charts (Heatmaps, Trends, Diversity)...")
+        activity_heatmap = analytics.get_activity_heatmap(days=30)
+        clan_history = analytics.get_clan_trend(days=30)
+        
+        # Charts via Service
+        boss_diversity = analytics.get_boss_diversity(latest_ids)
+        raids_performance = analytics.get_raids_performance(latest_ids)
+        skill_mastery = analytics.get_skill_mastery(latest_ids)
+        trending_boss = analytics.get_trending_boss(days=30)
+        clan_records = analytics.get_clan_records()
 
-    
-    # Pre-fetch first seen dates for fallback
-    min_timestamps = get_min_timestamps(cursor)
-    
-    for username in active_users:
-        u_lower = username.lower()
-        if u_lower not in latest_snaps: continue
         
-        curr = latest_snaps[u_lower]
-        curr_bosses = latest_boss_data.get(curr['id'], {})
+        # DEBUG: Check Sir Gowi
+        if 'sir gowi' in msg_stats_total:
+             logger.debug(f"'sir gowi' FOUND in msg_stats_total. Count: {msg_stats_total['sir gowi']}")
         
-        # 7d Gains (with Safe Fallback)
-        xp_7d = 0
-        boss_7d = 0
-        fav_boss_name = "None"
-        
-        # 1. Determine Baseline
-        baseline_snap = None
-        if u_lower in past_7d_snaps:
-             baseline_snap = past_7d_snaps[u_lower]
-        elif u_lower in min_timestamps:
-             # Fallback: If no 7d snap, use Earliest Seen if it's recent (< 14 days)
-             ms = min_timestamps[u_lower]
-             try:
-                 mn_ts = datetime.datetime.fromisoformat(ms['ts'].replace('Z', '+00:00'))
-                 cr_ts = datetime.datetime.fromisoformat(curr['ts'].replace('Z', '+00:00'))
-                 if (cr_ts - mn_ts).days < 14:
-                     baseline_snap = ms
-             except: pass
-
-        # 2. Calculate
-        if baseline_snap:
-            try:
-                curr_ts_dt = datetime.datetime.fromisoformat(curr['ts'].replace('Z', '+00:00'))
-                # Handle inconsistent keys (ts vs timestamp) if legacy
-                base_ts_str = baseline_snap.get('ts') or baseline_snap.get('timestamp')
-                old_ts_dt = datetime.datetime.fromisoformat(base_ts_str.replace('Z', '+00:00'))
-                
-                delta_days = (curr_ts_dt - old_ts_dt).days
-                
-                # Staleness check (Relaxed to 21 days for weekly)
-                if delta_days <= 21:
-                    xp_7d = curr['xp'] - baseline_snap['xp']
-                    boss_7d = curr['boss'] - baseline_snap['boss']
-                    
-                    if xp_7d < 0: xp_7d = 0
-                    if boss_7d < 0: boss_7d = 0
-            except Exception as e:
-                # print(f"Gains Calc Error {username}: {e}")
-                xp_7d = 0
-                boss_7d = 0
-        
-        # 30d Gains & Favorites
-        xp_30d = 0
-        boss_30d = 0
-        fav_boss_name = "None"
-        fav_boss_img = "boss_pet_rock.png"
-        
-        fav_boss_all_time_name = "None"
-        fav_boss_all_time_img = "boss_pet_rock.png"
-
-        # --- All-Time Favorite (Max Total Kills) ---
-        if curr_bosses:
-            # Find boss with max kills
-            # Filter out -1 or 0? 
-            valid_bosses = {k: v for k, v in curr_bosses.items() if v > 0}
-            if valid_bosses:
-                best_all_time = max(valid_bosses, key=valid_bosses.get)
-                fav_boss_all_time_name = best_all_time.replace('_', ' ').title()
-                key_at = best_all_time.lower().replace(' ', '_')
-                # asset_map removed (deprecated, using fallback logic)
-                if 'vorkath' in key_at: fav_boss_all_time_img = 'boss_vorkath.png'
-                if 'zulrah' in key_at: fav_boss_all_time_img = 'boss_zulrah.png'
-
-        # --- Monthly Favorite (Max 30d Delta) ---
-        if u_lower in past_30d_snaps:
-            old_30 = past_30d_snaps[u_lower]
-            old_bosses_30 = old_boss_data_30.get(old_30['id'], {})
+        output_data = {
+            "generated_at": datetime.datetime.now().isoformat(),
+            "activity_heatmap": activity_heatmap, # [c0, c1, ... c23]
+            "history": clan_history, 
             
-            max_delta_30 = -1
-            best_boss_30 = None
+            # New Chart Data
+            "chart_boss_diversity": boss_diversity,
+            "chart_raids": raids_performance,
+            "chart_skills": skill_mastery,
+            "chart_boss_trend": trending_boss,
+            "clan_records": clan_records,
             
-            for b_name, k in curr_bosses.items():
-                prev = old_bosses_30.get(b_name, 0)
-                delta = k - prev
-                if delta > max_delta_30:
-                    max_delta_30 = delta
-                    best_boss_30 = b_name
-            
-            if max_delta_30 > 0:
-                fav_boss_name = best_boss_30.replace('_', ' ').title()
-                key_30 = best_boss_30.lower().replace(' ', '_')
-                # asset_map removed (deprecated, using fallback logic)
-                if 'vorkath' in key_30: fav_boss_img = 'boss_vorkath.png'
-                if 'zulrah' in key_30: fav_boss_img = 'boss_zulrah.png'
-        
-        # 30d Gains
-        # Baseline: Try strict 30d ago. If not found, use Earliest Known Snapshot (if different from current).
-        baseline = None
-        if u_lower in past_30d_snaps:
-            baseline = past_30d_snaps[u_lower]
-        elif u_lower in min_timestamps:
-            baseline = min_timestamps[u_lower]
-        
-        if baseline and baseline['ts'] < curr['ts']:
-            xp_30d = curr['xp'] - baseline['xp']
-            boss_30d = curr['boss'] - baseline['boss']
-            
-        if u_lower in active_users:
-            mem_data = active_users[u_lower] # Might contain other enriched data?
-        
-        # Days in Clan Logic (Safe)
-        joined_at_str = mem_data['joined'] # From active_users dict
-        role = mem_data['role']
-        joined_dt = None
-        
-        # 1. Try DB joined_at
-        if joined_at_str:
-            try:
-                # Remove Z if present, standard ISO
-                clean_ts = joined_at_str.replace('Z', '+00:00')
-                joined_dt = datetime.datetime.fromisoformat(clean_ts)
-            except Exception as e:
-                # print(f"Date parse error for {username}: {e}")
-                pass
-        
-        # 2. Fallback to Min Snapshot
-        if not joined_dt and u_lower in min_timestamps:
-            try:
-                min_ts_str = min_timestamps[u_lower]['ts']
-                if min_ts_str:
-                    clean_ts = min_ts_str.replace('Z', '+00:00')
-                    joined_dt = datetime.datetime.fromisoformat(clean_ts)
-            except Exception:
-                pass
-        
-        # 3. CLAMP to Clan Founding Date (Fixed: 2025-02-14)
-        # Fixes "800+ days" issue for members tracked by WOM before clan creation.
-        CLAN_FOUNDING_DATE = datetime.datetime(2025, 2, 14, tzinfo=timezone.utc)
-        
-        if joined_dt:
-            if joined_dt.tzinfo is None:
-                joined_dt = joined_dt.replace(tzinfo=timezone.utc)
-            
-            if joined_dt < CLAN_FOUNDING_DATE:
-                joined_dt = CLAN_FOUNDING_DATE
-
-        # 4. Calculate Days
-        days_in_clan = 0
-        if joined_dt:
-             now_utc = datetime.datetime.now(timezone.utc)
-             days_in_clan = (now_utc - joined_dt).days
-             if days_in_clan < 0: days_in_clan = 0
-
-         # 5. Validate 30d Stats Timeline
-         # If baseline is too old (> 60 days), do NOT show it as "30d stats"
-         # This prevents "49M XP" (2 years gain) showing up in 30d column.
-        if baseline:
-             try:
-                 base_ts_str = baseline['ts'].replace('Z', '+00:00')
-                 base_dt = datetime.datetime.fromisoformat(base_ts_str)
-                 curr_ts_str = curr['ts'].replace('Z', '+00:00')
-                 curr_dt = datetime.datetime.fromisoformat(curr_ts_str)
-                 
-                 diff_days = (curr_dt - base_dt).days
-                 if diff_days > 60:
-                     xp_30d = 0
-                     boss_30d = 0
-             except:
-                 pass
-
-        # Construct User Object
-        user_obj = {
-            "username": username, 
-            "role": role,
-            "rank_img": f"rank_{role.lower()}.png", 
-            "joined_at": joined_dt.strftime('%Y-%m-%d') if joined_dt else "N/A",
-            "days_in_clan": days_in_clan,
-            "xp_7d": xp_7d,
-            "boss_7d": boss_7d,
-
-            "xp_30d": xp_30d,
-            "boss_30d": boss_30d,
-            "favorite_boss": fav_boss_name, 
-            "favorite_boss_img": fav_boss_img, 
-            "favorite_boss_all_time": fav_boss_all_time_name,
-            "favorite_boss_all_time_img": fav_boss_all_time_img,
-             "total_xp": curr['xp'],
-             "total_boss": curr['boss'],
-             "msgs_7d": 0,
-             "msgs_30d": 0,
-             "msgs_total": 0
+            "allMembers": [],
+            "topBossers": [],
+            "topXPGainers": []
         }
 
-        # Enhanced Name Matching for Discord Stats
-        # WOM username is already normalized (lowercase), key is u_lower
-        # Discord keys in msg_stats are also lowercase
         
-        # 1. Direct Match
-        if u_lower in msg_stats_7d:
-            user_obj['msgs_7d'] = msg_stats_7d[u_lower]
-        else:
-            # 2. Fuzzy / Clean Match
-            # Try removing spaces, or partial match?
-            # Discord: "partymarty" vs WOM: "party marty"
-            u_clean = u_lower.replace(' ', '').replace('_', '')
-            for d_name, count in msg_stats_7d.items():
-                d_clean = d_name.replace(' ', '').replace('_', '')
-                if u_clean == d_clean:
-                    user_obj['msgs_7d'] = count
-                    break
+        # Pre-fetch first seen dates for fallback
+        min_timestamps = analytics.get_min_timestamps()
         
-        # Same for Total
-        if u_lower in msg_stats_total:
-             user_obj['msgs_total'] = msg_stats_total[u_lower]
-        else:
-             u_clean = u_lower.replace(' ', '').replace('_', '')
-             for d_name, count in msg_stats_total.items():
-                d_clean = d_name.replace(' ', '').replace('_', '')
-                if u_clean == d_clean:
-                    user_obj['msgs_total'] = count
-                    break
-        
-        # 30d Msgs
-        if u_lower in msg_stats_30d:
-             user_obj['msgs_30d'] = msg_stats_30d[u_lower]
-        else:
-             u_clean = u_lower.replace(' ', '').replace('_', '')
-             for d_name, count in msg_stats_30d.items():
-                d_clean = d_name.replace(' ', '').replace('_', '')
-                if u_clean == d_clean:
-                    user_obj['msgs_30d'] = count
-                    break
-        
-        # DEBUG Loop
-        if 'gowi' in u_lower:
-            print(f"[DEBUG LOOP] Processing '{u_lower}'. Total: {user_obj['msgs_total']}, 7d: {user_obj['msgs_7d']}, 30d: {user_obj['msgs_30d']}")
-        
-        # FILTER: Exclude users with NO activity (0 messages AND 0 boss kills)
-        # Modified to allow silent boss killers (issue: dashboard was hiding members with only boss kills)
-        if user_obj['msgs_total'] == 0 and user_obj.get('total_boss', 0) == 0:
-            continue
+        missing_assets = set()
+
+        for username in active_users:
+            # Keys in active_users are already normalized by UsernameNormalizer
+            u_clean = username # for clarity, it's already clean
+            if u_clean not in latest_snaps: continue
             
-        output_data['allMembers'].append(user_obj)
+            curr = latest_snaps[u_clean]
+            # Convert Query Result to dict-like access if needed or use object props
+            # The Service returns ORM objects, so we access attributes normally.
+            
+            curr_bosses = latest_boss_data.get(curr.id, {})
+
         
-    # Sort Lists
-    output_data['allMembers'].sort(key=lambda x: x['xp_7d'], reverse=True)
-    
-    # Top Bossers (Top 9)
-    top_boss = sorted(output_data['allMembers'], key=lambda x: x['boss_7d'], reverse=True)[:9]
-    output_data['topBossers'] = top_boss
-    
-    # Top XP (Top 9)
-    top_xp = sorted(output_data['allMembers'], key=lambda x: x['xp_7d'], reverse=True)[:9]
-    output_data['topXPGainers'] = top_xp
-    
-    # General Stats
-    output_data['topBossKiller'] = {"name": top_boss[0]['username'], "kills": top_boss[0]['boss_7d']} if top_boss else None
-    output_data['topXPGainer'] = {"name": top_xp[0]['username'], "xp": top_xp[0]['xp_7d']} if top_xp else None
-    
-    # Message Stats
-    # Top Messenger (All Time / Total Volume)
-    top_msg_total = sorted(output_data['allMembers'], key=lambda x: x['msgs_total'], reverse=True)
-    output_data['topMessenger'] = {"name": top_msg_total[0]['username'], "messages": top_msg_total[0]['msgs_total']} if top_msg_total else None
-    
-    # Rising Star (Top 7d Activity)
-    top_msg_7d = sorted(output_data['allMembers'], key=lambda x: x['msgs_7d'], reverse=True)
-    output_data['risingStar'] = {"name": top_msg_7d[0]['username'], "msgs": top_msg_7d[0]['msgs_7d']} if top_msg_7d else None
-    
-    # JSON Export
-    with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
-        json.dump(output_data, f, indent=2)
-    print(f"Exported to {OUTPUT_FILE}")
+            # 7d Gains (with Safe Fallback)
+            xp_7d = 0
+            boss_7d = 0
+            fav_boss_name = "None"
+            
+            # 1. Determine Baseline
+            baseline_snap = None
+            if u_clean in past_7d_snaps:
+                 baseline_snap = past_7d_snaps[u_clean]
+            elif u_clean in min_timestamps:
+                 # Fallback: If no 7d snap, use Earliest Seen if it's recent (< 14 days)
+                 ms = min_timestamps[u_clean]
+                 try:
+                     mn_ts = ms.timestamp
+                     cr_ts = curr.timestamp
+                     if (cr_ts - mn_ts).days < 14:
+                         baseline_snap = ms
+                 except: pass
 
-    # JS Export (For local file:// support via global var)
-    js_output_file = "clan_data.js"
-    with open(js_output_file, 'w', encoding='utf-8') as f:
-        f.write("window.dashboardData = ")
-        json.dump(output_data, f, indent=2)
-        f.write(";")
-    print(f"Exported to {js_output_file}")
-    
-    # --- GIT HUB PAGES EXPORT (docs/ folder) ---
-    docs_dir = os.path.join(os.getcwd(), 'docs')
-    if not os.path.exists(docs_dir):
-        os.makedirs(docs_dir)
-        print(f"Created directory: {docs_dir}")
+            # 2. Calculate
+            if baseline_snap:
+                try:
+                    curr_ts_dt = curr.timestamp
+                    # Handle inconsistent keys (ts vs timestamp) if legacy
+                    old_ts_dt = baseline_snap.timestamp
+                    
+                    delta_days = (curr_ts_dt - old_ts_dt).days
+                    
+                    # Staleness check (Relaxed to 21 days for weekly)
+                    if delta_days <= 21:
+                        # Fix: Handle -1 (Unranked) values from WOM by treating them as 0
+                        curr_xp = max(0, curr.total_xp)
+                        old_xp = max(0, baseline_snap.total_xp)
+                        xp_7d = curr_xp - old_xp
+                        
+                        curr_boss = max(0, curr.total_boss_kills)
+                        old_boss = max(0, baseline_snap.total_boss_kills)
+                        boss_7d = curr_boss - old_boss
+                        
+                        if xp_7d < 0: xp_7d = 0
+                        if boss_7d < 0: boss_7d = 0
+                except Exception as e:
+                    # print(f"Gains Calc Error {username}: {e}")
+                    xp_7d = 0
+                    boss_7d = 0
+            
+            # 30d Gains & Favorites
+            xp_30d = 0
+            boss_30d = 0
+            fav_boss_name = "None"
+            fav_boss_img = "boss_pet_rock.png"
+            
+            fav_boss_all_time_name = "None"
+            fav_boss_all_time_img = "boss_pet_rock.png"
 
-    import shutil
-    try:
+            # --- All-Time Favorite (Max Total Kills) ---
+            if curr_bosses:
+                valid_bosses = {k: v for k, v in curr_bosses.items() if v > 0}
+                if valid_bosses:
+                    best_all_time = max(valid_bosses, key=valid_bosses.get)
+                    fav_boss_all_time_name = best_all_time.replace('_', ' ').title()
+                    
+                    # Dynamic Image Lookup (Safe Map)
+                    img_name = BOSS_ASSET_MAP.get(best_all_time, DEFAULT_BOSS_IMAGE)
+                    
+                    # Check file existence to be double-sure
+                    img_path = os.path.join("assets", img_name)
+                    
+                    if os.path.exists(img_path):
+                        fav_boss_all_time_img = img_name
+                    else:
+                        # Fallback if map entry exists but file does not
+                        fav_boss_all_time_img = DEFAULT_BOSS_IMAGE
+                        if 'missing_assets' not in locals(): missing_assets = set()
+                        missing_assets.add(img_name)
+
+            # --- Monthly Favorite (Max 30d Delta) ---
+            if u_clean in past_30d_snaps:
+                old_30 = past_30d_snaps[u_clean]
+                old_bosses_30 = old_boss_data_30.get(old_30.id, {})
+                
+                max_delta_30 = -1
+                best_boss_30 = None
+                
+                for b_name, k in curr_bosses.items():
+                    prev = old_bosses_30.get(b_name, 0)
+                    delta = k - prev
+                    if delta > max_delta_30:
+                        max_delta_30 = delta
+                        best_boss_30 = b_name
+                
+                if max_delta_30 > 0:
+                    fav_boss_name = best_boss_30.replace('_', ' ').title()
+                    
+                    # Dynamic Image Lookup (Safe Map)
+                    img_name = BOSS_ASSET_MAP.get(best_boss_30, DEFAULT_BOSS_IMAGE)
+                    img_path = os.path.join("assets", img_name)
+                    
+                    if os.path.exists(img_path):
+                        fav_boss_img = img_name
+                    else:
+                        fav_boss_img = DEFAULT_BOSS_IMAGE 
+                        if 'missing_assets' not in locals(): missing_assets = set()
+                        missing_assets.add(img_name)
+            
+            # 30d Gains
+            # Baseline: Try strict 30d ago. If not found, use Earliest Known Snapshot (if different from current).
+            baseline = None
+            if u_clean in past_30d_snaps:
+                baseline = past_30d_snaps[u_clean]
+            elif u_clean in min_timestamps:
+                baseline = min_timestamps[u_clean]
+            
+            if baseline and baseline.timestamp < curr.timestamp:
+                xp_30d = curr.total_xp - baseline.total_xp
+                boss_30d = curr.total_boss_kills - baseline.total_boss_kills
+                
+            if u_clean in active_users:
+                mem_data = active_users[u_clean] # Might contain other enriched data?
+            
+            # Days in Clan Logic (Safe)
+            joined_at_str = mem_data['joined'] # From active_users dict
+            role = mem_data['role']
+            joined_dt = None
+            
+            # 1. Try DB joined_at
+            if joined_at_str:
+                try:
+                    # Remove Z if present, standard ISO
+                    clean_ts = joined_at_str.replace('Z', '+00:00')
+                    joined_dt = datetime.datetime.fromisoformat(clean_ts)
+                except Exception as e:
+                    # print(f"Date parse error for {username}: {e}")
+                    pass
+            
+            # 2. Fallback to Min Snapshot
+            if not joined_dt and u_lower in min_timestamps:
+                try:
+                    joined_dt = min_timestamps[u_lower].timestamp
+                    # if min_ts_str:
+                    #    clean_ts = min_ts_str.replace('Z', '+00:00')
+                    #    joined_dt = datetime.datetime.fromisoformat(clean_ts)
+                    pass
+                except Exception:
+                    pass
+            
+            # 3. CLAMP to Clan Founding Date (Fixed: 2025-02-14)
+            # Fixes "800+ days" issue for members tracked by WOM before clan creation.
+            CLAN_FOUNDING_DATE = Config.CLAN_FOUNDING_DATE
+            
+            if joined_dt:
+                if joined_dt.tzinfo is None:
+                    joined_dt = joined_dt.replace(tzinfo=timezone.utc)
+                
+                if joined_dt < CLAN_FOUNDING_DATE:
+                    joined_dt = CLAN_FOUNDING_DATE
+
+            # 4. Calculate Days
+            days_in_clan = 0
+            if joined_dt:
+                 now_utc = datetime.datetime.now(timezone.utc)
+                 days_in_clan = (now_utc - joined_dt).days
+                 if days_in_clan < 0: days_in_clan = 0
+
+             # 5. Validate 30d Stats Timeline
+             # If baseline is too old (> 60 days), do NOT show it as "30d stats"
+             # This prevents "49M XP" (2 years gain) showing up in 30d column.
+            if baseline:
+                try:
+                    base_dt = baseline.timestamp
+                    curr_dt = curr.timestamp
+                    
+                    diff_days = (curr_dt - base_dt).days
+                    if diff_days > 60:
+                        xp_30d = 0
+                        boss_30d = 0
+                except:
+                    pass
+
+            # Construct User Object
+            user_obj = {
+                "username": username, 
+                "role": role,
+                "rank_img": f"rank_{role.lower()}.png", 
+                "joined_at": joined_dt.strftime('%Y-%m-%d') if joined_dt else "N/A",
+                "days_in_clan": days_in_clan,
+                "xp_7d": xp_7d,
+                "boss_7d": boss_7d,
+
+                "xp_30d": xp_30d,
+                "boss_30d": boss_30d,
+                "favorite_boss": fav_boss_name, 
+                "favorite_boss_img": fav_boss_img, 
+                "favorite_boss_all_time": fav_boss_all_time_name,
+                "favorite_boss_all_time_img": fav_boss_all_time_img,
+                 "total_xp": curr.total_xp,
+                 "total_boss": curr.total_boss_kills,
+                 "msgs_7d": 0,
+                 "msgs_30d": 0,
+                 "msgs_total": 0
+            }
+
+            # Enhanced Name Matching for Discord Stats
+            # WOM username is already normalized (lowercase), key is u_lower
+            # Discord keys in msg_stats are also lowercase
+            
+            # 1. Direct Match
+            if u_clean in msg_stats_7d:
+                user_obj['msgs_7d'] = msg_stats_7d[u_clean]
+            else:
+                # 2. Fuzzy / Clean Match
+                # Try removing spaces, or partial match?
+                # Discord: "partymarty" vs WOM: "party marty"
+                u_clean_fuzzy = u_clean.replace(' ', '').replace('_', '')
+                for d_name, count in msg_stats_7d.items():
+                    d_clean = d_name.replace(' ', '').replace('_', '')
+                    if u_clean == d_clean:
+                        user_obj['msgs_7d'] = count
+                        break
+            
+            # Same for Total
+            if u_clean in msg_stats_total:
+                 user_obj['msgs_total'] = msg_stats_total[u_clean]
+            else:
+                 u_clean_fuzzy = u_clean.replace(' ', '').replace('_', '')
+                 for d_name, count in msg_stats_total.items():
+                    d_clean = d_name.replace(' ', '').replace('_', '')
+                    if u_clean_fuzzy == d_clean:
+                        user_obj['msgs_total'] = count
+                        break
+            
+            # 30d Msgs
+            # 30d Msgs
+            if u_clean in msg_stats_30d:
+                 user_obj['msgs_30d'] = msg_stats_30d[u_clean]
+            else:
+                 u_clean_fuzzy = u_clean.replace(' ', '').replace('_', '')
+                 for d_name, count in msg_stats_30d.items():
+                    d_clean = d_name.replace(' ', '').replace('_', '')
+                    if u_clean_fuzzy == d_clean:
+                        user_obj['msgs_30d'] = count
+                        break
+            
+            if 'gowi' in u_clean:
+                logger.debug(f"[DEBUG LOOP] Processing '{u_clean}'. Total: {user_obj['msgs_total']}, 7d: {user_obj['msgs_7d']}, 30d: {user_obj['msgs_30d']}")
+            
+            # FILTER: Exclude users with NO activity (0 messages AND 0 boss kills)
+            if user_obj['msgs_total'] == 0 and user_obj.get('total_boss', 0) == 0:
+                continue
+                
+            output_data['allMembers'].append(user_obj)
+
+        # Sort Lists
+        output_data['allMembers'].sort(key=lambda x: x['xp_7d'], reverse=True)
+        
+        # Top Bossers (Top 9)
+        top_boss = sorted(output_data['allMembers'], key=lambda x: x['boss_7d'], reverse=True)[:9]
+        output_data['topBossers'] = top_boss
+        
+        # Top XP (Top 9)
+        top_xp = sorted(output_data['allMembers'], key=lambda x: x['xp_7d'], reverse=True)[:9]
+        output_data['topXPGainers'] = top_xp
+        
+        # General Stats
+        output_data['topBossKiller'] = {"name": top_boss[0]['username'], "kills": top_boss[0]['boss_7d']} if top_boss else None
+        output_data['topXPGainer'] = {"name": top_xp[0]['username'], "xp": top_xp[0]['xp_7d']} if top_xp else None
+        
+        # Message Stats
+        # Top Messenger (All Time / Total Volume)
+        top_msg_total = sorted(output_data['allMembers'], key=lambda x: x['msgs_total'], reverse=True)
+        output_data['topMessenger'] = {"name": top_msg_total[0]['username'], "messages": top_msg_total[0]['msgs_total']} if top_msg_total else None
+        
+        # Rising Star (Top 7d Activity)
+        top_msg_7d = sorted(output_data['allMembers'], key=lambda x: x['msgs_7d'], reverse=True)
+        output_data['risingStar'] = {"name": top_msg_7d[0]['username'], "msgs": top_msg_7d[0]['msgs_7d']} if top_msg_7d else None
+
+        # AI INSIGHTS GENERATION
+        print("DEBUG: Generating AI Insights...", flush=True)
+        ai_data = None
+        try:
+            ai_data = generate_ai_insights(output_data['allMembers'])
+            # Basic schema overlap check
+            if not isinstance(ai_data, dict) or 'insights' not in ai_data or 'pulse' not in ai_data:
+                logger.warning("AI Generation returned invalid format. Using Default.")
+                ai_data = None
+        except Exception as e:
+            logger.error(f"AI Generation Failed: {e}", exc_info=True)
+            ai_data = None
+            
+        # Fallback if AI Gen failed cleanly or crashed
+        if not ai_data:
+             ai_data = {
+                 "insights": [],
+                 "pulse": ["System Operational", "Awaiting AI Nexus"]
+             }
+        
+        output_data['ai'] = ai_data
+
+        # Config Metadata (for JS)
+        output_data['config'] = {
+            "leaderboard_weight_boss": Config.LEADERBOARD_WEIGHT_BOSS,
+            "leaderboard_weight_msgs": Config.LEADERBOARD_WEIGHT_MSGS,
+            "purge_threshold_days": Config.PURGE_THRESHOLD_DAYS,
+            "purge_min_xp": Config.PURGE_MIN_XP,
+            "purge_min_boss": Config.PURGE_MIN_BOSS,
+            "purge_min_msgs": Config.PURGE_MIN_MSGS,
+            "leaderboard_size": Config.LEADERBOARD_SIZE,
+            "top_boss_cards": Config.TOP_BOSS_CARDS
+        }
+        
+        # JSON Export
+        with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
+            json.dump(output_data, f, indent=2)
+        logger.info(f"Exported to {OUTPUT_FILE}")
+
+        # JS Export (For local file:// support via global var)
+        js_output_file = "clan_data.js"
+        with open(js_output_file, 'w', encoding='utf-8') as f:
+            f.write("window.dashboardData = ")
+            json.dump(output_data, f, indent=2)
+            f.write(";")
+        logger.info(f"Exported to {js_output_file}")
+        
+        # --- GIT HUB PAGES EXPORT (docs/ folder) ---
+        docs_dir = os.path.join(os.getcwd(), 'docs')
+        if not os.path.exists(docs_dir):
+            os.makedirs(docs_dir)
+
+        import shutil
+        
         # 1. Data (JSON)
         shutil.copy(OUTPUT_FILE, os.path.join(docs_dir, OUTPUT_FILE))
-        # print(f"Exported {OUTPUT_FILE} to docs/")
 
         # 1b. Data (JS)
         shutil.copy(js_output_file, os.path.join(docs_dir, js_output_file))
-        # print(f"Exported {js_output_file} to docs/")
         
         # 2. HTML Dashboard -> index.html (for standard web serving)
         html_file = "clan_dashboard.html"
         if os.path.exists(html_file):
             shutil.copy(html_file, os.path.join(docs_dir, "index.html"))
-            print(f"Exported {html_file} -> docs/index.html")
     
         # 3. JS Logic
         js_file = "dashboard_logic.js"
@@ -702,15 +794,48 @@ def run_export():
             if os.path.exists(assets_docs):
                 shutil.rmtree(assets_docs) # Clean replace
             shutil.copytree(assets_local, assets_docs)
-            print(f"Exported assets/ folder to docs/assets/")
             
-        print(f"\nSUCCESS: Dashboard deployed to '{docs_dir}'")
-        print("Push this folder to GitHub to go live!")
+        logger.info(f"Dashboard deployed successfully to: docs/ (Ready for GitHub Pages)")
+        
+        # --- Drive Export ---
+        if Config.LOCAL_DRIVE_PATH:
+            from core.drive import DriveExporter
+            DriveExporter.export_file(os.path.join("docs", "clan_data.js"))
+            DriveExporter.export_file(os.path.join("docs", "clan_data.json"))
+            DriveExporter.export_file(os.path.join("docs", "index.html"), target_filename="clan_dashboard.html")
             
-    except Exception as e:
-        print(f"Failed to export to docs/ folder: {e}")
+            # Export Dependencies
+            DriveExporter.export_file("dashboard_logic.js")
+            if os.path.exists("ai_data.js"):
+                 DriveExporter.export_file("ai_data.js")
+            
+            # Export Assets Folder (Recursive)
+            assets_dir = os.path.join(os.getcwd(), "assets")
+            if os.path.exists(assets_dir):
+                for root, dirs, files in os.walk(assets_dir):
+                    for file in files:
+                        # Calculate relative path for target filename (e.g., assets/rank_minion.png)
+                        abs_path = os.path.join(root, file)
+                        rel_path = os.path.relpath(abs_path, os.getcwd())
+                        DriveExporter.export_file(abs_path, target_filename=rel_path)
 
-    conn.close()
+        if missing_assets:
+            logger.warning(f"Missing {len(missing_assets)} assets: {sorted(list(missing_assets))}")
+
+    except Exception as e:
+        logger.error(f"Export failed: {e}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        if conn: conn.close()
+        if db_session: db_session.close()
 
 if __name__ == "__main__":
-    run_export()
+    print("DEBUG: Starting export_sqlite script...", flush=True)
+    try:
+        run_export()
+        print("DEBUG: run_export completed.", flush=True)
+    except Exception as e:
+        print(f"DEBUG: Critical Error: {e}", flush=True)
+        import traceback
+        traceback.print_exc()

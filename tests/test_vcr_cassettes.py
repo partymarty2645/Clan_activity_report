@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, patch
 from services.wom import WOMClient
 
 
+@pytest.mark.asyncio
 async def test_wom_get_group_members_with_cassette(vcr_with_cassette):
     """
     Test WOM group members fetch using recorded cassette.
@@ -34,6 +35,7 @@ async def test_wom_get_group_members_with_cassette(vcr_with_cassette):
     await client.close()
 
 
+@pytest.mark.asyncio
 async def test_wom_get_player_details_with_cassette(vcr_with_cassette):
     """
     Test WOM player details fetch using recorded cassette.
@@ -56,6 +58,7 @@ async def test_wom_get_player_details_with_cassette(vcr_with_cassette):
     await client.close()
 
 
+@pytest.mark.asyncio
 async def test_cassette_isolation(vcr_with_cassette):
     """
     Verify that cassettes are isolated per test - each can have different responses.

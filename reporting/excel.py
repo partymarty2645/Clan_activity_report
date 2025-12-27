@@ -3,6 +3,7 @@ import pandas as pd
 import logging
 import os
 import xlsxwriter
+import shutil
 from datetime import datetime, timedelta, timezone
 from core.config import Config
 from core.timestamps import TimestampHelper
@@ -16,11 +17,6 @@ logger = logging.getLogger("ExcelReporter")
 class ExcelReporter:
     @timed_operation("Excel Report Generation")
     def generate(self, analytics_service, metadata=None):
-        """
-        Generates:
-        1. clan_report_data.xlsx (Raw Data)
-        2. clan_report_full.xlsx (Formatted Executive Report)
-        """
         if not analytics_service:
             from database.connector import SessionLocal
             from core.analytics import AnalyticsService
@@ -30,16 +26,24 @@ class ExcelReporter:
             finally:
                 db.close()
 
-        # 1. Define Dates (using TimestampHelper for centralized UTC handling)
-        now_utc = TimestampHelper.now_utc()
+        # 1. Fetch Data
         cutoff_7d = TimestampHelper.cutoff_days_ago(7)
         cutoff_30d = TimestampHelper.cutoff_days_ago(30)
         cutoff_90d = TimestampHelper.cutoff_days_ago(90)
         cutoff_365d = TimestampHelper.cutoff_days_ago(365)
         cutoff_lifetime = datetime(2020, 1, 1, tzinfo=timezone.utc)
 
-        # 2. Fetch Data (Bulk)
-        latest_snaps = analytics_service.get_latest_snapshots()
+        latest_snaps_raw = analytics_service.get_latest_snapshots()
+        # Convert {ID: Snap} to {Username: Snap} using UsernameNormalizer
+        # This aligns with the rest of the report which expects username keys
+        from core.usernames import UsernameNormalizer
+        latest_snaps = {}
+        for snap in latest_snaps_raw.values():
+            if snap.username:
+                latest_snaps[UsernameNormalizer.normalize(snap.username)] = snap
+
+        min_timestamps = analytics_service.get_min_timestamps() # Fallback for lifetime gains
+        
         past_7d = analytics_service.get_snapshots_at_cutoff(cutoff_7d)
         past_30d = analytics_service.get_snapshots_at_cutoff(cutoff_30d)
         past_90d = analytics_service.get_snapshots_at_cutoff(cutoff_90d)
@@ -50,44 +54,66 @@ class ExcelReporter:
         msgs_90d = analytics_service.get_message_counts(cutoff_90d)
         msgs_total = analytics_service.get_message_counts(cutoff_lifetime)
 
-        # 3. Calculate Deltas
-        # Apply staleness limits to prevent misleading "spikes" from long inactivity
-        # 7d: 14 days limit
-        # 30d: 60 days limit (Double timeframe)
-        # 90d: 180 days limit (Double timeframe)
-        # 1 Year: No limit (If user was inactive for 2 years, gain in last year = current - value_at_start_of_year [which is same as 2y ago])
-        
         gains_7d = analytics_service.calculate_gains(latest_snaps, past_7d, staleness_limit_days=14)
         gains_30d = analytics_service.calculate_gains(latest_snaps, past_30d, staleness_limit_days=60)
         gains_90d = analytics_service.calculate_gains(latest_snaps, past_90d, staleness_limit_days=180)
-        gains_365d = analytics_service.calculate_gains(latest_snaps, past_365d, staleness_limit_days=None)
+        
+        # YEAR GAINS: Pass fallback_map=min_timestamps
+        # This ensures users who joined <1 year ago use their first snapshot as the baseline
+        gains_365d = analytics_service.calculate_gains(
+            latest_snaps, 
+            past_365d, 
+            staleness_limit_days=None,
+            fallback_map=min_timestamps
+        )
+        
+        # FILTER: Only include users who are present in the Metadata (i.e. Active Clan Members)
+        # This removes "Ghost" users who have left but still have snapshots.
+        if metadata:
+            active_users = set(metadata.keys())
+            # Normalize latest_snaps keys just in case, though they should be normalized 
+            latest_snaps = {k: v for k, v in latest_snaps.items() if k in active_users}
+            
+        logger.info(f"Generating report for {len(latest_snaps)} active members.")
 
-        # 4. Build Rows
+        # 2. Build Rows
         rows = []
         for user, snap in latest_snaps.items():
             rank_str = "Member"
             joined_str = "N/A"
             
             if metadata:
-                m = metadata.get(user.lower())
+                # Metadata lookup needs to be robust. 
+                # Metadata keys should be normalized in report_sqlite.py, but let's be safe.
+                # analytics keys are normalized.
+                m = metadata.get(user) 
+                
                 if m:
                     rank_str = getattr(m, 'role', None) or m.get('role', 'Member')
-                    joined_str = getattr(m, 'joined_at', None) or m.get('joined_at', 'N/A')
+                    raw_joined = getattr(m, 'joined_at', None) or m.get('joined_at', None)
                     
-                    # Force EU Date Format (DD-MM-YYYY)
-                    if isinstance(joined_str, datetime):
-                        joined_str = joined_str.strftime("%d-%m-%Y")
-                    elif isinstance(joined_str, str):
-                        # Clean up potentially messy strings
-                        clean_str = joined_str.split('T')[0] # Remove time part if ISO
-                        
-                        # Try parsing YYYY-MM-DD
+                    if raw_joined:
                         try:
-                            parts = clean_str.split('-')
-                            if len(parts) == 3 and len(parts[0]) == 4: # YYYY-MM-DD
-                                joined_str = f"{parts[2]}-{parts[1]}-{parts[0]}"
-                        except:
-                            pass # Keep original if parse fails
+                            # Handle datetime objects directly
+                            if isinstance(raw_joined, datetime):
+                                joined_str = raw_joined.strftime("%d/%m/%Y")
+                            # Handle string ISO formats 'YYYY-MM-DD...'
+                            elif isinstance(raw_joined, str):
+                                # Clean potential usage of T or space
+                                date_part = raw_joined.split('T')[0].split(' ')[0]
+                                y, m_part, d = date_part.split('-')
+                                joined_str = f"{d}/{m_part}/{y}"
+                        except Exception as e:
+                             pass
+                
+                # Fallback: If joined_str still N/A, try min_timestamps (First Seen)
+                if joined_str == "N/A" and min_timestamps and user in min_timestamps:
+                    try:
+                         first_seen = min_timestamps[user].timestamp
+                         if first_seen:
+                             joined_str = first_seen.strftime("%d/%m/%Y")
+                    except:
+                        pass
 
             row = {
                 'Name': user,
@@ -103,207 +129,166 @@ class ExcelReporter:
                 'XP 7d': gains_7d.get(user, {}).get('xp', 0),
                 'XP 30d': gains_30d.get(user, {}).get('xp', 0),
                 'XP 90d': gains_90d.get(user, {}).get('xp', 0),
+                'XP 365d': gains_365d.get(user, {}).get('xp', 0),
                 
                 # Boss
                 'Boss 7d': gains_7d.get(user, {}).get('boss', 0),
                 'Boss 30d': gains_30d.get(user, {}).get('boss', 0),
                 'Boss 90d': gains_90d.get(user, {}).get('boss', 0),
+                'Boss 365d': gains_365d.get(user, {}).get('boss', 0),
                 
-                # Totals
+                # Totals (Lifetime)
                 'Total Msgs': msgs_total.get(user, 0),
-                'XP Year': gains_365d.get(user, {}).get('xp', 0), 
-                'Boss Year': gains_365d.get(user, {}).get('boss', 0)
+                'Total XP': snap.total_xp or 0, 
+                'Total Boss': snap.total_boss_kills or 0
             }
             rows.append(row)
 
+        # 3. Sort & Decorate (Medals)
         df = pd.DataFrame(rows)
+        if not df.empty:
+            # Sort by Total Messages, then Total XP
+            df.sort_values(by=['Total Msgs', 'Total XP'], ascending=[False, False], inplace=True)
+            df.insert(0, '#', range(1, len(df) + 1))
 
-        # 5. Output 1: RAW DATA (clan_report_data.xlsx) - Now Styled (No Link)
-        raw_file = "clan_report_data.xlsx"
-        raw_temp = raw_file + ".temp.xlsx"
-        try:
-            with pd.ExcelWriter(raw_temp, engine='xlsxwriter') as writer:
-                self._write_styled_sheet(writer, df, include_link=False)
+            # Apply Icons to Top 3
+            # We iterate differently or apply during write to not break strings?
+            # Ideally applied during write, or pre-process Name string here.
+            # Let's pre-process Name column since it's cleaner.
             
-            self._atomic_save(raw_temp, raw_file)
-        except Exception as e:
-            logger.error(f"Failed to generate raw report: {e}")
-            if os.path.exists(raw_temp):
-                os.remove(raw_temp)
+            def add_medal(row):
+                rank = row['#']
+                name = row['Name']
+                if rank == 1: return f"👑 {name}"
+                if rank == 2: return f"🥈 {name}"
+                if rank == 3: return f"🥉 {name}"
+                return name
+            
+            df['Name'] = df.apply(add_medal, axis=1)
 
-        # 6. Output 2: FULL REPORT (clan_report_full.xlsx) (With Link)
-        full_file = "clan_report_full.xlsx"
-        temp_file = full_file + ".temp.xlsx"
+        # 4. Generate Output (Merged Logic: One File to Rule Them All)
+        final_file = Config.OUTPUT_FILE_XLSX
+        temp_file = final_file + ".temp.xlsx"
         
         try:
             with pd.ExcelWriter(temp_file, engine='xlsxwriter') as writer:
-                self._write_styled_sheet(writer, df, include_link=True)
+                self._write_roster_sheet(writer, df)
             
-            self._atomic_save(temp_file, full_file)
+            self._atomic_save(temp_file, final_file)
             
         except Exception as e:
-            logger.error(f"Failed to generate Full Report: {e}")
+            logger.error(f"Failed to generate Report: {e}")
             if os.path.exists(temp_file):
                 os.remove(temp_file)
 
-    def _write_styled_sheet(self, writer, df, include_link=True):
+    def _write_roster_sheet(self, writer, df):
         sheet_name = 'Clan Roster'
-        # df.to_excel removed from here, deferred to end of function for layout control
         workbook = writer.book
-        worksheet = writer.sheets.get(sheet_name)
-        if not worksheet:
-             worksheet = workbook.add_worksheet(sheet_name)
-             writer.sheets[sheet_name] = worksheet
+        worksheet = workbook.add_worksheet(sheet_name)
+        writer.sheets[sheet_name] = worksheet
         
         (max_row, max_col) = df.shape
 
-        # --- FORMATS ---
-        
-        # Base Format (Dark Inteface)
+        # -- FORMATS --
         base_fmt = ExcelFormats.base(workbook)
-        
-        fmt_string = workbook.add_format(base_fmt)
-        fmt_string.set_align('left')
-        fmt_string.set_align('vcenter')
 
-        fmt_num = workbook.add_format(base_fmt)
-        fmt_num.set_num_format('#,##0')
-        fmt_num.set_align('center')
-        fmt_num.set_align('vcenter')
+        # Dynamic Headers per Group
+        fmt_head_id = workbook.add_format(ExcelFormats.get_header_format(workbook, Theme.TEXT_ID, Theme.BORDER_ID))
+        fmt_head_msg = workbook.add_format(ExcelFormats.get_header_format(workbook, Theme.TEXT_MSG, Theme.BORDER_MSG))
+        fmt_head_xp = workbook.add_format(ExcelFormats.get_header_format(workbook, Theme.TEXT_XP, Theme.BORDER_XP))
+        fmt_head_boss = workbook.add_format(ExcelFormats.get_header_format(workbook, Theme.TEXT_BOSS, Theme.BORDER_BOSS))
 
-        # Header Formats (Category Specific)
-        def get_header_fmt(bg_color):
-            return workbook.add_format({
-                'bold': True,
-                'font_color': '#FFFFFF', # White text on colored headers
-                'bg_color': bg_color,
-                'border': 1,
-                'border_color': '#444444',
-                'align': 'center',
-                'valign': 'vcenter',
-                'font_size': 14
-            })
+        # Helper: Stripe Generator
+        def create_stripe_formats(bg_odd, bg_even, text_color):
+            f_odd = workbook.add_format(base_fmt)
+            f_odd.set_bg_color(bg_odd)
+            f_odd.set_font_color(text_color)
+            f_odd.set_num_format('#,##0')
+            
+            f_even = workbook.add_format(base_fmt)
+            f_even.set_bg_color(bg_even)
+            f_even.set_font_color(text_color)
+            f_even.set_num_format('#,##0')
+            return f_odd, f_even
 
-        fmt_header_gen = workbook.add_format(ExcelFormats.header(workbook)) # General (Name, Rank)
-        # Custom headers using Theme colors
-        def create_category_header(bg_color):
-            fmt = ExcelFormats.header(workbook)
-            fmt['bg_color'] = bg_color
-            return workbook.add_format(fmt)
+        # Generate Group Formats
+        fmt_id_odd, fmt_id_even = create_stripe_formats(Theme.BG_ID_ODD, Theme.BG_ID_EVEN, Theme.TEXT_ID)
+        fmt_msg_odd, fmt_msg_even = create_stripe_formats(Theme.BG_MSG_ODD, Theme.BG_MSG_EVEN, Theme.TEXT_MSG)
+        fmt_xp_odd, fmt_xp_even = create_stripe_formats(Theme.BG_XP_ODD, Theme.BG_XP_EVEN, Theme.TEXT_XP)
+        fmt_boss_odd, fmt_boss_even = create_stripe_formats(Theme.BG_BOSS_ODD, Theme.BG_BOSS_EVEN, Theme.TEXT_BOSS)
 
-        fmt_header_xp = create_category_header(Theme.XP_GREEN if hasattr(Theme, 'XP_GREEN') else '#006400')
-        fmt_header_boss = create_category_header(Theme.BOSS_RED if hasattr(Theme, 'BOSS_RED') else '#8B0000')
-        fmt_header_msg = create_category_header(Theme.MSG_BLUE if hasattr(Theme, 'MSG_BLUE') else '#00008B')
-
-        # Zero Format (Bold Red)
+        # Zero Alarm
         fmt_zero = workbook.add_format(base_fmt)
-        fmt_zero.set_font_color(Theme.RED_NEON)
+        fmt_zero.set_bg_color(Theme.BG_ZERO) 
+        fmt_zero.set_font_color(Theme.TEXT_ZERO)
         fmt_zero.set_bold(True)
         fmt_zero.set_align('center')
-        fmt_zero.set_align('vcenter')
-        
-        # Link Format
-        fmt_link_dict = ExcelFormats.base(workbook)
-        fmt_link_dict.update({
-            'bold': True, 'font_color': Theme.BLUE_NEON,
-            'align': 'center', 'valign': 'vcenter', 'underline': True, 'font_size': 16
-        })
-        fmt_link = workbook.add_format(fmt_link_dict)
 
-        # --- LAYOUT & DATA ---
-        
-        # Determine Rows
-        header_row = 1 if include_link else 0
-        data_start_row = 2 if include_link else 1
-        
-        # --- HEADERS ---
+        # -- WRITE HEADERS --
         cols = df.columns
         for i, col in enumerate(cols):
-            # Determine Header Style
-            if 'XP' in col: h_fmt = fmt_header_xp
-            elif 'Boss' in col: h_fmt = fmt_header_boss
-            elif 'Msgs' in col: h_fmt = fmt_header_msg
-            else: h_fmt = fmt_header_gen
-            
-            worksheet.write(header_row, i, col, h_fmt)
-            
-            # Column Widths (NO FORMATTING applied to whole column to avoid infinite rows)
-            if col == 'Name':
-                worksheet.set_column(i, i, 25)
-            elif col in ['Joined', 'Rank']:
-                worksheet.set_column(i, i, 18)
-            else:
-                worksheet.set_column(i, i, 15)
-
-        # --- DATA WRITING (Manual Loop for Styling) ---
-        # We iterate through the dataframe and write each cell with the base format (borders)
-        # This ensures borders/bg only exist where data exists.
-        
-        for r_idx, row_data in df.iterrows():
-            current_row = data_start_row + r_idx
-            for c_idx, value in enumerate(row_data):
-                # Determine format based on column type
-                if isinstance(value, (int, float)):
-                    cell_fmt = fmt_num
-                else:
-                    cell_fmt = fmt_string
-                
-                # Write cell
-                worksheet.write(current_row, c_idx, value, cell_fmt)
-                
-            # Set Row Height
-            worksheet.set_row(current_row, 22)
-
-        # Optional Link
-        if include_link:
-            worksheet.merge_range('A1:C1', '⚡ VIEW VISUAL DASHBOARD ⚡', fmt_link)
-            worksheet.write_url('A1', 'external:clan_dashboard.html', fmt_link, '⚡ VIEW VISUAL DASHBOARD ⚡')
-            worksheet.set_row(0, 30)
-            
-        # Hide Gridlines (for clean look outside table)
-        worksheet.hide_gridlines(2)
-
-        # Freeze Panes
-        freeze_rows = 2 if include_link else 1
-        worksheet.freeze_panes(freeze_rows, 1)
-        
-        # Auto Filter
-        worksheet.autofilter(header_row, 0, max_row + header_row, max_col - 1)
-        
-        # --- CONDITIONAL FORMATTING ---
-        start_row = data_start_row
-        
-        # 1. VISIBLE ZEROS (Red)
-        worksheet.conditional_format(start_row, 3, max_row + start_row - 1, max_col - 1, {
-            'type': 'cell',
-            'criteria': '=',
-            'value': 0,
-            'format': fmt_zero
-        })
-
-        # 2. Gradient Scales
-        for i, col in enumerate(cols):
-            if 'XP' in col:
-                worksheet.conditional_format(start_row, i, max_row + start_row - 1, i, {
-                    'type': '3_color_scale',
-                    'min_color': '#222222', 
-                    'mid_color': '#114411',
-                    'max_color': Theme.GREEN_NEON
-                })
+            # Select Header Style
+            if 'Msg' in col or 'Total' in col and 'Msgs' in col:
+                h_fmt = fmt_head_msg
+            elif 'XP' in col:
+                h_fmt = fmt_head_xp
             elif 'Boss' in col:
-                worksheet.conditional_format(start_row, i, max_row + start_row - 1, i, {
-                    'type': '3_color_scale',
-                    'min_color': '#222222',
-                    'mid_color': '#551111',
-                    'max_color': Theme.RED_NEON
-                })
-            elif 'Msgs' in col or 'Total Msgs' in col:
-                worksheet.conditional_format(start_row, i, max_row + start_row - 1, i, {
-                    'type': '3_color_scale',
-                    'min_color': '#222222',
-                    'mid_color': '#111155',
-                    'max_color': Theme.BLUE_NEON
-                })
+                h_fmt = fmt_head_boss
+            else:
+                h_fmt = fmt_head_id
+            
+            worksheet.write(0, i, col, h_fmt)
+            
+            # Widths
+            if col == 'Name': worksheet.set_column(i, i, 25)
+            elif col == '#': worksheet.set_column(i, i, 5)
+            elif 'Total' in col: worksheet.set_column(i, i, 16)
+            else: worksheet.set_column(i, i, 14)
+
+        # -- WRITE DATA ROWS --
+        for r_idx, row_data in df.iterrows():
+            current_row = r_idx + 1 # 1-indexed (Head is 0)
+            is_even = (r_idx % 2 == 0)
+            
+            for c_idx, value in enumerate(row_data):
+                col_name = cols[c_idx]
+
+                # Zero Check
+                if isinstance(value, (int, float)) and value == 0:
+                    worksheet.write(current_row, c_idx, value, fmt_zero)
+                    continue
+                
+                # Determine Style Group
+                if 'Msg' in col_name or ('Total' in col_name and 'Msgs' in col_name):
+                    fmt = fmt_msg_even if is_even else fmt_msg_odd
+                elif 'XP' in col_name:
+                    fmt = fmt_xp_even if is_even else fmt_xp_odd
+                elif 'Boss' in col_name:
+                    fmt = fmt_boss_even if is_even else fmt_boss_odd
+                else:
+                    fmt = fmt_id_even if is_even else fmt_id_odd
+                
+                # Align Text left, Numbers center (Modify format on fly? No, create separate text/num sets)
+                # Optimization: Text is mostly left, Num center. 
+                # Let's strict force alignment based on type.
+                # Actually, simpler: Identity = Left, Stats = Center
+                
+                if c_idx > 2: # Stats Columns
+                    # Format is already center-ish from base, but numbers work best right or center.
+                    # Let's trust the base alignment set in create_stripe_formats
+                    pass
+                else: 
+                    # Name/Group/Joined -> Force Left?
+                    # We can clone and modify or just accept center for now to save perf.
+                    pass
+
+                worksheet.write(current_row, c_idx, value, fmt)
+            
+            worksheet.set_row(current_row, 24) # Row Height
+
+        worksheet.freeze_panes(1, 2)
+        worksheet.autofilter(0, 0, max_row, max_col - 1)
+        worksheet.hide_gridlines(2)
 
     def _atomic_save(self, temp, final):
         if os.path.exists(final):
@@ -311,35 +296,10 @@ class ExcelReporter:
                 os.remove(final)
             except PermissionError:
                 final = get_unique_filename(final.replace(".xlsx", "_backup.xlsx"))
-                logger.warning(f"Target locked, saving as {final}")
-        
-        # Use replace to overwrite if final name changed (or if race condition)
         try:
              os.replace(temp, final)
-             logger.info(f"Excel Report Generated: {final}")
-             
-             # Clean up excessive backups if we created one
-             if "_backup" in final:
-                 base_name = final.split("_backup")[0] + "_backup"
-                 # Find all files starting with base_name
-                 import glob
-                 directory = os.path.dirname(final) or "."
-                 # Pattern: clan_report_data_backup*.xlsx
-                 pattern = f"{base_name}*.xlsx"
-                 full_pattern = os.path.join(directory, pattern)
-                 
-                 backups = sorted(glob.glob(full_pattern), key=os.path.getmtime)
-                 
-                 # Keep last 2
-                 while len(backups) > 2:
-                     oldest = backups.pop(0)
-                     try:
-                         os.remove(oldest)
-                         logger.info(f"Deleted old report backup: {oldest}")
-                     except Exception as e:
-                         logger.warning(f"Failed to delete old backup {oldest}: {e}")
-
+             logger.info(f"Report Saved: {final}")
         except Exception as e:
-             logger.error(f"Failed to save file {final}: {e}")
+             logger.error(f"Save Failed: {e}")
 
 reporter = ExcelReporter()

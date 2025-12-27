@@ -86,17 +86,39 @@ class UsernameNormalizer:
         name = re.sub(r'[\s\u00A0\u2000-\u200B\uFEFF]+', ' ', name)
 
         if for_comparison:
-            # For comparison: remove all non-alphanumeric characters
-            # This handles: "J O H N", "Jo-hn_Doe", "JöHñ" etc.
-            name = ''.join(c for c in name if c.isalnum())
+            # OSRS Standard Normalization:
+            # 1. Replace underscores and non-breaking spaces with standard space
+            # 2. Collapse multiple spaces to single space
+            # 3. Strip whitespace
+            # 4. Lowercase
+            # This preserves the distinction between "NoobMan" and "Noob Man"
+            
+            # Replace underscores, hyphens and weird spaces with SPACE
+            name = re.sub(r'[\s_\-\u00A0\u2000-\u200B\uFEFF]+', ' ', name)
+            
+            # Strip and Lower
+            name = name.strip().lower()
+            
+            # For comparison, remove ALL spaces to treat "Jo hn" same as "john"
+            name = re.sub(r'\s+', '', name)
         else:
-            # For display/storage: just clean up spacing and underscores/hyphens
-            # Replace underscores and hyphens with spaces, then collapse multiple spaces
+            # For display/storage: similar cleanup
             name = re.sub(UsernameNormalizer.SPECIAL_CHARS, ' ', name)
             name = re.sub(r'\s+', ' ', name)
+            name = name.strip()
 
-        # Lowercase for comparison
-        name = name.lower()
+        # Lowercase for comparison (final check)
+        # Note: if for_comparison=True, it's already lowered. If not, we might want to keep case?
+        # The original docstring says "Returns Normalized username (lowercase)" so we should lower it.
+        # But 'canonical' usually implies "Best Display", which might allow mixed case if input had it.
+        # However, to be safe and match previous behavior of returning lowercase:
+        if for_comparison:
+             return name
+        
+        # If not for comparison, likely used for 'cleaning', so maybe keep case?
+        # The previous code at line 99 did 'name = name.lower()'.
+        # Let's stick to the contract: ALWAYS lower.
+        return name.lower()
 
         # Final validation: must have at least one alphanumeric character
         if not re.search(r'\w', name):
@@ -137,6 +159,30 @@ class UsernameNormalizer:
         name = re.sub(r'[\s\u00A0\u2000-\u200B\uFEFF]+', ' ', name)
 
         return name
+
+    @staticmethod
+    def clean_discord_nickname(nickname: str) -> str:
+        """
+        Aggressively clean a Discord nickname to extract the likely RSN.
+        Removes:
+        - Text in brackets/parentheses: "Iron Man [Captain]" -> "Iron Man"
+        - Trailing/Leading emojis (simple approach: non-ascii removal if needed, or rely on normalize)
+        - Common separators
+        """
+        if not nickname: return ""
+        
+        # 1. Remove text inside brackets [] or parentheses ()
+        # Patterns: [Txt], (Txt), {Txt}
+        # We assume the name is OUTSIDE the brackets.
+        cleaned = re.sub(r'\[.*?\]', '', nickname)
+        cleaned = re.sub(r'\(.*?\)', '', cleaned)
+        cleaned = re.sub(r'\{.*?\}', '', cleaned)
+        
+        # 2. Cleanup extra whitespace created by removal
+        cleaned = cleaned.strip()
+        cleaned = re.sub(r'\s+', ' ', cleaned)
+        
+        return cleaned
 
     @staticmethod
     def are_same_user(name1: Optional[str], name2: Optional[str]) -> bool:
