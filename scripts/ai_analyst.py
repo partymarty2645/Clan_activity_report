@@ -160,31 +160,38 @@ def generate_strategic_alerts(conn):
                 "message": f"{count} members are very chatty but light on XP. Balance is key!"
             })
         
-        # Alert 3: Raid Enthusiasts (CoX, ToA, ToB)
+        # Alert 3: Raid Enthusiasts (CoX, ToA, ToB) - filter to actual clan members only
         try:
             cursor = conn.execute("""
-                SELECT 
-                    CASE 
-                        WHEN boss_name LIKE '%chambers%' THEN 'CoX'
-                        WHEN boss_name LIKE '%tombs%' THEN 'ToA'
-                        WHEN boss_name LIKE '%theatre_of_blood%' THEN 'ToB'
-                    END as raid_type,
-                    SUM(kills) as total_kills
-                FROM boss_snapshots
-                WHERE (boss_name LIKE '%chambers%' OR boss_name LIKE '%tombs%' OR boss_name LIKE '%theatre_of_blood%')
-                GROUP BY raid_type
-                ORDER BY total_kills DESC
-                LIMIT 1
+                WITH clan_boss_data AS (
+                    SELECT 
+                        CASE 
+                            WHEN boss_name LIKE '%chambers%' THEN 'CoX'
+                            WHEN boss_name LIKE '%tombs%' THEN 'ToA'
+                            WHEN boss_name LIKE '%theatre_of_blood%' THEN 'ToB'
+                        END as raid_type,
+                        COUNT(DISTINCT ws.user_id) as unique_clan_raiders,
+                        ROUND(AVG(bs.kills), 1) as avg_kills_per_player,
+                        MAX(bs.kills) as top_player_kills
+                    FROM boss_snapshots bs
+                    JOIN wom_snapshots ws ON bs.snapshot_id = ws.id
+                    WHERE ws.user_id IN (SELECT user_id FROM clan_members)
+                    AND (boss_name LIKE '%chambers%' OR boss_name LIKE '%tombs%' OR boss_name LIKE '%theatre_of_blood%')
+                    GROUP BY raid_type
+                    ORDER BY unique_clan_raiders DESC
+                    LIMIT 1
+                )
+                SELECT * FROM clan_boss_data
             """)
             raid_activity = cursor.fetchone()
             if raid_activity:
-                raid_names = {"CoX": "⚔️ Chambers", "ToA": "🏺 Tombs of Amascut", "ToB": "🧛 Theatre of Blood"}
+                raid_names = {"CoX": "⚔️ Chambers", "ToA": "🏺 Tombs", "ToB": "🧛 Theatre"}
                 raid_name = raid_names.get(raid_activity['raid_type'], raid_activity['raid_type'])
                 alerts.append({
                     "type": "success",
                     "icon": "fa-fire",
                     "title": "Raid Dominance",
-                    "message": f"{raid_name} is dominated! {raid_activity['total_kills']:,} kills total. Your team is elite!"
+                    "message": f"{raid_name}: {raid_activity['unique_clan_raiders']} clan members raiding with avg {raid_activity['avg_kills_per_player']} kills. Top: {raid_activity['top_player_kills']}!"
                 })
         except Exception as e:
             logger.warning(f"Raid alert failed: {e}")
@@ -410,22 +417,29 @@ def generate_ai_insights(conn):
         except Exception as e:
             logger.error(f"✗ Insight 5 failed: {e}")
         
-        # Insight 6: Raid Specialists
+        # Insight 6: Raid Specialists - filter to actual clan members
         try:
-            # Get raid data directly from boss_snapshots
+            # Get raid data from clan members only
             cursor = conn.execute("""
-                SELECT 
-                    CASE 
-                        WHEN boss_name LIKE '%chambers%' THEN 'CoX'
-                        WHEN boss_name LIKE '%tombs%' THEN 'ToA'
-                        WHEN boss_name LIKE '%theatre_of_blood%' THEN 'ToB'
-                    END as raid_type,
-                    SUM(kills) as total_kills
-                FROM boss_snapshots
-                WHERE (boss_name LIKE '%chambers%' OR boss_name LIKE '%tombs%' OR boss_name LIKE '%theatre_of_blood%')
-                GROUP BY raid_type
-                ORDER BY total_kills DESC
-                LIMIT 1
+                WITH clan_raid_data AS (
+                    SELECT 
+                        CASE 
+                            WHEN boss_name LIKE '%chambers%' THEN 'CoX'
+                            WHEN boss_name LIKE '%tombs%' THEN 'ToA'
+                            WHEN boss_name LIKE '%theatre_of_blood%' THEN 'ToB'
+                        END as raid_type,
+                        COUNT(DISTINCT ws.user_id) as unique_clan_raiders,
+                        ROUND(AVG(bs.kills), 1) as avg_kills_per_player,
+                        MAX(bs.kills) as top_player_kills
+                    FROM boss_snapshots bs
+                    JOIN wom_snapshots ws ON bs.snapshot_id = ws.id
+                    WHERE ws.user_id IN (SELECT user_id FROM clan_members)
+                    AND (boss_name LIKE '%chambers%' OR boss_name LIKE '%tombs%' OR boss_name LIKE '%theatre_of_blood%')
+                    GROUP BY raid_type
+                    ORDER BY unique_clan_raiders DESC
+                    LIMIT 1
+                )
+                SELECT * FROM clan_raid_data
             """)
             raid = cursor.fetchone()
             if raid and raid['raid_type']:
@@ -434,23 +448,9 @@ def generate_ai_insights(conn):
                 insights.append({
                     "type": "trend",
                     "title": "Raid Specialists",
-                    "message": f"Your {raid_name} team is crushing it! {raid['total_kills']:,} kills total. Elite raiders pushing limits!"
+                    "message": f"Your {raid_name} team is strong! {raid['unique_clan_raiders']} clan members raiding with avg {raid['avg_kills_per_player']} kills. Top: {raid['top_player_kills']}!"
                 })
-                logger.info(f"✓ Insight 6 (Raid Specialists): {raid['raid_type']} - {raid['total_kills']} kills")
-            else:
-                logger.warning("✗ Insight 6: No raid data")
-        except Exception as e:
-            logger.error(f"✗ Insight 6 failed: {e}")
-            raid = cursor.fetchone()
-            if raid and raid['raid_type']:
-                raid_emojis = {"CoX": "⚔️ Chambers", "ToA": "🏺 Theatre of Ancient", "ToB": "🧛 Temple of Blood"}
-                raid_name = raid_emojis.get(raid['raid_type'], raid['raid_type'])
-                insights.append({
-                    "type": "trend",
-                    "title": "Raid Specialists",
-                    "message": f"Your {raid_name} team is crushing it! {raid['unique_players']} raiders, {raid['total_kills']:,} kills this week. Elite execution!"
-                })
-                logger.info(f"✓ Insight 6 (Raid Specialists): {raid['raid_type']} - {raid['total_kills']} kills")
+                logger.info(f"✓ Insight 6 (Raid Specialists): {raid['raid_type']} - {raid['unique_clan_raiders']} clan members")
             else:
                 logger.warning("✗ Insight 6: No raid data")
         except Exception as e:
