@@ -102,16 +102,38 @@ def optimize():
     except Exception as e:
         console.print(f"  ! Failed idx_discord_author_lower: {e}")
 
-    # Index 3: Covering Index for Discord Reports (Date + Author)
-    # Optimized for "Where Date between X and Y"
+    # Index 3: Compound Indexes for AI Analyst Queries
+    # These speed up the most expensive queries in ai_analyst.py
     try:
-        # We ensure we have the clean standard indexes too
+        # Verify core single-column indexes
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_discord_messages_created_at ON discord_messages(created_at)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_wom_snapshots_username_timestamp ON wom_snapshots(username, timestamp)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_snapshots_username ON wom_snapshots(username)")
-        # console.print("  + Verified core covering indexes.") # Silence verified message
+        
+        # Compound index for boss diversity queries
+        # Query: SELECT boss_name, COUNT(*) FROM boss_snapshots WHERE snapshot_id IN (...) GROUP BY boss_name
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_boss_snapshots_snapshot_boss ON boss_snapshots(snapshot_id, boss_name)")
+        
+        # Compound index for Discord message reports
+        # Query: SELECT author_name, COUNT(*) FROM discord_messages WHERE created_at > X GROUP BY author_name
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_discord_created_author ON discord_messages(created_at, author_name)")
+        
+        # Index for WOM record filtering by thresholds
+        # Query: SELECT * FROM wom_records WHERE xp_custom > X ORDER BY xp_custom DESC
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_wom_records_xp_custom ON wom_records(xp_custom DESC)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_wom_records_msg_custom ON wom_records(msg_custom DESC)")
+        
+        # Compound index for clan member lookups with join_date
+        # Query: SELECT * FROM clan_members WHERE joined_at > X
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_clan_members_joined_at ON clan_members(joined_at DESC)")
+        
+        # Compound index for player aliases by source and current status
+        # Query: SELECT * FROM player_name_aliases WHERE source = X AND is_current = TRUE
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_aliases_source_current ON player_name_aliases(source, is_current)")
+        
+        console.print("  + Created 7 new compound indexes for query optimization")
     except Exception as e:
-        console.print(f"  ! Error verifying core indexes: {e}")
+        console.print(f"  ! Error creating compound indexes: {e}")
 
     conn.commit()
 
