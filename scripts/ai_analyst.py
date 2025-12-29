@@ -18,7 +18,7 @@ logging.basicConfig(
 logger = logging.getLogger("AI_Analyst")
 
 DB_PATH = "clan_data.db"
-OUTPUT_FILE = "ai_data.js" # Generating a JS file for easy import
+OUTPUT_FILE = "docs/ai_data.js" # Generating a JS file for easy import in docs folder
 
 def get_db_connection():
     try:
@@ -241,28 +241,7 @@ def generate_ai_insights(conn):
     insights = []
     
     try:
-        # Insight 1: Top Skill Trend
-        try:
-            cursor = conn.execute("""
-                SELECT username, total_xp
-                FROM wom_snapshots
-                ORDER BY total_xp DESC
-                LIMIT 1
-            """)
-            top_player = cursor.fetchone()
-            if top_player:
-                insights.append({
-                    "type": "trend",
-                    "title": "Skill Mastery Leader",
-                    "message": f"{top_player['username']} leads with {top_player['total_xp']:,} total XP. Inspiring others!"
-                })
-                logger.info("✓ Insight 1 (Skill Mastery) generated")
-            else:
-                logger.warning("✗ Insight 1: No top player found")
-        except Exception as e:
-            logger.error(f"✗ Insight 1 failed: {e}")
-        
-        # Insight 2: Boss Diversity
+        # Insight 1: Boss Diversity (moved up, renamed from Insight 2)
         try:
             cursor = conn.execute("""
                 SELECT COUNT(DISTINCT boss_name) as unique_bosses
@@ -277,13 +256,13 @@ def generate_ai_insights(conn):
                     "title": "Bossing Diversity",
                     "message": f"Clan has tackled {bosses} different bosses. Well-rounded bossing team!"
                 })
-                logger.info(f"✓ Insight 2 (Boss Diversity): {bosses} bosses")
+                logger.info(f"✓ Insight 1 (Boss Diversity): {bosses} bosses")
             else:
-                logger.warning("✗ Insight 2: No boss diversity data")
+                logger.warning("✗ Insight 1: No boss diversity data")
         except Exception as e:
-            logger.error(f"✗ Insight 2 failed: {e}")
+            logger.error(f"✗ Insight 1 failed: {e}")
         
-        # Insight 3: Communication Health
+        # Insight 2: Communication Health
         try:
             cursor = conn.execute("""
                 SELECT 
@@ -303,15 +282,15 @@ def generate_ai_insights(conn):
                         "title": "Communication Health",
                         "message": f"Average weekly messages: {avg_msgs:.1f} per member. Communication is {health}."
                     })
-                    logger.info(f"✓ Insight 3 (Communication): avg_msgs={avg_msgs}")
+                    logger.info(f"✓ Insight 2 (Communication): avg_msgs={avg_msgs}")
                 else:
-                    logger.warning(f"✗ Insight 3: No message data")
+                    logger.warning(f"✗ Insight 2: No message data")
             else:
-                logger.warning("✗ Insight 3: No members with messages")
+                logger.warning("✗ Insight 2: No members with messages")
         except Exception as e:
-            logger.error(f"✗ Insight 3 failed: {e}")
+            logger.error(f"✗ Insight 2 failed: {e}")
         
-        # Insight 4: Rising Stars
+        # Insight 3: Rising Stars
         try:
             # Use latest snapshot data with message counts
             cursor = conn.execute("""
@@ -344,13 +323,13 @@ def generate_ai_insights(conn):
                     "title": "Rising Star",
                     "message": f"{rising['username']} is showing strong activity with {rising['total_xp']:,} XP and {rising['msg_count']} messages this week!"
                 })
-                logger.info(f"✓ Insight 4 (Rising Star): {rising['username']}")
+                logger.info(f"✓ Insight 3 (Rising Star): {rising['username']}")
             else:
-                logger.warning("✗ Insight 4: No rising stars found")
+                logger.warning("✗ Insight 3: No rising stars found")
         except Exception as e:
-            logger.error(f"✗ Insight 4 failed: {e}")
+            logger.error(f"✗ Insight 3 failed: {e}")
         
-        # Insight 5: Clan Efficiency
+        # Insight 4: Clan Efficiency
         try:
             cursor = conn.execute("""
                 WITH xp_data AS (
@@ -379,13 +358,13 @@ def generate_ai_insights(conn):
                     "title": "Clan Efficiency",
                     "message": f"Average XP per message: {avg_eff:.0f}. The clan is {level} in balancing grind and chat."
                 })
-                logger.info(f"✓ Insight 5 (Clan Efficiency): {avg_eff}")
+                logger.info(f"✓ Insight 4 (Clan Efficiency): {avg_eff}")
             else:
-                logger.warning(f"✗ Insight 5: No efficiency data - {avg_eff}")
+                logger.warning(f"✗ Insight 4: No efficiency data - {avg_eff}")
         except Exception as e:
-            logger.error(f"✗ Insight 5 failed: {e}")
+            logger.error(f"✗ Insight 4 failed: {e}")
         
-        # Insight 6: Prediction - Potential Inactive
+        # Insight 5: Prediction - Potential Inactive
         try:
             cursor = conn.execute("""
                 WITH recent_xp AS (
@@ -414,13 +393,13 @@ def generate_ai_insights(conn):
                     "title": "Activity Monitor",
                     "message": f"Keep an eye on {inactive['username']} - no chat activity detected this week. A friendly check-in might help!"
                 })
-                logger.info(f"✓ Insight 6 (Activity Monitor): {inactive['username']}")
+                logger.info(f"✓ Insight 5 (Activity Monitor): {inactive['username']}")
             else:
-                logger.warning("✗ Insight 6: No inactive members")
+                logger.warning("✗ Insight 5: No inactive members")
         except Exception as e:
-            logger.error(f"✗ Insight 6 failed: {e}")
+            logger.error(f"✗ Insight 5 failed: {e}")
         
-        # Insight 7: Positive Reinforcement
+        # Insight 6: Positive Reinforcement
         try:
             cursor = conn.execute("""
                 WITH xp_data AS (
@@ -448,11 +427,11 @@ def generate_ai_insights(conn):
                     "title": "Active Community",
                     "message": f"{count} members are highly engaged this week with strong grinding and chat activity. Great job keeping the clan vibrant!"
                 })
-                logger.info(f"✓ Insight 7 (Active Community): {count} members")
+                logger.info(f"✓ Insight 6 (Active Community): {count} members")
             else:
-                logger.warning(f"✗ Insight 7: Not enough active members - {count}")
+                logger.warning(f"✗ Insight 6: Not enough active members - {count}")
         except Exception as e:
-            logger.error(f"✗ Insight 7 failed: {e}")
+            logger.error(f"✗ Insight 6 failed: {e}")
         
     except Exception as e:
         logger.error(f"Critical error generating AI insights: {e}")
