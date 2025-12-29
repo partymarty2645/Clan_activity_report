@@ -3,8 +3,6 @@
  * Handles data loading, chart rendering, and interactions.
  */
 
-console.log("[Dash] Script parsed and executing");
-
 // Global State
 let dashboardData = null;
 let charts = {};
@@ -114,13 +112,8 @@ window.switchSection = function (sectionId) {
 };
 
 // Wait for DOM
-// Main Initialization Logic
-async function initDashboard() {
-    console.log("[Dash] initDashboard started");
-    console.log("[Dash] DOMContentLoaded fired");
-    const updateEl = document.getElementById('updated-time');
-    if (updateEl) updateEl.innerText = "Initializing...";
-
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log("Dashboard initializing...");
 
     try {
         // 1. Load Data
@@ -129,11 +122,9 @@ async function initDashboard() {
             console.log("Loaded data from window.dashboardData");
         } else {
             try {
-                console.log("[Dash] Fetching clan_data.json...");
                 const resp = await fetch('clan_data.json');
-                if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`);
+                if (!resp.ok) throw new Error("Failed to fetch clan_data.json");
                 dashboardData = await resp.json();
-                console.log("[Dash] Data fetched successfully");
 
                 // Initialize Config
                 if (dashboardData.config) {
@@ -148,11 +139,6 @@ async function initDashboard() {
                 }
 
                 console.log("Loaded data from clan_data.json", CONFIG);
-
-                // Load AI Data if available
-                if (dashboardData.ai) {
-                    window.aiData = dashboardData.ai;
-                }
             } catch (e) {
                 console.warn("Could not load data:", e);
                 if (window.dashboardData) {
@@ -163,15 +149,7 @@ async function initDashboard() {
             }
         }
 
-
-
         if (!dashboardData) throw new Error("Dashboard Data is null");
-
-        // Sync AI Data if available in dashboardData (overwrites stale ai_data.js)
-        if (dashboardData.ai) {
-            console.log("Syncing AI Data from Dashboard Data");
-            window.aiData = dashboardData.ai;
-        }
 
         console.log("Dashboard data loaded successfully:", dashboardData.generated_at, "with", dashboardData.allMembers ? dashboardData.allMembers.length : 0, "members");
 
@@ -206,7 +184,6 @@ async function initDashboard() {
 
         // 3. Render Charts
         safelyRun(() => renderAllCharts(), "renderAllCharts");
-        safelyRun(() => renderTenureChart(dashboardData.allMembers), "renderTenureChart");
 
         // 4. Setup Search (Header search boxes)
         safelyRun(() => renderNewsTicker(dashboardData.allMembers), "renderNewsTicker");
@@ -215,31 +192,11 @@ async function initDashboard() {
     } catch (criticalError) {
         console.error("CRITICAL INIT ERROR:", criticalError);
         const headerInfo = document.querySelector('.header-info');
-        const el = document.getElementById('updated-time');
-
-        // Explicitly show error in the header
-        if (el) {
-            el.innerHTML = `<span style="color:red; font-weight:bold">INIT ERROR: ${criticalError.message}</span>`;
-        }
-
-        // Also try to show in the body if possible
-        const mainTitle = document.querySelector('h1');
-        if (mainTitle) {
-            const errDiv = document.createElement('div');
-            errDiv.style.color = 'red';
-            errDiv.style.padding = '10px';
-            errDiv.style.border = '1px solid red';
-            errDiv.innerText = `Critical Dashboard Error: ${criticalError.message}`;
-            mainTitle.parentElement.appendChild(errDiv);
-        }
+        // Ensure headerInfo exists, if not try updated-time id
+        const el = headerInfo || document.getElementById('updated-time');
+        if (el) el.innerHTML = `<span style="color:red; font-size: 0.8em;">INIT ERROR: ${criticalError.message}</span>`;
     }
-}
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initDashboard);
-} else {
-    initDashboard();
-}
+});
 
 // Table Sorting Logic
 window.sortTable = function (n) {
@@ -370,10 +327,11 @@ function renderGeneralStats(data) {
         `);
     }
 
-    // Rising Star: Joined < 2 weeks (14 days) AND Highest Messages
-    // Filter by days_in_clan < 14
-    const newcomers = members.filter(m => m.days_in_clan < 14);
-    // Sort by recent messages (7d) to show active momentum
+    // Rising Star: Joined < 14 weeks (98 days) AND Highest Messages
+    // Filter by days_in_clan < 98
+    const newcomers = members.filter(m => m.days_in_clan < 98);
+    // Sort by messages (total or 7d? "sent the most messages" implies recent activity usually, but let's stick to 7d or total if user meant historical. Given context "rising", 7d makes sense to show WHO IS POPPING OFF, but "joined within last 14 weeks" implies finding the best new recruit. NEW RECRUIT = TOTAL MESSAGES usually better metric for 'best integration'. Let's use 7d as it shows CURRENT activity which is usually what rising star means).
+    // Let's use msgs_7d for "Rising" momentum.
     const risingStar = newcomers.sort((a, b) => b.msgs_7d - a.msgs_7d)[0];
 
     if (risingStar) {
@@ -408,9 +366,6 @@ function renderGeneralStats(data) {
             </div>
         `);
     }
-
-    // Render Leaderboard Chart
-    renderLeaderboardChart();
 }
 
 function renderNewsTicker(members) {
@@ -1214,7 +1169,7 @@ function renderXpSection(members) {
     }
 
     // Scatter: XP vs Messages
-    const ctxScat = document.getElementById('container-xp-scatter');
+    const ctxScat = document.getElementById('container-activity-trend');
     if (ctxScat) {
         if (charts.scat) charts.scat.destroy();
         // Filter outliers for better chart view
@@ -1519,8 +1474,6 @@ function renderXPvsBossChart(members) {
 
 }
 
-
-
 function renderLeaderboardChart() {
     const ctx = document.getElementById('leaderboard-chart');
     if (!ctx) return;
@@ -1601,53 +1554,42 @@ function renderAIInsights(members) {
     container.innerHTML = '';
 
     // AI INSIGHTS INTEGRATION
-    if (window.aiData) {
-        // Collect all items to render
-        const items = [];
-        if (window.aiData.insights) items.push(...window.aiData.insights);
-        if (window.aiData.milestones) items.push(...window.aiData.milestones);
-        if (window.aiData.outliers) items.push(...window.aiData.outliers);
-        if (window.aiData.forecasts) items.push(...window.aiData.forecasts);
-
-        if (items.length > 0) {
-            // Sort items randomly or by priority? Let's just shuffle or display in order.
-            // Priority: Anomalies (Outliers) > Achievements (Milestones) > Forecasts > Trends/Analysis
-            // Simple mapping for border colors
-            const getTypeColor = (type) => {
-                if (type === 'anomaly' || type === 'outlier') return 'var(--neon-red)';
-                if (type === 'achievement' || type === 'milestone') return 'var(--neon-gold)';
-                if (type === 'forecast') return '#be4bdb'; // Purple
-                if (type === 'trend') return 'var(--neon-green)';
-                if (type === 'fun') return '#ffb84d'; // Orange
-                if (type === 'health') return '#33FF33'; // Lime
-                return 'var(--neon-blue)'; // Analysis/Other
+    if (window.aiData && window.aiData.insights) {
+        window.aiData.insights.forEach((insight, idx) => {
+            // Color mapping by type
+            const colorMap = {
+                'trend': 'var(--neon-gold)',
+                'milestone': 'var(--neon-green)',
+                'battle': 'var(--neon-red)',
+                'outlier': 'var(--neon-blue)',
+                'fun': 'var(--neon-cyan)',
+                'question': 'var(--neon-yellow)',
+                'superlative': 'var(--neon-purple)'
             };
-
-            items.forEach(insight => {
-                const colorVar = getTypeColor(insight.type);
-                const icon = insight.icon || 'fa-info-circle';
-
-                const imgPath = insight.image ? `assets/${insight.image}` : `assets/rank_minion.png`;
-
-                container.innerHTML += `
-                <div class="alert-card" style="border-left: 4px solid ${colorVar}; display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(0,0,0,0.4);">
-                    <img src="${imgPath}" style="width: 48px; height: 48px; object-fit: contain; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);" onerror="this.src='assets/rank_minion.png'">
-                    <div style="flex: 1;">
-                        <div class="alert-header" style="display:flex;align-items:center;gap:8px;margin-bottom:4px;color:${colorVar}">
-                            <i class="fas ${icon}" style="font-size: 0.8em; opacity: 0.8;"></i>
-                            <span style="font-family:'Cinzel'; font-weight: bold; font-size: 1.1em; letter-spacing: 0.5px;">${insight.title}</span>
-                        </div>
-                        <div class="alert-metric" style="color:#ddd; font-size: 0.9em; line-height: 1.3;">
-                            ${insight.message}
-                        </div>
-                    </div>
+            const colorVar = colorMap[insight.type] || 'var(--neon-cyan)';
+            
+            // Use emoji from insight or fallback to type-based icon
+            const displayIcon = insight.icon || '⚔️';
+            
+            // Build image element if image exists
+            let imageHTML = '';
+            if (insight.image) {
+                imageHTML = `<img src="assets/${insight.image}" style="width:100%;height:120px;object-fit:cover;border-radius:4px;margin-bottom:10px;" />`;
+            }
+            
+            container.innerHTML += `
+            <div class="alert-card" style="border-left: 4px solid ${colorVar}; overflow: hidden;">
+                <div class="alert-header" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;color:${colorVar}">
+                    <span style="font-size:1.3em;">${displayIcon}</span>
+                    <span style="font-family:'Cinzel'; font-weight: bold;">${insight.title}</span>
                 </div>
-                `;
-            });
-        } else {
-            container.innerHTML = '<div class="glass-card" style="padding:20px;grid-column:1/-1;text-align:center;color:#4fec4f">AI Insights will be available after next data refresh.</div>';
-        }
-
+                ${imageHTML}
+                <div class="alert-metric" style="color:#ccc; font-size: 0.9em; line-height: 1.5;">
+                    ${insight.message}
+                </div>
+            </div>
+            `;
+        });
     } else {
         container.innerHTML = '<div class="glass-card" style="padding:20px;grid-column:1/-1;text-align:center;color:#4fec4f">AI Insights will be available after next data refresh.</div>';
     }
@@ -1700,66 +1642,5 @@ window.openPlayerProfile = function (username) {
 window.closePlayerProfile = function () {
     const modal = document.getElementById('player-profile-modal');
     if (modal) modal.style.display = 'none';
-}
-
-function renderTenureChart(members) {
-    // --- NEW: Tenure Distribution Chart ---
-    try {
-        const ctxTenure = document.getElementById('tenure-distribution-chart');
-        if (ctxTenure) {
-            // Bucketize Data
-            const tenureBuckets = {
-                'New (<1 mo)': 0,
-                'Member (1-3 mo)': 0,
-                'Veteran (3-6 mo)': 0,
-                'Elite (6-12 mo)': 0,
-                'Ancient (>1 yr)': 0
-            };
-
-            members.forEach(m => {
-                const days = m.days_in_clan || 0;
-                if (days < 30) tenureBuckets['New (<1 mo)']++;
-                else if (days < 90) tenureBuckets['Member (1-3 mo)']++;
-                else if (days < 180) tenureBuckets['Veteran (3-6 mo)']++;
-                else if (days < 365) tenureBuckets['Elite (6-12 mo)']++;
-                else tenureBuckets['Ancient (>1 yr)']++;
-            });
-
-            // Destroy existing chart instance to prevent Canvas Reuse Error
-            if (window.tenureChartInstance) {
-                window.tenureChartInstance.destroy();
-            }
-
-            window.tenureChartInstance = new Chart(ctxTenure, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(tenureBuckets),
-                    datasets: [{
-                        data: Object.values(tenureBuckets),
-                        backgroundColor: [
-                            'rgba(255, 255, 255, 0.2)', // New (Ghostly)
-                            '#00ffea',                  // Member (Cyan)
-                            '#0099ff',                  // Veteran (Blue)
-                            '#9900ff',                  // Elite (Purple)
-                            '#ff00ff'                   // Ancient (Pink)
-                        ],
-                        borderColor: '#000',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'right', labels: { color: '#ccc' } },
-                        title: { display: false }
-                    },
-                    cutout: '60%'
-                }
-            });
-        }
-    } catch (e) {
-        console.warn("Chart Error (Tenure):", e);
-    }
 }
 
