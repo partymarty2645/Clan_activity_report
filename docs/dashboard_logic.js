@@ -1628,28 +1628,54 @@ function renderAIInsights(members) {
     renderTime('updated-time-ai', dashboardData.generated_at);
 
     const container = document.getElementById('ai-insights-container');
-    if (!container) return;
+    if (!container) {
+        console.error("AI insights container not found");
+        return;
+    }
 
     container.innerHTML = '';
 
     // AI INSIGHTS INTEGRATION
     if (window.aiData && window.aiData.insights) {
-        window.aiData.insights.forEach(insight => {
-            const colorVar = insight.type === 'trend' ? 'var(--neon-gold)' : insight.type === 'analysis' ? 'var(--neon-blue)' : 'var(--neon-green)';
-            const icon = insight.type === 'trend' ? 'fa-chart-line' : insight.type === 'analysis' ? 'fa-brain' : 'fa-heartbeat';
-            container.innerHTML += `
-            <div class="alert-card" style="border-left: 3px solid ${colorVar}">
-                <div class="alert-header" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;color:${colorVar}">
-                    <i class="fas ${icon}"></i>
-                    <span style="font-family:'Cinzel'">${insight.title}</span>
+        console.log("aiData.insights found, count:", window.aiData.insights.length);
+        
+        window.aiData.insights.forEach((insight, index) => {
+            console.log(`Rendering insight ${index + 1}:`, insight.title);
+            
+            const colorVar = insight.type === 'trend' ? 'var(--neon-gold)' 
+                           : insight.type === 'analysis' ? 'var(--neon-blue)' 
+                           : insight.type === 'health' ? 'var(--neon-cyan)'
+                           : insight.type === 'warning' ? 'var(--neon-red)'
+                           : insight.type === 'success' ? 'var(--neon-green)'
+                           : 'var(--neon-green)';
+            
+            const icon = insight.type === 'trend' ? 'fa-chart-line' 
+                       : insight.type === 'analysis' ? 'fa-brain' 
+                       : insight.type === 'health' ? 'fa-heart'
+                       : insight.type === 'warning' ? 'fa-exclamation-triangle'
+                       : insight.type === 'success' ? 'fa-check-circle'
+                       : 'fa-heartbeat';
+            
+            try {
+                const html = `
+                <div class="alert-card" style="border-left: 3px solid ${colorVar}">
+                    <div class="alert-header" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;color:${colorVar}">
+                        <i class="fas ${icon}"></i>
+                        <span style="font-family:'Cinzel'">${insight.title}</span>
+                    </div>
+                    <div class="alert-metric" style="color:#ccc; font-size: 0.9em;">
+                        ${insight.message}
+                    </div>
                 </div>
-                <div class="alert-metric" style="color:#ccc; font-size: 0.9em;">
-                    ${insight.message}
-                </div>
-            </div>
-            `;
+                `;
+                container.innerHTML += html;
+                console.log(`✓ Insight ${index + 1} rendered successfully`);
+            } catch (e) {
+                console.error(`Error rendering insight ${index + 1}:`, e);
+            }
         });
     } else {
+        console.warn("aiData or aiData.insights not found");
         container.innerHTML = '<div class="glass-card" style="padding:20px;grid-column:1/-1;text-align:center;color:#4fec4f">AI Insights will be available after next data refresh.</div>';
     }
 }

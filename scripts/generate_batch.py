@@ -16,9 +16,9 @@ def get_candidates():
     queries = [
         ("The Legend (Top XP)", "SELECT m.username FROM wom_snapshots s JOIN clan_members m ON s.user_id = m.id ORDER BY total_xp DESC LIMIT 1"),
         ("The CEO (Top Boss Kills)", "SELECT m.username FROM wom_snapshots s JOIN clan_members m ON s.user_id = m.id ORDER BY total_boss_kills DESC LIMIT 1"),
-        ("The Raider (Top CoX)", "SELECT m.username FROM boss_snapshots b JOIN wom_snapshots s ON b.wom_snapshot_id = s.id JOIN clan_members m ON s.user_id = m.id WHERE b.boss_name = 'chambers_of_xeric' ORDER BY b.kills DESC LIMIT 1"),
-        ("The Gold Farmer (Top Vorkath)", "SELECT m.username FROM boss_snapshots b JOIN wom_snapshots s ON b.wom_snapshot_id = s.id JOIN clan_members m ON s.user_id = m.id WHERE b.boss_name = 'vorkath' ORDER BY b.kills DESC LIMIT 1"),
-        ("The Nightmare (Top Phosani)", "SELECT m.username FROM boss_snapshots b JOIN wom_snapshots s ON b.wom_snapshot_id = s.id JOIN clan_members m ON s.user_id = m.id WHERE b.boss_name = 'phosanis_nightmare' ORDER BY b.kills DESC LIMIT 1"),
+        ("The Raider (Top CoX)", "SELECT DISTINCT s.username FROM boss_snapshots b JOIN wom_snapshots s ON b.snapshot_id = s.id WHERE s.username IN (SELECT username FROM clan_members) AND b.boss_name = 'chambers_of_xeric' ORDER BY b.kills DESC LIMIT 1"),
+        ("The Gold Farmer (Top Vorkath)", "SELECT DISTINCT s.username FROM boss_snapshots b JOIN wom_snapshots s ON b.snapshot_id = s.id WHERE s.username IN (SELECT username FROM clan_members) AND b.boss_name = 'vorkath' ORDER BY b.kills DESC LIMIT 1"),
+        ("The Nightmare (Top Phosani)", "SELECT DISTINCT s.username FROM boss_snapshots b JOIN wom_snapshots s ON b.snapshot_id = s.id WHERE s.username IN (SELECT username FROM clan_members) AND b.boss_name = 'phosanis_nightmare' ORDER BY b.kills DESC LIMIT 1"),
         ("The Chatty One (Top Messages)", "SELECT author_name FROM discord_messages WHERE author_name NOT IN ('osrs clanchat', 'Wise Old Man', 'Clan Mate') GROUP BY author_name ORDER BY count(*) DESC LIMIT 1"),
     ]
 

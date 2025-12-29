@@ -51,12 +51,13 @@ def generate_pulse_headlines(conn):
         
         # Top Boss Killer
         cursor = conn.execute("""
-            SELECT bs.boss_name, SUM(bs.kills) as total_kills
+            SELECT bs.boss_name, ROUND(AVG(bs.kills), 1) as avg_kills, COUNT(DISTINCT ws.username) as clan_members
             FROM boss_snapshots bs
-            JOIN wom_snapshots ws ON bs.wom_snapshot_id = ws.id
-            WHERE ws.timestamp >= datetime('now', '-7 days')
+            JOIN wom_snapshots ws ON bs.snapshot_id = ws.id
+            WHERE ws.username IN (SELECT username FROM clan_members)
+            AND ws.timestamp >= datetime('now', '-7 days')
             GROUP BY bs.boss_name
-            ORDER BY total_kills DESC
+            ORDER BY COUNT(DISTINCT ws.username) DESC
             LIMIT 1
         """)
         top_boss = cursor.fetchone()
