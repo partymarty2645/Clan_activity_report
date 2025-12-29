@@ -86,12 +86,30 @@ def resolve_member_id_sqlite(cursor: sqlite3.Cursor, normalized_name: str) -> Op
 
     return None
 
-async def fetch_member_data(username, wom=None):
+def get_latest_snapshot_timestamp(cursor: sqlite3.Cursor, username: str) -> Optional[str]:
+    """
+    Get the latest snapshot timestamp for a player to enable incremental fetching.
+    Returns ISO 8601 timestamp string or None if no snapshots exist.
+    """
+    try:
+        cursor.execute("SELECT MAX(timestamp) FROM wom_snapshots WHERE username = ?", (username,))
+        row = cursor.fetchone()
+        if row and row[0]:
+            return row[0]
+        return None
+    except Exception as e:
+        logger.debug(f"Failed to get latest timestamp for {username}: {e}")
+        return None
+
+async def fetch_member_data(username, wom=None, start_date: Optional[str] = None):
     try:
         # Use injected WOM client or get from ServiceFactory
         client = wom if wom is not None else await ServiceFactory.get_wom_client()
-        # Get all snapshots for historical data
-        snapshots = await client.get_player_snapshots(username)
+        # Fetch snapshots (incremental if start_date provided, else full history)
+        if start_date:
+            snapshots = await client.get_player_snapshots(username, start_date=start_date)
+        else:
+            snapshots = await client.get_player_snapshots(username)
         return (username, snapshots)
     except Exception as e:
         logger.warning(f"Failed to fetch {username}: {e}")
@@ -308,9 +326,18 @@ async def process_wom_harvest(wom, conn, cursor):
     except Exception as e:
         print(f"Error syncing members: {e}")
         
-    tasks = [fetch_member_data(m['username'], wom=wom) for m in members]
-    
-    results = []
+    # OPTIMIZATION: Only fetch snapshots AFTER the latest stored timestamp for each player
+    # This reduces API load from ~600K requests/run to ~1-2K for incremental updates
+    tasks = []
+    for m in members:
+        username = m['username']
+        latest_ts = get_latest_snapshot_timestamp(cursor, username)
+        if latest_ts:
+            # Player has history: fetch only NEW snapshots since last stored timestamp
+            tasks.append(fetch_member_data(username, wom=wom, start_date=latest_ts))
+        else:
+            # New player: fetch full history
+            tasks.append(fetch_member_data(username, wom=wom))
     # Determine if we are running in an interactive terminal
     # is_interactive = sys.stdout.isatty() and not os.environ.get("NO_RICH")
     is_interactive = False
