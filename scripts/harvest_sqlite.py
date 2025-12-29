@@ -334,29 +334,29 @@ async def process_wom_harvest(wom, conn, cursor):
     # ADDITIONAL OPTIMIZATION: Skip players with recent snapshots (< threshold hours old)
     tasks = []
     now_utc = datetime.datetime.now(timezone.utc)
-    staleness_threshold_seconds = Config.WOM_STALENESS_SKIP_HOURS * 3600
     skipped_count = 0
     
-    # Skip staleness optimization if WOM_STALENESS_SKIP_HOURS is 0
-    if Config.WOM_STALENESS_SKIP_HOURS == 0:
-        staleness_threshold_seconds = float('inf')  # Never skip based on staleness
+    # Enable staleness check only if WOM_STALENESS_SKIP_HOURS > 0
+    use_staleness_optimization = Config.WOM_STALENESS_SKIP_HOURS > 0
+    staleness_threshold_seconds = Config.WOM_STALENESS_SKIP_HOURS * 3600 if use_staleness_optimization else 0
     
     for m in members:
         username = m['username']
         latest_ts = get_latest_snapshot_timestamp(cursor, username)
         
         if latest_ts:
-            # Parse timestamp and check if data is fresh
-            try:
-                latest_dt = datetime.datetime.fromisoformat(latest_ts.replace('Z', '+00:00'))
-                age_seconds = (now_utc - latest_dt).total_seconds()
-                
-                if age_seconds < staleness_threshold_seconds:
-                    # Data is fresh, skip fetching
-                    skipped_count += 1
-                    continue
-            except:
-                pass
+            # Parse timestamp and check if data is fresh (only if staleness optimization is enabled)
+            if use_staleness_optimization:
+                try:
+                    latest_dt = datetime.datetime.fromisoformat(latest_ts.replace('Z', '+00:00'))
+                    age_seconds = (now_utc - latest_dt).total_seconds()
+                    
+                    if age_seconds < staleness_threshold_seconds:
+                        # Data is fresh, skip fetching
+                        skipped_count += 1
+                        continue
+                except:
+                    pass
             
             # Player has history: fetch only NEW snapshots since last stored timestamp
             tasks.append(fetch_member_data(username, wom=wom, start_date=latest_ts))

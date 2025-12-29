@@ -1,5 +1,5 @@
 {
-  "generated_at": "2025-12-29T12:46:38.487169",
+  "generated_at": "2025-12-29T13:00:15.169831",
   "activity_heatmap": [
     2100,
     2199,
@@ -12,7 +12,7 @@
     1118,
     1297,
     1059,
-    1285,
+    1302,
     985,
     1378,
     1537,
@@ -437,7 +437,7 @@
       "datasets": [
         {
           "data": [
-            43650,
+            52515,
             0,
             130575,
             0,
@@ -1060,9 +1060,9 @@
       "favorite_boss_all_time_img": "boss_callisto.png",
       "total_xp": 141453859,
       "total_boss": 4101,
-      "msgs_7d": 266,
-      "msgs_30d": 266,
-      "msgs_total": 266
+      "msgs_7d": 273,
+      "msgs_30d": 273,
+      "msgs_total": 273
     },
     {
       "username": "qween",
@@ -1120,9 +1120,9 @@
       "favorite_boss_all_time_img": "boss_amoxliatl.png",
       "total_xp": 98339119,
       "total_boss": 713,
-      "msgs_7d": 230,
-      "msgs_30d": 1090,
-      "msgs_total": 8863
+      "msgs_7d": 231,
+      "msgs_30d": 1091,
+      "msgs_total": 8864
     },
     {
       "username": "lloi",
@@ -1220,9 +1220,9 @@
       "favorite_boss_all_time_img": "boss_kraken.png",
       "total_xp": 433311480,
       "total_boss": 6885,
-      "msgs_7d": 42,
-      "msgs_30d": 42,
-      "msgs_total": 42
+      "msgs_7d": 43,
+      "msgs_30d": 43,
+      "msgs_total": 43
     },
     {
       "username": "partymarty94",
@@ -1820,9 +1820,9 @@
       "favorite_boss_all_time_img": "boss_abyssal_sire.png",
       "total_xp": 268752884,
       "total_boss": 9976,
-      "msgs_7d": 22,
-      "msgs_30d": 199,
-      "msgs_total": 1679
+      "msgs_7d": 24,
+      "msgs_30d": 201,
+      "msgs_total": 1681
     },
     {
       "username": "loafy",
@@ -1929,7 +1929,7 @@
       "role": "prospector",
       "rank_img": "rank_prospector.png",
       "joined_at": "2025-12-20",
-      "days_in_clan": 8,
+      "days_in_clan": 9,
       "xp_7d": 2593543,
       "boss_7d": 78,
       "xp_30d": 3677073,
@@ -2509,7 +2509,7 @@
       "role": "prospector",
       "rank_img": "rank_prospector.png",
       "joined_at": "2025-12-20",
-      "days_in_clan": 8,
+      "days_in_clan": 9,
       "xp_7d": 1730287,
       "boss_7d": 0,
       "xp_30d": 1827903,
@@ -3369,7 +3369,7 @@
       "role": "prospector",
       "rank_img": "rank_prospector.png",
       "joined_at": "2025-12-20",
-      "days_in_clan": 8,
+      "days_in_clan": 9,
       "xp_7d": 873069,
       "boss_7d": 0,
       "xp_30d": 4997331,
@@ -3569,7 +3569,7 @@
       "role": "prospector",
       "rank_img": "rank_prospector.png",
       "joined_at": "2025-12-20",
-      "days_in_clan": 8,
+      "days_in_clan": 9,
       "xp_7d": 736811,
       "boss_7d": 0,
       "xp_30d": 833208,
@@ -3720,9 +3720,9 @@
       "favorite_boss_all_time_img": "boss_sarachnis.png",
       "total_xp": 102204648,
       "total_boss": 5011,
-      "msgs_7d": 73,
-      "msgs_30d": 120,
-      "msgs_total": 2117
+      "msgs_7d": 75,
+      "msgs_30d": 122,
+      "msgs_total": 2119
     },
     {
       "username": "f1shmagician",
@@ -3809,7 +3809,7 @@
       "role": "prospector",
       "rank_img": "rank_prospector.png",
       "joined_at": "2025-12-20",
-      "days_in_clan": 8,
+      "days_in_clan": 9,
       "xp_7d": 611840,
       "boss_7d": 1,
       "xp_30d": 0,
@@ -6960,9 +6960,9 @@
       "favorite_boss_all_time_img": "boss_kraken.png",
       "total_xp": 107523851,
       "total_boss": 6134,
-      "msgs_7d": 209,
-      "msgs_30d": 209,
-      "msgs_total": 209
+      "msgs_7d": 210,
+      "msgs_30d": 210,
+      "msgs_total": 210
     },
     {
       "username": "itashee",
@@ -7384,9 +7384,9 @@
       "favorite_boss_all_time_img": "boss_callisto.png",
       "total_xp": 141453859,
       "total_boss": 4101,
-      "msgs_7d": 266,
-      "msgs_30d": 266,
-      "msgs_total": 266
+      "msgs_7d": 273,
+      "msgs_30d": 273,
+      "msgs_total": 273
     }
   ],
   "topBossKiller": {

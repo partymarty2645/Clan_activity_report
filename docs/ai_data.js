@@ -1,7 +1,7 @@
 window.aiData = {
   "pulse": [
-    "Intelligence Update: New recruits showing promise.",
-    "Tactical Brief: Raid coordination improving."
+    "Tactical Brief: Raid coordination improving.",
+    "Intelligence Update: New recruits showing promise."
   ],
   "alerts": [
     {
@@ -18,5 +18,5 @@ window.aiData = {
       "message": "bagyy leads with 751,147,981 total XP. Inspiring others!"
     }
   ],
-  "generated_at": "2025-12-29 11:57:05"
+  "generated_at": "2025-12-29 12:46:54"
 };
