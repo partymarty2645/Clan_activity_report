@@ -876,41 +876,57 @@ function renderActivityCorrelation() {
     if (charts.trend) charts.trend.destroy();
 
     const history = dashboardData.history || [];
-    const dualData = [];
+    if (history.length === 0) {
+        container.innerHTML = '<div style="padding:20px;text-align:center;color:#888;">No activity data available</div>';
+        return;
+    }
 
-    // Transform History: Need flattened array? G2Plot DualAxes often takes one array or array of arrays.
-    // Let's use single array data structure
+    // Transform history data - format for dual axis chart
+    const data = [];
     history.forEach(d => {
         const dateStr = new Date(d.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-        dualData.push({
+        data.push({
             date: dateStr,
-            xp: d.xp,
-            msgs: d.msgs
+            value: d.xp,
+            type: 'XP Gained'
+        });
+        data.push({
+            date: dateStr,
+            value: d.msgs,
+            type: 'Messages'
         });
     });
 
-    if (dualData.length === 0) {
-        dualData.push({ date: 'Mon', xp: 0, msgs: 0 });
+    try {
+        const dualAxes = new G2Plot.DualAxes('container-activity-trend', {
+            data: data,
+            xField: 'date',
+            yField: 'value',
+            seriesField: 'type',
+            geometryOptions: [
+                { geometry: 'column' },
+                { geometry: 'line', lineStyle: { lineWidth: 3 } }
+            ],
+            theme: 'dark',
+            color: ['#00d4ff', '#FFD700'],
+            appendPadding: [20, 50, 50, 50],
+            legend: { position: 'top-left' },
+            tooltip: {
+                formatter: (datum) => {
+                    return { 
+                        name: datum.type, 
+                        value: datum.type === 'Messages' ? datum.value : formatNumber(datum.value) 
+                    };
+                }
+            }
+        });
+
+        dualAxes.render();
+        charts.trend = dualAxes;
+    } catch (e) {
+        console.error('Error rendering activity trend chart:', e);
+        container.innerHTML = '<div style="padding:20px;color:red;">Error rendering chart: ' + e.message + '</div>';
     }
-
-    const dualAxes = new G2Plot.DualAxes('container-activity-trend', {
-        data: [dualData, dualData],
-        xField: 'date',
-        yField: ['xp', 'msgs'],
-        geometryOptions: [
-            { geometry: 'column', color: '#00d4ff' }, // XP Bars
-            { geometry: 'line', color: '#FFD700', lineStyle: { lineWidth: 3 } } // Msg Line
-        ],
-        theme: 'dark',
-        meta: {
-            xp: { alias: 'XP Gained', formatter: (v) => formatNumber(Number(v)) },
-            msgs: { alias: 'Messages' }
-        },
-        legend: { position: 'top-left' }
-    });
-
-    dualAxes.render();
-    charts.trend = dualAxes;
 }
 
 function renderXPContribution() {

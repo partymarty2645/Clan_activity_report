@@ -242,113 +242,222 @@ def generate_ai_insights(conn):
     
     try:
         # Insight 1: Top Skill Trend
-        cursor = conn.execute("""
-            SELECT username, total_xp
-            FROM wom_snapshots
-            ORDER BY total_xp DESC
-            LIMIT 1
-        """)
-        top_player = cursor.fetchone()
-        if top_player:
-            insights.append({
-                "type": "trend",
-                "title": "Skill Mastery Leader",
-                "message": f"{top_player['username']} leads with {top_player['total_xp']:,} total XP. Inspiring others!"
-            })
+        try:
+            cursor = conn.execute("""
+                SELECT username, total_xp
+                FROM wom_snapshots
+                ORDER BY total_xp DESC
+                LIMIT 1
+            """)
+            top_player = cursor.fetchone()
+            if top_player:
+                insights.append({
+                    "type": "trend",
+                    "title": "Skill Mastery Leader",
+                    "message": f"{top_player['username']} leads with {top_player['total_xp']:,} total XP. Inspiring others!"
+                })
+                logger.info("✓ Insight 1 (Skill Mastery) generated")
+            else:
+                logger.warning("✗ Insight 1: No top player found")
+        except Exception as e:
+            logger.error(f"✗ Insight 1 failed: {e}")
         
         # Insight 2: Boss Diversity
-        cursor = conn.execute("""
-            SELECT COUNT(DISTINCT boss_name) as unique_bosses
-            FROM boss_snapshots bs
-            JOIN wom_snapshots ws ON bs.wom_snapshot_id = ws.id
-            WHERE ws.timestamp >= datetime('now', '-30 days')
-        """)
-        diversity = cursor.fetchone()
-        if diversity and diversity['unique_bosses'] > 0:
-            insights.append({
-                "type": "analysis",
-                "title": "Bossing Diversity",
-                "message": f"Clan tackled {diversity['unique_bosses']} different bosses in the last month. Well-rounded!"
-            })
+        try:
+            cursor = conn.execute("""
+                SELECT COUNT(DISTINCT boss_name) as unique_bosses
+                FROM boss_snapshots
+                LIMIT 1
+            """)
+            diversity = cursor.fetchone()
+            bosses = diversity['unique_bosses'] if diversity else 0
+            if bosses > 0:
+                insights.append({
+                    "type": "analysis",
+                    "title": "Bossing Diversity",
+                    "message": f"Clan has tackled {bosses} different bosses. Well-rounded bossing team!"
+                })
+                logger.info(f"✓ Insight 2 (Boss Diversity): {bosses} bosses")
+            else:
+                logger.warning("✗ Insight 2: No boss diversity data")
+        except Exception as e:
+            logger.error(f"✗ Insight 2 failed: {e}")
         
         # Insight 3: Communication Health
-        cursor = conn.execute("""
-            SELECT AVG(msg_custom) as avg_msgs
-            FROM wom_records
-        """)
-        comm = cursor.fetchone()
-        if comm and comm['avg_msgs']:
-            health = "excellent" if comm['avg_msgs'] > 50 else "good" if comm['avg_msgs'] > 20 else "needs improvement"
-            insights.append({
-                "type": "health",
-                "title": "Communication Health",
-                "message": f"Average weekly messages: {comm['avg_msgs']:.1f}. Communication health is {health}."
-            })
+        try:
+            cursor = conn.execute("""
+                SELECT 
+                    author_name,
+                    COUNT(*) as msg_count
+                FROM discord_messages
+                WHERE created_at >= datetime('now', '-7 days')
+                GROUP BY author_name
+            """)
+            messages = cursor.fetchall()
+            if messages:
+                avg_msgs = sum(m['msg_count'] for m in messages) / len(messages)
+                if avg_msgs > 0:
+                    health = "excellent" if avg_msgs > 50 else "good" if avg_msgs > 20 else "needs improvement"
+                    insights.append({
+                        "type": "health",
+                        "title": "Communication Health",
+                        "message": f"Average weekly messages: {avg_msgs:.1f} per member. Communication is {health}."
+                    })
+                    logger.info(f"✓ Insight 3 (Communication): avg_msgs={avg_msgs}")
+                else:
+                    logger.warning(f"✗ Insight 3: No message data")
+            else:
+                logger.warning("✗ Insight 3: No members with messages")
+        except Exception as e:
+            logger.error(f"✗ Insight 3 failed: {e}")
         
         # Insight 4: Rising Stars
-        cursor = conn.execute("""
-            SELECT username, xp_custom as xp_7d, msg_custom as msg_7d
-            FROM wom_records
-            WHERE xp_custom > 500000 AND msg_custom > 50
-            ORDER BY (xp_custom + msg_custom * 1000) DESC
-            LIMIT 1
-        """)
-        rising = cursor.fetchone()
-        if rising:
-            insights.append({
-                "type": "trend",
-                "title": "Rising Star",
-                "message": f"{rising['username']} is showing strong activity with {rising['xp_7d']:,} XP and {rising['msg_7d']} messages this week!"
-            })
+        try:
+            # Use latest snapshot data with message counts
+            cursor = conn.execute("""
+                WITH latest_snap AS (
+                    SELECT username, total_xp, MAX(timestamp) as latest_time
+                    FROM wom_snapshots
+                    WHERE timestamp >= datetime('now', '-7 days')
+                    GROUP BY username
+                ),
+                msg_counts AS (
+                    SELECT author_name, COUNT(*) as msg_count
+                    FROM discord_messages
+                    WHERE created_at >= datetime('now', '-7 days')
+                    GROUP BY author_name
+                )
+                SELECT 
+                    ls.username,
+                    ls.total_xp,
+                    COALESCE(mc.msg_count, 0) as msg_count
+                FROM latest_snap ls
+                LEFT JOIN msg_counts mc ON ls.username = mc.author_name
+                WHERE ls.total_xp > 1000000 AND COALESCE(mc.msg_count, 0) > 20
+                ORDER BY (ls.total_xp + COALESCE(mc.msg_count, 0) * 1000) DESC
+                LIMIT 1
+            """)
+            rising = cursor.fetchone()
+            if rising:
+                insights.append({
+                    "type": "trend",
+                    "title": "Rising Star",
+                    "message": f"{rising['username']} is showing strong activity with {rising['total_xp']:,} XP and {rising['msg_count']} messages this week!"
+                })
+                logger.info(f"✓ Insight 4 (Rising Star): {rising['username']}")
+            else:
+                logger.warning("✗ Insight 4: No rising stars found")
+        except Exception as e:
+            logger.error(f"✗ Insight 4 failed: {e}")
         
         # Insight 5: Clan Efficiency
-        cursor = conn.execute("""
-            SELECT AVG(xp_custom * 1.0 / NULLIF(msg_custom, 0)) as avg_efficiency
-            FROM wom_records
-            WHERE msg_custom > 0
-        """)
-        eff = cursor.fetchone()
-        if eff and eff['avg_efficiency']:
-            level = "highly efficient" if eff['avg_efficiency'] > 10000 else "balanced" if eff['avg_efficiency'] > 5000 else "could improve"
-            insights.append({
-                "type": "analysis",
-                "title": "Clan Efficiency",
-                "message": f"Average XP per message: {eff['avg_efficiency']:.0f}. The clan is {level} in balancing grind and chat."
-            })
+        try:
+            cursor = conn.execute("""
+                WITH xp_data AS (
+                    SELECT username, total_xp, MAX(timestamp) as latest_time
+                    FROM wom_snapshots
+                    WHERE timestamp >= datetime('now', '-7 days')
+                    GROUP BY username
+                ),
+                msg_counts AS (
+                    SELECT author_name, COUNT(*) as msg_count
+                    FROM discord_messages
+                    WHERE created_at >= datetime('now', '-7 days')
+                    GROUP BY author_name
+                )
+                SELECT AVG(CAST(xd.total_xp AS FLOAT) / NULLIF(CAST(mc.msg_count AS FLOAT), 0)) as avg_efficiency
+                FROM xp_data xd
+                LEFT JOIN msg_counts mc ON xd.username = mc.author_name
+                WHERE mc.msg_count > 0
+            """)
+            eff = cursor.fetchone()
+            avg_eff = eff['avg_efficiency'] if eff and eff['avg_efficiency'] else 0
+            if avg_eff > 0:
+                level = "highly efficient" if avg_eff > 10000 else "balanced" if avg_eff > 5000 else "could improve"
+                insights.append({
+                    "type": "analysis",
+                    "title": "Clan Efficiency",
+                    "message": f"Average XP per message: {avg_eff:.0f}. The clan is {level} in balancing grind and chat."
+                })
+                logger.info(f"✓ Insight 5 (Clan Efficiency): {avg_eff}")
+            else:
+                logger.warning(f"✗ Insight 5: No efficiency data - {avg_eff}")
+        except Exception as e:
+            logger.error(f"✗ Insight 5 failed: {e}")
         
         # Insight 6: Prediction - Potential Inactive
-        cursor = conn.execute("""
-            SELECT username
-            FROM wom_records
-            WHERE msg_custom = 0 AND xp_custom = 0
-            ORDER BY RANDOM()
-            LIMIT 1
-        """)
-        inactive = cursor.fetchone()
-        if inactive:
-            insights.append({
-                "type": "warning",
-                "title": "Activity Monitor",
-                "message": f"Keep an eye on {inactive['username']} - no activity detected this week. A friendly check-in might help!"
-            })
+        try:
+            cursor = conn.execute("""
+                WITH recent_xp AS (
+                    SELECT username, MAX(total_xp) as total_xp, MAX(timestamp) as latest_time
+                    FROM wom_snapshots
+                    WHERE timestamp >= datetime('now', '-7 days')
+                    GROUP BY username
+                ),
+                recent_msgs AS (
+                    SELECT author_name, COUNT(*) as msg_count
+                    FROM discord_messages
+                    WHERE created_at >= datetime('now', '-7 days')
+                    GROUP BY author_name
+                )
+                SELECT rx.username
+                FROM recent_xp rx
+                LEFT JOIN recent_msgs rm ON rx.username = rm.author_name
+                WHERE COALESCE(rm.msg_count, 0) = 0 AND rx.total_xp > 0
+                ORDER BY RANDOM()
+                LIMIT 1
+            """)
+            inactive = cursor.fetchone()
+            if inactive:
+                insights.append({
+                    "type": "warning",
+                    "title": "Activity Monitor",
+                    "message": f"Keep an eye on {inactive['username']} - no chat activity detected this week. A friendly check-in might help!"
+                })
+                logger.info(f"✓ Insight 6 (Activity Monitor): {inactive['username']}")
+            else:
+                logger.warning("✗ Insight 6: No inactive members")
+        except Exception as e:
+            logger.error(f"✗ Insight 6 failed: {e}")
         
         # Insight 7: Positive Reinforcement
-        cursor = conn.execute("""
-            SELECT COUNT(*) as active_count
-            FROM wom_records
-            WHERE msg_custom > 10 AND xp_custom > 100000
-        """)
-        active = cursor.fetchone()
-        if active and active['active_count'] > 5:
-            insights.append({
-                "type": "success",
-                "title": "Active Community",
-                "message": f"{active['active_count']} members are highly engaged this week. Great job keeping the clan vibrant!"
-            })
+        try:
+            cursor = conn.execute("""
+                WITH xp_data AS (
+                    SELECT username, MAX(total_xp) as total_xp
+                    FROM wom_snapshots
+                    WHERE timestamp >= datetime('now', '-7 days')
+                    GROUP BY username
+                ),
+                msg_counts AS (
+                    SELECT author_name, COUNT(*) as msg_count
+                    FROM discord_messages
+                    WHERE created_at >= datetime('now', '-7 days')
+                    GROUP BY author_name
+                )
+                SELECT COUNT(*) as active_count
+                FROM xp_data xd
+                LEFT JOIN msg_counts mc ON xd.username = mc.author_name
+                WHERE mc.msg_count > 20 AND xd.total_xp > 1000000
+            """)
+            active = cursor.fetchone()
+            count = active['active_count'] if active else 0
+            if count > 2:
+                insights.append({
+                    "type": "success",
+                    "title": "Active Community",
+                    "message": f"{count} members are highly engaged this week with strong grinding and chat activity. Great job keeping the clan vibrant!"
+                })
+                logger.info(f"✓ Insight 7 (Active Community): {count} members")
+            else:
+                logger.warning(f"✗ Insight 7: Not enough active members - {count}")
+        except Exception as e:
+            logger.error(f"✗ Insight 7 failed: {e}")
         
     except Exception as e:
-        logger.error(f"Error generating AI insights: {e}")
+        logger.error(f"Critical error generating AI insights: {e}")
     
+    logger.info(f"Total insights generated: {len(insights)}")
     return insights
 
 def main():
