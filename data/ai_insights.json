@@ -1,44 +1,44 @@
 [
   {
     "type": "trend",
-    "title": "Chat King",
-    "message": "Sirgowi leads chatter with 274 messages, beating the rest.",
-    "image": "skill_Attack.png",
+    "title": "Chat Master",
+    "message": "Docofmed tops chat with 6,906 messages, the clan's true Yapper.",
+    "image": "skill_prayer.png",
     "icon": "\ud83d\udcac"
   },
   {
     "type": "battle",
-    "title": "Kill Beast",
-    "message": "Loafy dominates with 15,996 boss kills, clan's fiercest slayer.",
-    "image": "boss_Vorkath.png",
+    "title": "Kill King",
+    "message": "Loafy leads boss kills: 15,996 slaughters, unmatched grinding machine.",
+    "image": "boss_verzik.png",
     "icon": "\u2694\ufe0f"
   },
   {
-    "type": "outlier",
-    "title": "Quiet Titan",
-    "message": "Theerecter boasts 230M XP yet only 20 messages\u2014silent powerhouse.",
-    "image": "rank_Zenyte.png",
-    "icon": "\ud83d\udee1\ufe0f"
+    "type": "milestone",
+    "title": "XP Giant",
+    "message": "Docofmed boasts 285,354,182 XP, second only to loafy's 322M.",
+    "image": "skill_mining.png",
+    "icon": "\u26cf\ufe0f"
   },
   {
     "type": "trend",
-    "title": "Rapid Ascent",
-    "message": "Sirgowi, 253 days in, amassed 4,102 kills and 274 messages.",
-    "image": "skill_Slayer.png",
+    "title": "Rising Duckling",
+    "message": "Strixter, 98\u2011day veteran, already posted 332 messages, climbing the chatter ladder.",
+    "image": "rank_prospector.png",
     "icon": "\ud83d\ude80"
   },
   {
-    "type": "fun",
-    "title": "Silent Veteran",
-    "message": "Theerecter, 317 days old, only 20 messages\u2014needs more banter.",
-    "image": "skill_Agility.png",
-    "icon": "\ud83e\udd10"
+    "type": "outlier",
+    "title": "Silent Grinder",
+    "message": "Theerecter whispers with only 20 messages\u2014silent grinder lurking behind 10,948 kills.",
+    "image": "boss_kraken.png",
+    "icon": "\ud83d\udc7b"
   },
   {
-    "type": "milestone",
-    "title": "Grind Guru",
-    "message": "Loafy, 286 days here, 322M XP, 4 messages\u2014true grindmaster.",
-    "image": "boss_Kraken.png",
-    "icon": "\ud83c\udfc6"
+    "type": "fun",
+    "title": "Ghost of XP",
+    "message": "Loafy, XP titan with 322M but just 4 messages\u2014silent powerhouse.",
+    "image": "skill_runecraft.png",
+    "icon": "\ud83d\uddff"
   }
 ]

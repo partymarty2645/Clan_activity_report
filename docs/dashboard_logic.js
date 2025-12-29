@@ -798,8 +798,10 @@ function renderAllCharts() {
     renderBossTrend();
 
     // UPDATED VISUALIZATIONS
-    renderActivityCorrelation(); // Replaces Trend Area
+    renderActivityCorrelation(); // Weekly Activity Trend
     renderXPContribution();      // Replaces Player Radar
+    renderTenureDistribution(); // Clan Loyalty (Tenure)
+    renderLeaderboardChart();    // Top 10 Leaderboard (Composite Score)
 
     // renderPlayerRadar(); // REMOVED per user request
 
@@ -1529,6 +1531,66 @@ function renderLeaderboardChart() {
                     font: { size: 10, style: 'italic' },
                     padding: { bottom: 10 }
                 }
+            }
+        }
+    });
+}
+
+function renderTenureDistribution() {
+    const ctx = document.getElementById('tenure-distribution-chart');
+    if (!ctx) return;
+    if (charts.tenure) charts.tenure.destroy();
+
+    // Categorize members by tenure (days_in_clan)
+    const members = dashboardData.allMembers || [];
+    
+    // Buckets: 0-30d, 31-90d, 91-180d, 181-365d, 365d+
+    const buckets = {
+        'New (0-30d)': 0,
+        'Recent (31-90d)': 0,
+        'Established (91-180d)': 0,
+        'Loyal (181-365d)': 0,
+        'Veteran (365d+)': 0
+    };
+    
+    members.forEach(m => {
+        const days = m.days_in_clan || 0;
+        if (days <= 30) buckets['New (0-30d)']++;
+        else if (days <= 90) buckets['Recent (31-90d)']++;
+        else if (days <= 180) buckets['Established (91-180d)']++;
+        else if (days <= 365) buckets['Loyal (181-365d)']++;
+        else buckets['Veteran (365d+)']++;
+    });
+
+    const labels = Object.keys(buckets);
+    const data = Object.values(buckets);
+
+    charts.tenure = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Members by Tenure',
+                data: data,
+                backgroundColor: [
+                    'rgba(255, 107, 107, 0.7)',  // New - Red
+                    'rgba(255, 170, 107, 0.7)',  // Recent - Orange
+                    'rgba(255, 215, 0, 0.7)',    // Established - Gold
+                    'rgba(100, 200, 255, 0.7)',  // Loyal - Blue
+                    'rgba(78, 255, 78, 0.7)'     // Veteran - Green
+                ],
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+                x: { grid: { display: false } }
+            },
+            plugins: {
+                legend: { display: false }
             }
         }
     });
