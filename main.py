@@ -93,14 +93,20 @@ async def main():
     log_section("CLAN ACTIVITY REPORT PIPELINE", "Automated Data Harvest & Analytics Engine")
     
     # Step 1: Harvest
-    log_step(1, 4, "DATA HARVEST")
+    log_step(1, 5, "DATA HARVEST")
     # Using descriptive name for the task
     if not run_module('scripts.harvest_sqlite', "Harvesting Data from Wise Old Man & Discord"):
         log_error("Harvest stage failed. Stopping pipeline to prevent partial data report.")
         return sys.exit(1)
 
-    # Step 2: Report
-    log_step(2, 4, "REPORT GENERATION")
+    # Step 2: AI Enrichment
+    log_step(2, 5, "AI ENRICHMENT")
+    if not run_module('scripts.mcp_enrich', "Enriching Data with AI (Gemini)"):
+        log_error("AI Enrichment failed. Stopping pipeline.")
+        return sys.exit(1)
+
+    # Step 3: Report
+    log_step(3, 5, "REPORT GENERATION")
     if not run_module('scripts.report_sqlite', "Generating Excel Report (SQLite source)"):
         log_error("Excel Report generation failed.")
     
@@ -108,6 +114,10 @@ async def main():
     log_step(3, 4, "DASHBOARD EXPORT")
     if not run_module('scripts.export_sqlite', "Exporting JSON Data for Web Dashboard"):
         log_error("Dashboard data export failed.")
+
+    # Step 3b: Deploy Docs
+    if not run_module('scripts.publish_docs', "Deploying Dashboard to /docs"):
+        log_error("Docs deployment failed.")
 
     # Step 4: CSV Export
     log_step(4, 4, "LEGACY EXPORT")

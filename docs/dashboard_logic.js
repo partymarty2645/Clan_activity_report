@@ -800,6 +800,8 @@ function renderAllCharts() {
     // UPDATED VISUALIZATIONS
     renderActivityCorrelation(); // Replaces Trend Area
     renderXPContribution();      // Replaces Player Radar
+    renderTenureDistribution();  // NEW: Clan Loyalty Tenure
+    renderLeaderboardChart();    // NEW: Top 10 Leaderboard (Composite Score)
 
     // renderPlayerRadar(); // REMOVED per user request
 
@@ -1472,6 +1474,57 @@ function renderXPvsBossChart(members) {
         }
     });
 
+}
+
+function renderTenureDistribution() {
+    const ctx = document.getElementById('tenure-distribution-chart');
+    if (!ctx) return;
+    if (charts.tenure) charts.tenure.destroy();
+
+    // Categorize members by tenure in days
+    const members = dashboardData.allMembers || [];
+    const categories = {
+        'New (0-30)': 0,
+        'Newcomer (31-90)': 0,
+        'Regular (91-180)': 0,
+        'Veteran (181-365)': 0,
+        'Elder (365+)': 0
+    };
+
+    members.forEach(m => {
+        const days = m.days_in_clan || 0;
+        if (days <= 30) categories['New (0-30)']++;
+        else if (days <= 90) categories['Newcomer (31-90)']++;
+        else if (days <= 180) categories['Regular (91-180)']++;
+        else if (days <= 365) categories['Veteran (181-365)']++;
+        else categories['Elder (365+)']++;
+    });
+
+    charts.tenure = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(categories),
+            datasets: [{
+                data: Object.values(categories),
+                backgroundColor: [
+                    '#FF6B6B',      // New (red)
+                    '#FFD700',      // Newcomer (gold)
+                    '#00d4ff',      // Regular (cyan)
+                    '#33FF33',      // Veteran (green)
+                    '#FF1493'       // Elder (hot pink)
+                ],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right', labels: { color: '#ccc', font: { size: 11 } } },
+                tooltip: { callbacks: { label: function(ctx) { return ctx.label + ': ' + ctx.parsed.y + ' members'; } } }
+            }
+        }
+    });
 }
 
 function renderLeaderboardChart() {

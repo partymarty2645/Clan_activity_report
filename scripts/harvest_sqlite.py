@@ -86,12 +86,12 @@ def resolve_member_id_sqlite(cursor: sqlite3.Cursor, normalized_name: str) -> Op
 
     return None
 
-async def fetch_member_data(username, wom=None, start_date=None):
+async def fetch_member_data(username, wom=None):
     try:
         # Use injected WOM client or get from ServiceFactory
         client = wom if wom is not None else await ServiceFactory.get_wom_client()
-        # Get snapshots (incrementally if start_date provided)
-        snapshots = await client.get_player_snapshots(username, start_date=start_date)
+        # Get all snapshots for historical data
+        snapshots = await client.get_player_snapshots(username)
         return (username, snapshots)
     except Exception as e:
         logger.warning(f"Failed to fetch {username}: {e}")
@@ -307,44 +307,8 @@ async def process_wom_harvest(wom, conn, cursor):
         conn.commit()
     except Exception as e:
         print(f"Error syncing members: {e}")
-
-    # --- OPTIMIZATION: Fetch Latest Snapshot Dates for Incremental Update ---
-    print("Fetching existing snapshot metrics to optimize download...")
-    last_snapshots = {}
-    try:
-        cursor.execute("SELECT username, MAX(timestamp) FROM wom_snapshots GROUP BY username")
-        for r_user, r_ts in cursor.fetchall():
-            last_snapshots[r_user] = r_ts
-    except Exception as e:
-        print(f"Failed to fetch last snapshot dates: {e}. Defaulting to full download.")
-
-    tasks = []
-    for m in members:
-        user = m['username']
-        start_date = last_snapshots.get(user)
         
-        # Robust Logic: Add delta to start_date to avoid inclusive duplicate
-        if start_date:
-            try:
-                # Handle potential formats from SQLite (it stores as string)
-                if 'T' in start_date:
-                    dt = datetime.datetime.fromisoformat(start_date.replace('Z', '+00:00'))
-                else:
-                    dt = datetime.datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
-                
-                # Ensure UTC
-                if dt.tzinfo is None:
-                    dt = dt.replace(tzinfo=timezone.utc)
-                
-                # Add 1 second buffer
-                dt += datetime.timedelta(seconds=1)
-                start_date = dt.isoformat()
-            except Exception as e:
-                # Fallback to None (full download) if parsing fails
-                # print(f"Date parse error for {user}: {e}")
-                start_date = None
-
-        tasks.append(fetch_member_data(user, wom=wom, start_date=start_date))
+    tasks = [fetch_member_data(m['username'], wom=wom) for m in members]
     
     results = []
     # Determine if we are running in an interactive terminal
@@ -418,7 +382,7 @@ async def process_wom_harvest(wom, conn, cursor):
                         for b_name, b_val in bosses.items():
                             kills = b_val.get('kills', -1)
                             rank = b_val.get('rank', 0)
-                            if kills > 0:
+                            if kills > -1:
                                 boss_rows.append((snap_id, b_name, kills, rank))
                         
                         if boss_rows:

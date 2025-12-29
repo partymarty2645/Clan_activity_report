@@ -1,0 +1,90 @@
+{
+    "mcpServers": {
+        "sqlite": {
+            "command": "docker",
+            "args": [
+                "run",
+                "-i",
+                "--rm",
+                "-v",
+                "d:/Clan_activity_report/clan_data.db:/app/clan_data.db",
+                "mcp/sqlite",
+                "--db-path",
+                "/app/clan_data.db"
+            ]
+        },
+        "filesystem": {
+            "command": "docker",
+            "args": [
+                "run",
+                "-i",
+                "--rm",
+                "-v",
+                "d:/Clan_activity_report:/projects",
+                "mcp/filesystem",
+                "/projects"
+            ]
+        },
+        "fetch": {
+            "command": "docker",
+            "args": [
+                "run",
+                "-i",
+                "--rm",
+                "mcp/fetch"
+            ]
+        },
+        "gemini-api-docs": {
+            "command": "docker",
+            "args": [
+                "run",
+                "-i",
+                "--rm",
+                "mcp/gemini-api-docs-mcp"
+            ]
+        },
+        "python-refactoring": {
+            "command": "docker",
+            "args": [
+                "run",
+                "-i",
+                "--rm",
+                "mcp/mcp-python-refactoring"
+            ]
+        },
+        "task-orchestrator": {
+            "command": "docker",
+            "args": [
+                "run",
+                "-i",
+                "--rm",
+                "-v",
+                "mcp-task-data:/app/data",
+                "ghcr.io/jpicklyk/task-orchestrator"
+            ]
+        },
+        "database-server": {
+            "command": "docker",
+            "args": [
+                "run",
+                "-i",
+                "--rm",
+                "-v",
+                "d:/Clan_activity_report/clan_data.db:/app/clan_data.db",
+                "-e",
+                "DATABASE_URL=sqlite+aiosqlite:///app/clan_data.db",
+                "souhardyak/mcp-db-server"
+            ]
+        },
+        "github": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-github"
+            ],
+            "env": {
+                "GITHUB_PERSONAL_ACCESS_TOKEN": "<YOUR_TOKEN_HERE>"
+            }
+        }
+    }
+}

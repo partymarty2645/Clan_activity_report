@@ -1,0 +1,49 @@
+{
+  "bosses": [
+    "Tekton", "Vanguards", "Vespula", "The Great Olm", "The Maiden of Sugadinti", "The Pestilent Bloat",
+    "Nylocas Vasilias", "Sotetseg", "Xarpus", "Verzik Vitur", "Akkha", "Ba-Ba", "Kephri", "Zebak",
+    "Elidinis' Warden", "Tumeken's Warden", "Ahrim the Blighted", "Dharok the Wretched", "Guthan the Infested",
+    "Karil the Tainted", "Torag the Corrupted", "Verac the Defiled", "Blood Moon", "Blue Moon", "Eclipse Moon",
+    "Abyssal Sire", "Alchemical Hydra", "Araxxor", "Cerberus", "Dusk", "Dawn", "Kraken",
+    "Thermonuclear Smoke Devil", "The Leviathan", "The Whisperer", "Vardorvis", "Duke Sucellus",
+    "Commander Zilyana", "General Graardor", "K'ril Tsutsaroth", "Kree'arra", "Nex", "Artio", "Callisto",
+    "Calvar'ion", "Vet'ion", "Spindel", "Venenatis", "Chaos Elemental", "Chaos Fanatic", "Crazy Archaeologist",
+    "King Black Dragon", "Scorpia", "Crystalline Hunllef", "TzTok-Jad", "TzKal-Zuk", "Sol Heredit", "Phantom Muspah",
+    "Vorkath", "Zulrah", "Scurrius", "Corporeal Beast", "The Nightmare", "Phosani's Nightmare", "The Hueycoatl",
+    "Dagannoth Rex", "Dagannoth Prime", "Dagannoth Supreme", "Giant Mole", "Kalphite Queen", "Sarachnis", "Bryophyta",
+    "Obor", "Hespori", "Mimic", "Skotizo", "Yama", "The Doom of Mokhaiotl", "Amoxliatl"
+  ],
+  "skills": [
+    "Attack", "Hitpoints", "Mining", "Strength", "Agility", "Smithing", "Defence", "Herblore", "Fishing",
+    "Ranged", "Thieving", "Cooking", "Prayer", "Crafting", "Firemaking", "Magic", "Fletching", "Woodcutting",
+    "Runecraft", "Slayer", "Farming", "Construction", "Hunter", "Sailing"
+  ],
+  "ranks": {
+    "official": ["Owner", "Deputy Owner", "Administrator", "Guest"],
+    "army_ranks_1": ["Dogsbody", "Minion", "Recruit", "Pawn", "Private", "Corporal", "Novice", "Sergeant", "Cadet"],
+    "army_ranks_2": ["Page", "Noble", "Adept", "Legionnaire", "Lieutenant", "Proselyte", "Captain", "Major", "General", "Master"],
+    "army_ranks_3": ["Officer", "Commander", "Colonel", "Brigadier", "Admiral", "Marshal"],
+    "gemstones": ["Opal", "Jade", "Red Topaz", "Sapphire", "Emerald", "Ruby", "Diamond", "Dragonstone", "Onyx", "Zenyte"],
+    "non_human": ["Kitten", "Bob", "Wily", "Hellcat", "Skulled", "Goblin", "Beast", "Imp", "Gnome Child", "Gnome Elder", "Short Green Guy"],
+    "regions": ["Misthalinian", "Karamjan", "Asgarnian", "Kharidian", "Morytanian", "Wild", "Kandarin", "Fremennik", "Tirannian"],
+    "religions": ["Brassican", "Saradominist", "Guthixian", "Zamorakian", "Serenist", "Bandosian", "Zarosian", "Armadylean", "Xerician"],
+    "rune_symbols": ["Air", "Mind", "Water", "Earth", "Fire", "Body", "Cosmic", "Chaos", "Nature", "Law", "Death", "Astral", "Blood", "Soul", "Wrath"],
+    "trees": ["Diseased", "Pine", "Wintumber", "Oak", "Willow", "Maple", "Yew", "Blisterwood", "Magic"],
+    "skills_roles": ["Attacker", "Enforcer", "Defender", "Ranger", "Priest", "Magician", "Runecrafter", "Medic", "Athlete", "Herbologist", "Thief", "Crafter", "Fletcher", "Miner", "Smith", "Fisher", "Cook", "Firemaker", "Lumberjack", "Slayer", "Farmer", "Constructor", "Hunter", "Skiller", "Competitor"],
+    "capes": ["Holy", "Unholy", "Natural", "Sage", "Destroyer", "Mediator", "Legend", "Myth", "TzTok", "TzKal", "Maxed"],
+    "specialization": ["Skilling-focused", "Anchor", "Apothecary", "Merchant", "Feeder", "Harpoon", "Carry"],
+    "combat_focus": ["Archer", "Battlemage", "Artillery", "Infantry", "Smiter", "Looter", "Saviour", "Sniper", "Crusader", "Spellcaster"],
+    "miscellaneous_1": ["Mentor", "Prefect", "Leader", "Supervisor", "Superior", "Executive", "Senator", "Monarch", "Scavenger", "Labourer", "Worker", "Forager", "Hoarder", "Prospector", "Gatherer", "Collector", "Bronze", "Iron", "Steel", "Gold", "Mithril", "Adamant", "Rune", "Dragon", "Protector", "Bulwark", "Justiciar", "Sentry", "Guardian", "Warden", "Vanguard", "Templar", "Squire", "Duellist", "Striker", "Ninja", "Inquisitor", "Expert", "Knight", "Paladin", "Goon", "Brawler", "Bruiser", "Scourge", "Fighter", "Warrior", "Barbarian", "Berserker"],
+    "miscellaneous_2": ["Staff", "Crew", "Helper", "Moderator", "Sheriff"],
+    "colors": ["Red", "Orange", "Yellow", "Green", "Blue", "Purple", "Pink", "Grey"],
+    "magic_roles": ["Wizard", "Trickster", "Illusionist", "Summoner", "Necromancer", "Warlock", "Witch", "Seer"],
+    "stealth": ["Assassin", "Cutpurse", "Bandit", "Scout", "Burglar", "Rogue", "Smuggler", "Brigand"],
+    "achievement_ranks": ["Oracle", "Pure", "Champion", "Epic", "Mystic", "Hero", "Trialist", "Defiler"],
+    "knowledge_roles": ["Scholar", "Councillor", "Recruiter", "Learner", "Scribe", "Assistant", "Teacher", "Coordinator"],
+    "movement": ["Walker", "Speed-Runner", "Wanderer", "Pilgrim", "Vagrant", "Record-chaser", "Racer", "Strider"],
+    "healing": ["Doctor", "Nurse", "Druid", "Healer", "Zealot", "Cleric", "Shaman", "Therapist"],
+    "playstyle": ["Gamer", "Adventurer", "Explorer", "Achiever", "Quester", "Raider", "Completionist", "Elite"],
+    "fire_theme": ["Firestarter", "Specialist", "Burnt", "Pyromancer", "Prodigy", "Ignitor"],
+    "artisan": ["Artisan", "Legacy"]
+  }
+}

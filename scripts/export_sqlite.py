@@ -26,19 +26,29 @@ OUTPUT_FILE = "clan_data.json"
 
 
 
-def generate_ai_insights(members):
+def generate_ai_insights(members, insight_file="data/ai_insights.json"):
     """
-    Generates procedural 'AI' insights using the expanded random pool.
-    Returns a dict with 'insights' (list of cards) and 'pulse' (list of ticker strings).
+    Generates 'AI' insights. Prefers Gemini-generated JSON from scripts/mcp_enrich.py.
+    Falls back to heuristic AIInsightGenerator if file is missing.
     """
-    # Initialize Generator
-    generator = AIInsightGenerator(members)
+    selected_insights = []
     
-    # Get 9 random insights
-    selected_insights = generator.get_selection(9)
-    
-    # Generate Pulse separately or extract from insights?
-    # For now, let's keep pulse simple or generate it:
+    # 1. Try Loading Gemini Insights
+    if os.path.exists(insight_file):
+        try:
+            with open(insight_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, list) and len(data) > 0:
+                    selected_insights = data
+                    logger.info(f"Loaded {len(data)} insights from {insight_file}")
+        except Exception as e:
+            logger.error(f"Failed to load AI insights file: {e}")
+
+    # 2. Fallback to Heuristics
+    if not selected_insights:
+        logger.info("Using Heuristic AI Generator (Fallback)")
+        generator = AIInsightGenerator(members)
+        selected_insights = generator.get_selection(9)
     
     pulse = []
     # Dynamic Pulse from the selected insights
@@ -71,6 +81,7 @@ def generate_ai_insights(members):
         "pulse": pulse
     }
 
+
 def format_number(num):
     if num >= 1000000: return f"{num/1000000:.1f}M"
     if num >= 1000: return f"{num/1000:.1f}k"
@@ -78,267 +89,6 @@ def format_number(num):
 
 def get_db_connection():
     return sqlite3.connect(DB_PATH)
-
-def get_latest_snapshots(cursor):
-    # Get latest snapshot for each user
-    cursor.execute(Queries.GET_LATEST_SNAPSHOTS)
-    rows = cursor.fetchall()
-    return {r[1]: {'id': r[0], 'ts': r[2], 'xp': r[3], 'boss': r[4]} for r in rows}
-
-    return {r[1]: {'id': r[0], 'ts': r[2], 'xp': r[3], 'boss': r[4]} for r in rows}
-
-def get_min_timestamps(cursor):
-    # Get the FIRST seen snapshot for each user (timestamp + data)
-    cursor.execute(Queries.GET_MIN_TIMESTAMPS)
-    # Return dict: username -> {ts, xp, boss}
-    return {r[0]: {'ts': r[1], 'xp': r[2], 'boss': r[3]} for r in cursor.fetchall()}
-
-def get_past_snapshots(cursor, cutoff_days=7):
-    # For each user, find the snapshot that is closest to 'cutoff_days' ago
-    
-    target_date = datetime.datetime.now(timezone.utc) - timedelta(days=cutoff_days)
-    target_iso = target_date.isoformat()
-    
-    cursor.execute(Queries.GET_SNAPSHOTS_AT_CUTOFF, (target_iso,))
-    
-    rows = cursor.fetchall()
-    return {r[1]: {'id': r[0], 'ts': r[2], 'xp': r[3], 'boss': r[4]} for r in rows}
-
-def get_boss_data(cursor, snapshot_ids):
-    if not snapshot_ids: return {}
-    # sqlite limit variables is usually 999. We might need to chunk.
-    ids = list(snapshot_ids)
-    result = {}
-    
-    chunk_size = 500
-    for i in range(0, len(ids), chunk_size):
-        chunk = ids[i:i+chunk_size]
-        placeholders = ','.join('?' * len(chunk))
-        cursor.execute(Queries.GET_BOSS_DATA_CHUNK.format(placeholders), chunk)
-        
-        for row in cursor.fetchall():
-            sid, name, kills = row
-            if sid not in result: result[sid] = {}
-            result[sid][name] = kills
-            
-    return result
-
-def get_clan_trend(cursor, days=30):
-    # Aggregate Clan-Wide XP and Messages per day
-    # We need 1 extra day of history to calculate the first day's gain
-    start_date = datetime.datetime.now(timezone.utc) - timedelta(days=days+1)
-    cutoff_ts = start_date.isoformat()
-    
-    trend_data = {} # date_str -> {'xp_total': 0, 'msgs': 0, 'xp_gain': 0}
-
-    # 1. Calculate Daily Clan XP Total (Sum of max xp per user per day)
-    try:
-        cursor.execute(Queries.GET_DAILY_XP_MAX, (cutoff_ts,))
-        
-        # Aggregate to daily total
-        daily_totals = {} # day -> sum_xp
-        for row in cursor.fetchall():
-            day, user, xp = row
-            if day not in daily_totals: daily_totals[day] = 0
-            daily_totals[day] += xp
-            
-        # Calculate Gains (Day N - Day N-1)
-        sorted_days = sorted(daily_totals.keys())
-        for i in range(1, len(sorted_days)):
-            curr_day = sorted_days[i]
-            prev_day = sorted_days[i-1]
-            gain = daily_totals[curr_day] - daily_totals[prev_day]
-            # Verify gain is positive (re-names or resets can cause negative dips, ignore those)
-            if gain < 0: gain = 0 
-            
-            if curr_day not in trend_data: trend_data[curr_day] = {'msgs': 0, 'xp_gain': 0}
-            trend_data[curr_day]['xp_gain'] = gain
-
-    except sqlite3.OperationalError as e:
-        print(f"Warning: XP Trend calculation failed: {e}")
-
-    # 2. Daily Messages Sum
-    try:
-        cursor.execute(Queries.GET_DAILY_MSGS, (cutoff_ts,))
-        
-        for row in cursor.fetchall():
-            day, count = row
-            if day not in trend_data: trend_data[day] = {'msgs': 0, 'xp_gain': 0}
-            trend_data[day]['msgs'] = count
-            
-    except sqlite3.OperationalError as e:
-        print(f"Warning: Message Trend calculation failed: {e}")
-
-    # Convert to sorted list for the last 'days' (exclude the buffer day if used only for diff)
-    result = []
-    display_start = datetime.datetime.now(timezone.utc) - timedelta(days=days)
-    
-    for i in range(days):
-        d = (display_start + timedelta(days=i)).strftime('%Y-%m-%d')
-        # If no data for this day, defaults to 0
-        val = trend_data.get(d, {'msgs': 0, 'xp_gain': 0})
-        result.append({'date': d, 'xp': val['xp_gain'], 'msgs': val['msgs']})
-        
-    return result
-
-# --- NEW AGGREGATIONS FOR CHARTS ---
-
-def get_boss_diversity(cursor, snapshot_ids):
-    # Sum of all kills per boss for the latest snapshot
-    if not snapshot_ids: return {}
-    ids = list(snapshot_ids)
-    
-    placeholders = ','.join('?' * len(ids))
-    cursor.execute(Queries.GET_BOSS_DIVERSITY.format(placeholders), ids)
-    
-    data = cursor.fetchall() # list of (name, count)
-    
-    # Process for Chart: All Bosses (User Request)
-    labels = []
-    values = []
-    
-    # Sort by count desc
-    data.sort(key=lambda x: x[1], reverse=True)
-    
-    for row in data:
-        if row[1] > 0:
-            labels.append(row[0].replace('_', ' ').title())
-            values.append(row[1])
-            
-    return {"labels": labels, "datasets": [{"data": values}]}
-
-def get_raids_performance(cursor, snapshot_ids):
-    if not snapshot_ids: return {}
-    ids = list(snapshot_ids)
-    placeholders = ','.join('?' * len(ids))
-    
-    # Explicitly check for raids
-    raids_map = {
-        'Chambers Of Xeric': 'CoX',
-        'Chambers Of Xeric Challenge Mode': 'CoX',
-        'Theatre Of Blood': 'ToB',
-        'Theatre Of Blood Hard Mode': 'ToB',
-        'Tombs Of Amascut': 'ToA',
-        'Tombs Of Amascut Expert': 'ToA'
-    }
-    
-    raids_counts = {'CoX': 0, 'ToB': 0, 'ToA': 0}
-    
-    cursor.execute(Queries.GET_BOSS_SUMS_FOR_IDS.format(placeholders), ids)
-    
-    for row in cursor.fetchall():
-        name = row[0].replace('_', ' ').title()
-        if name in raids_map:
-            short_name = raids_map[name]
-            raids_counts[short_name] += row[1]
-            
-    # Return keys and values for chart
-    return {
-        "labels": list(raids_counts.keys()),
-        "datasets": [{"data": list(raids_counts.values())}]
-    }
-
-def get_skill_mastery(cursor, snapshot_ids):
-    # Count how many people have 99 in each skill using raw_data JSON
-    if not snapshot_ids: return {}
-    ids = list(snapshot_ids)
-    placeholders = ','.join('?' * len(ids))
-    
-    try:
-        cursor.execute(Queries.GET_RAW_DATA_FOR_IDS.format(placeholders), ids)
-    except sqlite3.OperationalError:
-        print("Warning: 'raw_data' column likely missing in wom_snapshots. Skipping Skill Mastery.")
-        return {}
-    
-    skill_counts = {}
-    
-    for row in cursor.fetchall():
-        if not row[0]: continue
-        try:
-            data = json.loads(row[0])
-            # WOM structure: data -> data -> skills 
-            skills = data.get('data', {}).get('skills', {})
-            if not skills:
-                skills = data.get('skills', {})
-                
-            for skill_name, stats in skills.items():
-                if skill_name == 'overall': continue
-                if stats.get('level', 0) >= 99:
-                    skill_counts[skill_name] = skill_counts.get(skill_name, 0) + 1
-                    
-        except json.JSONDecodeError:
-            continue
-            
-    sorted_skills = sorted(skill_counts.items(), key=lambda x: x[1], reverse=True)
-    
-    labels = [s[0].title() for s in sorted_skills]
-    values = [s[1] for s in sorted_skills]
-        
-    return {"labels": labels, "datasets": [{"data": values}]}
-
-def get_trending_boss_monthly(cursor, days=30):
-    # Identify the boss with the highest DELTA in total clan kills over last 30 days
-
-    latest_snaps = get_latest_snapshots(cursor)
-    past_30_snaps = get_past_snapshots(cursor, days)
-    
-    if not latest_snaps: return None
-    
-    latest_ids = [v['id'] for v in latest_snaps.values()]
-    past_ids = [v['id'] for v in past_30_snaps.values()]
-    
-    # Helper to sum
-    def sum_bosses(sids):
-        if not sids: return {}
-        ph = ','.join('?' * len(sids))
-        cursor.execute(Queries.GET_BOSS_SUMS_FOR_IDS.format(ph), list(sids))
-        return {row[0]: row[1] for row in cursor.fetchall()}
-
-    now_sums = sum_bosses(latest_ids)
-    old_sums = sum_bosses(past_ids)
-    
-    deltas = {}
-    for boss, kills in now_sums.items():
-        prev = old_sums.get(boss, 0)
-        gain = kills - prev
-        if gain > 0:
-            deltas[boss] = gain
-            
-    if not deltas: return None
-    
-    top_boss = max(deltas, key=deltas.get) 
-    
-    # Now get DAILY data for this boss for the chart
-    cutoff_dt = datetime.datetime.now(timezone.utc) - timedelta(days=days)
-    
-    cursor.execute(Queries.GET_DAILY_BOSS_KILLS, (cutoff_dt.isoformat(), top_boss))
-    
-    daily_raw = {row[0]: row[1] for row in cursor.fetchall()}
-    
-    if not daily_raw:
-        today_str = datetime.datetime.now(timezone.utc).strftime('%Y-%m-%d')
-        daily_raw = {today_str: now_sums.get(top_boss, 0)}
-    
-    sorted_days = sorted(daily_raw.keys())
-    
-    labels = []
-    values = []
-    
-    for i in range(1, len(sorted_days)):
-        d_curr = sorted_days[i]
-        d_prev = sorted_days[i-1]
-        gain = daily_raw[d_curr] - daily_raw[d_prev]
-        if gain < 0: gain = 0
-        labels.append(d_curr)
-        values.append(gain)
-        
-    return {
-        "boss_name": top_boss.replace('_', ' ').title(), 
-        "total_gain": deltas[top_boss],
-        "chart_data": {"labels": labels, "datasets": [{"data": values, "label": "Daily Kills"}]}
-    }
-
-
 
 def run_export():
     logger.info("Starting Web Dashboard Export...")
@@ -577,9 +327,9 @@ def run_export():
                     pass
             
             # 2. Fallback to Min Snapshot
-            if not joined_dt and u_lower in min_timestamps:
+            if not joined_dt and u_clean in min_timestamps:
                 try:
-                    joined_dt = min_timestamps[u_lower].timestamp
+                    joined_dt = min_timestamps[u_clean].timestamp
                     # if min_ts_str:
                     #    clean_ts = min_ts_str.replace('Z', '+00:00')
                     #    joined_dt = datetime.datetime.fromisoformat(clean_ts)
@@ -662,6 +412,12 @@ def run_export():
                         break
             
             # Same for Total
+            if 'kush' in u_clean or 'xterm' in u_clean or 'p2k' in u_clean:
+                print(f"DEBUG_PRINT: Processing '{u_clean}'. KeyInStats: {u_clean in msg_stats_total}. Total: {user_obj.get('msgs_total')}, StatsCount: {msg_stats_total.get(u_clean)}")
+                if not (u_clean in msg_stats_total):
+                     # Print partial matches
+                     matches = [k for k in msg_stats_total.keys() if 'kush' in k or 'xterm' in k or 'p2k' in k]
+                     print(f"DEBUG_PRINT: Partial keys in stats: {matches}")
             if u_clean in msg_stats_total:
                  user_obj['msgs_total'] = msg_stats_total[u_clean]
             else:
@@ -684,8 +440,6 @@ def run_export():
                         user_obj['msgs_30d'] = count
                         break
             
-            if 'gowi' in u_clean:
-                logger.debug(f"[DEBUG LOOP] Processing '{u_clean}'. Total: {user_obj['msgs_total']}, 7d: {user_obj['msgs_7d']}, 30d: {user_obj['msgs_30d']}")
             
             # FILTER: Exclude users with NO activity (0 messages AND 0 boss kills)
             if user_obj['msgs_total'] == 0 and user_obj.get('total_boss', 0) == 0:
@@ -763,48 +517,16 @@ def run_export():
             json.dump(output_data, f, indent=2)
             f.write(";")
         logger.info(f"Exported to {js_output_file}")
-        
-        # --- GIT HUB PAGES EXPORT (docs/ folder) ---
-        docs_dir = os.path.join(os.getcwd(), 'docs')
-        if not os.path.exists(docs_dir):
-            os.makedirs(docs_dir)
 
-        import shutil
-        
-        # 1. Data (JSON)
-        shutil.copy(OUTPUT_FILE, os.path.join(docs_dir, OUTPUT_FILE))
-
-        # 1b. Data (JS)
-        shutil.copy(js_output_file, os.path.join(docs_dir, js_output_file))
-        
-        # 2. HTML Dashboard -> index.html (for standard web serving)
-        html_file = "clan_dashboard.html"
-        if os.path.exists(html_file):
-            shutil.copy(html_file, os.path.join(docs_dir, "index.html"))
-    
-        # 3. JS Logic
-        js_file = "dashboard_logic.js"
-        if os.path.exists(js_file):
-            shutil.copy(js_file, os.path.join(docs_dir, js_file))
-            
-        # 4. Assets Folder
-        assets_local = os.path.join(os.getcwd(), 'assets')
-        assets_docs = os.path.join(docs_dir, 'assets')
-        if os.path.exists(assets_local):
-            if os.path.exists(assets_docs):
-                shutil.rmtree(assets_docs) # Clean replace
-            shutil.copytree(assets_local, assets_docs)
-            
-        logger.info(f"Dashboard deployed successfully to: docs/ (Ready for GitHub Pages)")
-        
-        # --- Drive Export ---
+        # Drive Export (Legacy Support)
         if Config.LOCAL_DRIVE_PATH:
             from core.drive import DriveExporter
-            DriveExporter.export_file(os.path.join("docs", "clan_data.js"))
-            DriveExporter.export_file(os.path.join("docs", "clan_data.json"))
-            DriveExporter.export_file(os.path.join("docs", "index.html"), target_filename="clan_dashboard.html")
+            # Data Files
+            DriveExporter.export_file("clan_data.js")
+            DriveExporter.export_file("clan_data.json")
             
-            # Export Dependencies
+            # Dashboard Files
+            DriveExporter.export_file("clan_dashboard.html")
             DriveExporter.export_file("dashboard_logic.js")
             if os.path.exists("ai_data.js"):
                  DriveExporter.export_file("ai_data.js")
@@ -814,21 +536,18 @@ def run_export():
             if os.path.exists(assets_dir):
                 for root, dirs, files in os.walk(assets_dir):
                     for file in files:
-                        # Calculate relative path for target filename (e.g., assets/rank_minion.png)
                         abs_path = os.path.join(root, file)
                         rel_path = os.path.relpath(abs_path, os.getcwd())
                         DriveExporter.export_file(abs_path, target_filename=rel_path)
 
-        if missing_assets:
-            logger.warning(f"Missing {len(missing_assets)} assets: {sorted(list(missing_assets))}")
-
+        
     except Exception as e:
-        logger.error(f"Export failed: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Export Failed: {e}", exc_info=True)
     finally:
-        if conn: conn.close()
-        if db_session: db_session.close()
+        conn.close()
+        db_session.close()
+
+
 
 if __name__ == "__main__":
     print("DEBUG: Starting export_sqlite script...", flush=True)

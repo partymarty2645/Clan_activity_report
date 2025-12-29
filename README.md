@@ -39,10 +39,13 @@ The project follows a modular **Process Isolation** design (no shared memory sta
 3. **Export (`scripts/export_sqlite.py`)**:
     - **The Dashboard Engine**.
     - Generates `clan_data.json` (Raw Data) and `clan_data.js` (Frontend Loader).
+    - Uses `core/analytics.py` for chart aggregations.
+
+4. **Deploy (`scripts/publish_docs.py`)**:
     - Deploys the static HTML Dashboard (`clan_dashboard.html` + `assets`) to the `docs/` folder (GitHub Pages ready).
 
-4. **Orchestrator (`main.py`)**:
-    - The "Conductor". Sequentially runs Harvest -> Report -> Export.
+5. **Orchestrator (`main.py`)**:
+    - The "Conductor". Sequentially runs Harvest -> Report -> Export -> Deploy.
     - Ensures clean exits and error handling.
 
 ## 🔎 Quick Connectivity Check (WOM)

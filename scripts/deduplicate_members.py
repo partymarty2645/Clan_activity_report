@@ -55,12 +55,16 @@ def deduplicate():
                     print(f"    -> Moving {len(snaps)} snapshots to Keeper.")
                     for s in snaps:
                         s.user_id = keeper.id
-                        # Note: This might cause Unique Constraint violations if Keeper already 
-                        # has a snapshot for the same timestamp.
-                        # Let's trust Sqlite/SQLAlchemy to complain or we handle it?
-                        # Actually, better to catch it.
-                
-                # 2. Delete Stale Member
+
+                # 2. Re-link Discord Messages (CRITICAL)
+                from database.models import DiscordMessage
+                msgs = session.query(DiscordMessage).filter(DiscordMessage.user_id == stale.id).all()
+                if msgs:
+                     print(f"    -> Moving {len(msgs)} Discord Messages to Keeper.")
+                     for msg in msgs:
+                         msg.user_id = keeper.id
+
+                # 3. Delete Stale Member
                 session.delete(stale)
                 merged_count += 1
         

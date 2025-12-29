@@ -1,94 +1,95 @@
 window.aiData = {
-  "pulse": [
-    "Leadership Hierarchy: 9 clan leaders guide The 0ld G4ng.",
-    "Governance Structure: Owner, Zenytes, Deputies, Saviours tiers established."
-  ],
-  "alerts": [
-    {
-      "type": "success",
-      "icon": "fa-crown",
-      "title": "Leadership Tier Expanded",
-      "message": "Wonindstink and Sirgowi recognized as Saviour tier leaders!"
-    }
-  ],
   "insights": [
     {
       "type": "milestone",
-      "title": "The Ascendant Owner",
-      "message": "Owner partymarty94 reigns: 463M XP, 25,178 kills.",
-      "image": "boss_abyssal_nexus.png",
-      "icon": "👑"
-    },
-    {
-      "type": "battle",
-      "title": "Zenyte Clash",
-      "message": "Jakestl314 towers with 304M XP vs psilocyn's 233M XP.",
-      "image": "boss_abyssal_orphan.png",
-      "icon": "⚔️"
+      "title": "Sovereign of Shadows: partymarty94",
+      "message": "Owner partymarty94 towers with 463,868,162 XP, 25,178 kills",
+      "image": "rank_dragon.png",
+      "icon": "\ud83d\udc51"
     },
     {
       "type": "trend",
-      "title": "Deputy Might",
-      "message": "Docofmed commands 284M XP, 14,846 kills, shaping clan foundations.",
-      "image": "boss_abyssal_sire.png",
-      "icon": "📈"
+      "title": "Zenith Ascendant: jakestl314",
+      "message": "Zenyte jakestl314 commands 304,525,690 XP, 6,316 boss kills",
+      "image": "rank_zenyte.png",
+      "icon": "\u26a1"
+    },
+    {
+      "type": "battle",
+      "title": "Silent Blade: Psilocyn",
+      "message": "Psilocyn wields 233,340,137 XP and 693 kills, second zenith",
+      "image": "rank_gold.png",
+      "icon": "\ud83d\udde1\ufe0f"
+    },
+    {
+      "type": "milestone",
+      "title": "Golden Pillar: Docofmed",
+      "message": "Docofmed stands with 284,606,730 XP, 14,846 kills, clan standard",
+      "image": "rank_major.png",
+      "icon": "\ud83d\udee1\ufe0f"
+    },
+    {
+      "type": "trend",
+      "title": "Structural Sentinel: Jbwell",
+      "message": "Jbwell builds with 123,711,404 XP, 6,226 kills, steadfast",
+      "image": "rank_coordinator.png",
+      "icon": "\ud83c\udfd7\ufe0f"
     },
     {
       "type": "fun",
-      "title": "Well of Structure",
-      "message": "Jbwell builds with 123M XP, 6,226 kills—architect of order.",
-      "image": "boss_agile_scarab.png",
-      "icon": "🔧"
+      "title": "Rocksteady Grinder: Mtndck",
+      "message": "Mtndck mines 110,214,258 XP, 4,103 kills, solid foundation",
+      "image": "rank_supervisor.png",
+      "icon": "\u26cf\ufe0f"
+    },
+    {
+      "type": "battle",
+      "title": "Combat Sage: Wonindstink",
+      "message": "Wonindstink slays 11,221 kills, 207,176,259 XP, guiding fire",
+      "image": "rank_myth.png",
+      "icon": "\ud83d\udd25"
+    },
+    {
+      "type": "trend",
+      "title": "Spiritual Vanguard: Sirgowi",
+      "message": "Sirgowi balances 4,060 kills, 138,688,845 XP, ethereal strength",
+      "image": "rank_explorer.png",
+      "icon": "\ud83c\udf3f"
+    },
+    {
+      "type": "battle",
+      "title": "Titan of Triumph: Kc208",
+      "message": "Kc208 dominates with 233,414,398 XP, 17,785 boss kills",
+      "image": "boss_kraken.png",
+      "icon": "\u2694\ufe0f"
+    },
+    {
+      "type": "trend",
+      "title": "Steady Storm: Quiet1996",
+      "message": "Quiet1996 accrues 148,216,808 XP, 1,124 kills, rising tide",
+      "image": "boss_nexling.png",
+      "icon": "\ud83c\udf0a"
+    },
+    {
+      "type": "fun",
+      "title": "Midnight Miner: Ouinis",
+      "message": "Ouinis extracts 120,872,898 XP, 5,613 kills, nocturnal grind",
+      "image": "boss_artio.png",
+      "icon": "\u26cf\ufe0f"
+    },
+    {
+      "type": "trend",
+      "title": "Who Ascends Next? Zy0p",
+      "message": "Zy0p holds 95,496,479 XP, 3,084 kills\u2014can he climb higher?",
+      "image": "skill_magic.png",
+      "icon": "\u2753"
     },
     {
       "type": "outlier",
-      "title": "Mtndck the Steady",
-      "message": "Mtndck maintains 110M XP, 4,103 kills—steady grind champion.",
-      "image": "boss_ahrim_the_blighted.png",
-      "icon": "🔨"
-    },
-    {
-      "type": "battle",
-      "title": "Saviour of Combat",
-      "message": "Wonindstink wields 207M XP, 11,221 kills—combat beacon.",
-      "image": "boss_alchemical_hydra.png",
-      "icon": "⚔️"
-    },
-    {
-      "type": "trend",
-      "title": "Spiritual Sirgowi",
-      "message": "Sirgowi balances 138M XP, 4,060 kills—spiritual contributor.",
-      "image": "boss_artio.png",
-      "icon": "🧘"
-    },
-    {
-      "type": "trend",
-      "title": "Tier Power Gap",
-      "message": "Owner's 25,178 kills dwarf Zenyte's 6,316—hierarchy evident.",
-      "image": "boss_callisto.png",
-      "icon": "📊"
-    },
-    {
-      "type": "question",
-      "title": "Who Leads the Kill Count?",
-      "message": "Who tops boss kills? Partymarty94 with 25,178 slays.",
-      "image": "boss_dagannoth_prime.png",
-      "icon": "❓"
-    },
-    {
-      "type": "superlative",
-      "title": "Unmatched XP Summit",
-      "message": "Highest XP: partymarty94, soaring beyond 463M, clan's zenith.",
-      "image": "boss_giant_mole.png",
-      "icon": "🏆"
-    },
-    {
-      "type": "fun",
-      "title": "Balance of the Nine",
-      "message": "Nine pillars: XP, kills, governance—clan thrives through their synergy.",
-      "image": "boss_chambers_of_xeric.png",
-      "icon": "🤝"
+      "title": "Quiet Contributor: Seamorebuns",
+      "message": "Seamorebuns boasts 40,313,924 XP, 914 kills\u2014steady ember",
+      "image": "skill_mining.png",
+      "icon": "\ud83d\udd0d"
     }
-  ],
-  "generated_at": "2025-12-29 02:41:09"
+  ]
 };

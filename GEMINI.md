@@ -30,10 +30,12 @@ The project orchestrates a pipeline of isolated scripts via `main.py`:
     * Fetches data from WOM and Discord.
     * Upserts data into the local SQLite database (`clan_data.db`).
 2. **Report (`scripts/report_sqlite.py`)**:
-    * Queries the database to generate the Excel report.
+    * Queries the database to generate the Excel report (`clan_report_summary_merged.xlsx`).
 3. **Export (`scripts/export_sqlite.py`)**:
-    * Extracts JSON data (`clan_data.json`) for the frontend.
-    * Deploys dashboard assets to the configured Google Drive folder.
+    * Generates `clan_data.json` and `clan_data.js` for the frontend.
+    * Uses `core/analytics.py` for all chart data aggregations.
+4. **Deploy (`scripts/publish_docs.py`)**:
+    * Deploys the dashboard assets (HTML, JS, JSON, Images) to the `docs/` folder for GitHub Pages.
 
 ## Setup & Usage
 
