@@ -1,5 +1,5 @@
 window.dashboardData = {
-  "generated_at": "2025-12-29T13:00:15.169831",
+  "generated_at": "2025-12-29T13:15:42.806987",
   "activity_heatmap": [
     2100,
     2199,
@@ -13,7 +13,7 @@ window.dashboardData = {
     1297,
     1059,
     1302,
-    985,
+    990,
     1378,
     1537,
     1842,
@@ -272,7 +272,7 @@ window.dashboardData = {
           27423,
           22898,
           22781,
-          22184,
+          22198,
           20641,
           18963,
           18318,
@@ -294,7 +294,7 @@ window.dashboardData = {
           9754,
           9456,
           9290,
-          9253,
+          9254,
           8831,
           8046,
           7913,
@@ -1005,6 +1005,26 @@ window.dashboardData = {
       "msgs_total": 6882
     },
     {
+      "username": "sirgowi",
+      "role": "saviour",
+      "rank_img": "rank_saviour.png",
+      "joined_at": "2025-04-20",
+      "days_in_clan": 253,
+      "xp_7d": 6031925,
+      "boss_7d": 84,
+      "xp_30d": 40159416,
+      "boss_30d": 966,
+      "favorite_boss": "Shellbane Gryphon",
+      "favorite_boss_img": "boss_shellbane_gryphon.png",
+      "favorite_boss_all_time": "Callisto",
+      "favorite_boss_all_time_img": "boss_callisto.png",
+      "total_xp": 141610397,
+      "total_boss": 4102,
+      "msgs_7d": 274,
+      "msgs_30d": 274,
+      "msgs_total": 274
+    },
+    {
       "username": "triplejz",
       "role": "prospector",
       "rank_img": "rank_prospector.png",
@@ -1043,26 +1063,6 @@ window.dashboardData = {
       "msgs_7d": 8,
       "msgs_30d": 17,
       "msgs_total": 528
-    },
-    {
-      "username": "sirgowi",
-      "role": "saviour",
-      "rank_img": "rank_saviour.png",
-      "joined_at": "2025-04-20",
-      "days_in_clan": 253,
-      "xp_7d": 5875387,
-      "boss_7d": 83,
-      "xp_30d": 40002878,
-      "boss_30d": 965,
-      "favorite_boss": "Shellbane Gryphon",
-      "favorite_boss_img": "boss_shellbane_gryphon.png",
-      "favorite_boss_all_time": "Callisto",
-      "favorite_boss_all_time_img": "boss_callisto.png",
-      "total_xp": 141453859,
-      "total_boss": 4101,
-      "msgs_7d": 273,
-      "msgs_30d": 273,
-      "msgs_total": 273
     },
     {
       "username": "qween",
@@ -1785,6 +1785,26 @@ window.dashboardData = {
       "msgs_total": 128
     },
     {
+      "username": "loafy",
+      "role": "hellcat",
+      "rank_img": "rank_hellcat.png",
+      "joined_at": "2025-03-17",
+      "days_in_clan": 286,
+      "xp_7d": 2806582,
+      "boss_7d": 0,
+      "xp_30d": 8995436,
+      "boss_30d": 189,
+      "favorite_boss": "Shellbane Gryphon",
+      "favorite_boss_img": "boss_shellbane_gryphon.png",
+      "favorite_boss_all_time": "Giant Mole",
+      "favorite_boss_all_time_img": "boss_giant_mole.png",
+      "total_xp": 322042223,
+      "total_boss": 15996,
+      "msgs_7d": 4,
+      "msgs_30d": 4,
+      "msgs_total": 4
+    },
+    {
       "username": "etk",
       "role": "doctor",
       "rank_img": "rank_doctor.png",
@@ -1823,26 +1843,6 @@ window.dashboardData = {
       "msgs_7d": 24,
       "msgs_30d": 201,
       "msgs_total": 1681
-    },
-    {
-      "username": "loafy",
-      "role": "hellcat",
-      "rank_img": "rank_hellcat.png",
-      "joined_at": "2025-03-17",
-      "days_in_clan": 286,
-      "xp_7d": 2768992,
-      "boss_7d": 0,
-      "xp_30d": 8957846,
-      "boss_30d": 189,
-      "favorite_boss": "Shellbane Gryphon",
-      "favorite_boss_img": "boss_shellbane_gryphon.png",
-      "favorite_boss_all_time": "Giant Mole",
-      "favorite_boss_all_time_img": "boss_giant_mole.png",
-      "total_xp": 322004633,
-      "total_boss": 15996,
-      "msgs_7d": 4,
-      "msgs_30d": 4,
-      "msgs_total": 4
     },
     {
       "username": "bigbaosj",
@@ -2065,6 +2065,26 @@ window.dashboardData = {
       "msgs_total": 758
     },
     {
+      "username": "theerecter",
+      "role": "spellcaster",
+      "rank_img": "rank_spellcaster.png",
+      "joined_at": "2025-02-14",
+      "days_in_clan": 317,
+      "xp_7d": 2274837,
+      "boss_7d": 200,
+      "xp_30d": 8385521,
+      "boss_30d": 372,
+      "favorite_boss": "Vardorvis",
+      "favorite_boss_img": "boss_vardorvis.png",
+      "favorite_boss_all_time": "Alchemical Hydra",
+      "favorite_boss_all_time_img": "boss_alchemical_hydra.png",
+      "total_xp": 230484184,
+      "total_boss": 10924,
+      "msgs_7d": 20,
+      "msgs_30d": 20,
+      "msgs_total": 20
+    },
+    {
       "username": "vanvolterii",
       "role": "dragonstone",
       "rank_img": "rank_dragonstone.png",
@@ -2143,26 +2163,6 @@ window.dashboardData = {
       "msgs_7d": 5,
       "msgs_30d": 12,
       "msgs_total": 12
-    },
-    {
-      "username": "theerecter",
-      "role": "spellcaster",
-      "rank_img": "rank_spellcaster.png",
-      "joined_at": "2025-02-14",
-      "days_in_clan": 317,
-      "xp_7d": 2190458,
-      "boss_7d": 186,
-      "xp_30d": 8301142,
-      "boss_30d": 358,
-      "favorite_boss": "Vardorvis",
-      "favorite_boss_img": "boss_vardorvis.png",
-      "favorite_boss_all_time": "Alchemical Hydra",
-      "favorite_boss_all_time_img": "boss_alchemical_hydra.png",
-      "total_xp": 230399805,
-      "total_boss": 10910,
-      "msgs_7d": 20,
-      "msgs_30d": 20,
-      "msgs_total": 20
     },
     {
       "username": "sorty121212",
@@ -4240,9 +4240,9 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_kraken.png",
       "total_xp": 132400889,
       "total_boss": 3281,
-      "msgs_7d": 3,
-      "msgs_30d": 3,
-      "msgs_total": 358
+      "msgs_7d": 5,
+      "msgs_30d": 5,
+      "msgs_total": 360
     },
     {
       "username": "speedpeen",
@@ -6960,9 +6960,9 @@ window.dashboardData = {
       "favorite_boss_all_time_img": "boss_kraken.png",
       "total_xp": 107523851,
       "total_boss": 6134,
-      "msgs_7d": 210,
-      "msgs_30d": 210,
-      "msgs_total": 210
+      "msgs_7d": 211,
+      "msgs_30d": 211,
+      "msgs_total": 211
     },
     {
       "username": "itashee",
@@ -7329,6 +7329,26 @@ window.dashboardData = {
       "msgs_total": 6882
     },
     {
+      "username": "sirgowi",
+      "role": "saviour",
+      "rank_img": "rank_saviour.png",
+      "joined_at": "2025-04-20",
+      "days_in_clan": 253,
+      "xp_7d": 6031925,
+      "boss_7d": 84,
+      "xp_30d": 40159416,
+      "boss_30d": 966,
+      "favorite_boss": "Shellbane Gryphon",
+      "favorite_boss_img": "boss_shellbane_gryphon.png",
+      "favorite_boss_all_time": "Callisto",
+      "favorite_boss_all_time_img": "boss_callisto.png",
+      "total_xp": 141610397,
+      "total_boss": 4102,
+      "msgs_7d": 274,
+      "msgs_30d": 274,
+      "msgs_total": 274
+    },
+    {
       "username": "triplejz",
       "role": "prospector",
       "rank_img": "rank_prospector.png",
@@ -7367,26 +7387,6 @@ window.dashboardData = {
       "msgs_7d": 8,
       "msgs_30d": 17,
       "msgs_total": 528
-    },
-    {
-      "username": "sirgowi",
-      "role": "saviour",
-      "rank_img": "rank_saviour.png",
-      "joined_at": "2025-04-20",
-      "days_in_clan": 253,
-      "xp_7d": 5875387,
-      "boss_7d": 83,
-      "xp_30d": 40002878,
-      "boss_30d": 965,
-      "favorite_boss": "Shellbane Gryphon",
-      "favorite_boss_img": "boss_shellbane_gryphon.png",
-      "favorite_boss_all_time": "Callisto",
-      "favorite_boss_all_time_img": "boss_callisto.png",
-      "total_xp": 141453859,
-      "total_boss": 4101,
-      "msgs_7d": 273,
-      "msgs_30d": 273,
-      "msgs_total": 273
     }
   ],
   "topBossKiller": {
@@ -7408,107 +7408,53 @@ window.dashboardData = {
   "ai": {
     "insights": [
       {
-        "type": "milestone",
-        "title": "Sovereign of Shadows",
-        "message": "Owner partymarty94 towers with 463,868,162 XP, 25,178 kills",
-        "image": "rank_dragon.png",
-        "icon": "\ud83d\udc51"
-      },
-      {
         "type": "trend",
-        "title": "Zenith Ascendant",
-        "message": "Zenyte jakestl314 commands 304,525,690 XP, 6,316 boss kills",
-        "image": "rank_zenyte.png",
-        "icon": "\u26a1"
+        "title": "Chat King",
+        "message": "Sirgowi leads chatter with 274 messages, beating the rest.",
+        "image": "skill_Attack.png",
+        "icon": "\ud83d\udcac"
       },
       {
         "type": "battle",
-        "title": "Silent Blade",
-        "message": "Psilocyn wields 233,340,137 XP and 693 kills, second zenith",
-        "image": "rank_gold.png",
-        "icon": "\ud83d\udde1\ufe0f"
+        "title": "Kill Beast",
+        "message": "Loafy dominates with 15,996 boss kills, clan's fiercest slayer.",
+        "image": "boss_Vorkath.png",
+        "icon": "\u2694\ufe0f"
       },
       {
-        "type": "milestone",
-        "title": "Golden Pillar",
-        "message": "Docofmed stands with 284,606,730 XP, 14,846 kills, clan standard",
-        "image": "rank_major.png",
+        "type": "outlier",
+        "title": "Quiet Titan",
+        "message": "Theerecter boasts 230M XP yet only 20 messages\u2014silent powerhouse.",
+        "image": "rank_Zenyte.png",
         "icon": "\ud83d\udee1\ufe0f"
       },
       {
         "type": "trend",
-        "title": "Structural Sentinel",
-        "message": "Jbwell builds with 123,711,404 XP, 6,226 kills, steadfast",
-        "image": "rank_coordinator.png",
-        "icon": "\ud83c\udfd7\ufe0f"
+        "title": "Rapid Ascent",
+        "message": "Sirgowi, 253 days in, amassed 4,102 kills and 274 messages.",
+        "image": "skill_Slayer.png",
+        "icon": "\ud83d\ude80"
       },
       {
         "type": "fun",
-        "title": "Rocksteady Grinder",
-        "message": "Mtndck mines 110,214,258 XP, 4,103 kills, solid foundation",
-        "image": "rank_supervisor.png",
-        "icon": "\u26cf\ufe0f"
+        "title": "Silent Veteran",
+        "message": "Theerecter, 317 days old, only 20 messages\u2014needs more banter.",
+        "image": "skill_Agility.png",
+        "icon": "\ud83e\udd10"
       },
       {
-        "type": "battle",
-        "title": "Combat Sage",
-        "message": "Wonindstink slays 11,221 kills, 207,176,259 XP, guiding fire",
-        "image": "rank_myth.png",
-        "icon": "\ud83d\udd25"
-      },
-      {
-        "type": "trend",
-        "title": "Spiritual Vanguard",
-        "message": "Sirgowi balances 4,060 kills, 138,688,845 XP, ethereal strength",
-        "image": "rank_explorer.png",
-        "icon": "\ud83c\udf3f"
-      },
-      {
-        "type": "battle",
-        "title": "Titan of Triumph",
-        "message": "Kc208 dominates with 233,414,398 XP, 17,785 boss kills",
-        "image": "boss_kraken.png",
-        "icon": "\u2694\ufe0f"
-      },
-      {
-        "type": "trend",
-        "title": "Steady Storm",
-        "message": "Quiet1996 accrues 148,216,808 XP, 1,124 kills, rising tide",
-        "image": "boss_nexling.png",
-        "icon": "\ud83c\udf0a"
-      },
-      {
-        "type": "fun",
-        "title": "Midnight Miner",
-        "message": "Ouinis extracts 120,872,898 XP, 5,613 kills, nocturnal grind",
-        "image": "boss_artio.png",
-        "icon": "\u26cf\ufe0f"
-      },
-      {
-        "type": "trend",
-        "title": "Who Ascends Next?",
-        "message": "Zy0p holds 95,496,479 XP, 3,084 kills\u2014can he climb higher?",
-        "image": "skill_magic.png",
-        "icon": "\u2753"
-      },
-      {
-        "type": "outlier",
-        "title": "Quiet Contributor",
-        "message": "Seamorebuns boasts 40,313,924 XP, 914 kills\u2014steady ember",
-        "image": "skill_mining.png",
-        "icon": "\ud83d\udd0d"
+        "type": "milestone",
+        "title": "Grind Guru",
+        "message": "Loafy, 286 days here, 322M XP, 4 messages\u2014true grindmaster.",
+        "image": "boss_Kraken.png",
+        "icon": "\ud83c\udfc6"
       }
     ],
     "pulse": [
-      "Owner partymarty94 towers with 463,868,162 XP, 25,178 kills",
-      "Zenyte jakestl314 commands 304,525,690 XP, 6,316 boss kills",
-      "Docofmed stands with 284,606,730 XP, 14,846 kills, clan standard",
-      "Jbwell builds with 123,711,404 XP, 6,226 kills, steadfast",
-      "Mtndck mines 110,214,258 XP, 4,103 kills, solid foundation",
-      "Sirgowi balances 4,060 kills, 138,688,845 XP, ethereal strength",
-      "Quiet1996 accrues 148,216,808 XP, 1,124 kills, rising tide",
-      "Ouinis extracts 120,872,898 XP, 5,613 kills, nocturnal grind",
-      "Zy0p holds 95,496,479 XP, 3,084 kills\u2014can he climb higher?",
+      "Sirgowi leads chatter with 274 messages, beating the rest",
+      "Sirgowi, 253 days in, amassed 4,102 kills and 274 messages",
+      "Theerecter, 317 days old, only 20 messages\u2014needs more banter",
+      "Loafy, 286 days here, 322M XP, 4 messages\u2014true grindmaster",
       "Clan gained 383M XP this week"
     ]
   },

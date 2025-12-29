@@ -147,8 +147,8 @@ class ExcelReporter:
         # 3. Sort & Decorate (Medals)
         df = pd.DataFrame(rows)
         if not df.empty:
-            # Sort by Total Messages, then Total XP
-            df.sort_values(by=['Total Msgs', 'Total XP'], ascending=[False, False], inplace=True)
+            # Sort by Msgs 30d (highest to lowest), then by Total XP as tiebreaker
+            df.sort_values(by=['Msgs 30d', 'Total XP'], ascending=[False, False], inplace=True)
             df.insert(0, '#', range(1, len(df) + 1))
 
             # Apply Icons to Top 3
