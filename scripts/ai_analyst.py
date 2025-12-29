@@ -160,23 +160,34 @@ def generate_strategic_alerts(conn):
                 "message": f"{count} members are very chatty but light on XP. Balance is key!"
             })
         
-        # Alert 3: Raid Enthusiasts
-        cursor = conn.execute("""
-            SELECT bs.boss_name, COUNT(DISTINCT ws.username) as players
-            FROM boss_snapshots bs
-            JOIN wom_snapshots ws ON bs.wom_snapshot_id = ws.id
-            WHERE bs.boss_name LIKE '%chambers%' AND ws.timestamp >= datetime('now', '-7 days')
-            GROUP BY bs.boss_name
-            HAVING players > 5
-        """)
-        raid_activity = cursor.fetchone()
-        if raid_activity:
-            alerts.append({
-                "type": "success",
-                "icon": "fa-fire",
-                "title": "Raid Party",
-                "message": f"CoX activity booming with {raid_activity['players']} participants this weekend!"
-            })
+        # Alert 3: Raid Enthusiasts (CoX, ToA, ToB)
+        try:
+            cursor = conn.execute("""
+                SELECT 
+                    CASE 
+                        WHEN boss_name LIKE '%chambers%' THEN 'CoX'
+                        WHEN boss_name LIKE '%tombs%' THEN 'ToA'
+                        WHEN boss_name LIKE '%theatre_of_blood%' THEN 'ToB'
+                    END as raid_type,
+                    SUM(kills) as total_kills
+                FROM boss_snapshots
+                WHERE (boss_name LIKE '%chambers%' OR boss_name LIKE '%tombs%' OR boss_name LIKE '%theatre_of_blood%')
+                GROUP BY raid_type
+                ORDER BY total_kills DESC
+                LIMIT 1
+            """)
+            raid_activity = cursor.fetchone()
+            if raid_activity:
+                raid_names = {"CoX": "⚔️ Chambers", "ToA": "🏺 Tombs of Amascut", "ToB": "🧛 Theatre of Blood"}
+                raid_name = raid_names.get(raid_activity['raid_type'], raid_activity['raid_type'])
+                alerts.append({
+                    "type": "success",
+                    "icon": "fa-fire",
+                    "title": "Raid Dominance",
+                    "message": f"{raid_name} is dominated! {raid_activity['total_kills']:,} kills total. Your team is elite!"
+                })
+        except Exception as e:
+            logger.warning(f"Raid alert failed: {e}")
         
         # Alert 4: New Members
         cursor = conn.execute("""
@@ -399,7 +410,53 @@ def generate_ai_insights(conn):
         except Exception as e:
             logger.error(f"✗ Insight 5 failed: {e}")
         
-        # Insight 6: Positive Reinforcement
+        # Insight 6: Raid Specialists
+        try:
+            # Get raid data directly from boss_snapshots
+            cursor = conn.execute("""
+                SELECT 
+                    CASE 
+                        WHEN boss_name LIKE '%chambers%' THEN 'CoX'
+                        WHEN boss_name LIKE '%tombs%' THEN 'ToA'
+                        WHEN boss_name LIKE '%theatre_of_blood%' THEN 'ToB'
+                    END as raid_type,
+                    SUM(kills) as total_kills
+                FROM boss_snapshots
+                WHERE (boss_name LIKE '%chambers%' OR boss_name LIKE '%tombs%' OR boss_name LIKE '%theatre_of_blood%')
+                GROUP BY raid_type
+                ORDER BY total_kills DESC
+                LIMIT 1
+            """)
+            raid = cursor.fetchone()
+            if raid and raid['raid_type']:
+                raid_names = {"CoX": "⚔️ Chambers of Xeric", "ToA": "🏺 Tombs of Amascut", "ToB": "🧛 Theatre of Blood"}
+                raid_name = raid_names.get(raid['raid_type'], raid['raid_type'])
+                insights.append({
+                    "type": "trend",
+                    "title": "Raid Specialists",
+                    "message": f"Your {raid_name} team is crushing it! {raid['total_kills']:,} kills total. Elite raiders pushing limits!"
+                })
+                logger.info(f"✓ Insight 6 (Raid Specialists): {raid['raid_type']} - {raid['total_kills']} kills")
+            else:
+                logger.warning("✗ Insight 6: No raid data")
+        except Exception as e:
+            logger.error(f"✗ Insight 6 failed: {e}")
+            raid = cursor.fetchone()
+            if raid and raid['raid_type']:
+                raid_emojis = {"CoX": "⚔️ Chambers", "ToA": "🏺 Theatre of Ancient", "ToB": "🧛 Temple of Blood"}
+                raid_name = raid_emojis.get(raid['raid_type'], raid['raid_type'])
+                insights.append({
+                    "type": "trend",
+                    "title": "Raid Specialists",
+                    "message": f"Your {raid_name} team is crushing it! {raid['unique_players']} raiders, {raid['total_kills']:,} kills this week. Elite execution!"
+                })
+                logger.info(f"✓ Insight 6 (Raid Specialists): {raid['raid_type']} - {raid['total_kills']} kills")
+            else:
+                logger.warning("✗ Insight 6: No raid data")
+        except Exception as e:
+            logger.error(f"✗ Insight 6 failed: {e}")
+        
+        # Insight 7: Positive Reinforcement
         try:
             cursor = conn.execute("""
                 WITH xp_data AS (
@@ -427,11 +484,11 @@ def generate_ai_insights(conn):
                     "title": "Active Community",
                     "message": f"{count} members are highly engaged this week with strong grinding and chat activity. Great job keeping the clan vibrant!"
                 })
-                logger.info(f"✓ Insight 6 (Active Community): {count} members")
+                logger.info(f"✓ Insight 7 (Active Community): {count} members")
             else:
-                logger.warning(f"✗ Insight 6: Not enough active members - {count}")
+                logger.warning(f"✗ Insight 7: Not enough active members - {count}")
         except Exception as e:
-            logger.error(f"✗ Insight 6 failed: {e}")
+            logger.error(f"✗ Insight 7 failed: {e}")
         
     except Exception as e:
         logger.error(f"Critical error generating AI insights: {e}")

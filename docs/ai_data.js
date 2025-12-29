@@ -6,6 +6,12 @@ window.aiData = {
   "alerts": [
     {
       "type": "success",
+      "icon": "fa-fire",
+      "title": "Raid Dominance",
+      "message": "\ud83c\udffa Tombs of Amascut is dominated! 4,595,634 kills total. Your team is elite!"
+    },
+    {
+      "type": "success",
       "icon": "fa-user-plus",
       "title": "New Recruits",
       "message": "Welcome 16 new members this week!"
@@ -30,12 +36,17 @@ window.aiData = {
     {
       "type": "analysis",
       "title": "Clan Efficiency",
-      "message": "Average XP per message: 32470894. The clan is highly efficient in balancing grind and chat."
+      "message": "Average XP per message: 32483888. The clan is highly efficient in balancing grind and chat."
     },
     {
       "type": "warning",
       "title": "Activity Monitor",
-      "message": "Keep an eye on rstaco - no chat activity detected this week. A friendly check-in might help!"
+      "message": "Keep an eye on 1o313 - no chat activity detected this week. A friendly check-in might help!"
+    },
+    {
+      "type": "trend",
+      "title": "Raid Specialists",
+      "message": "Your \ud83c\udffa Tombs of Amascut team is crushing it! 4,595,634 kills total. Elite raiders pushing limits!"
     },
     {
       "type": "success",
@@ -43,5 +54,5 @@ window.aiData = {
       "message": "67 members are highly engaged this week with strong grinding and chat activity. Great job keeping the clan vibrant!"
     }
   ],
-  "generated_at": "2025-12-29 15:41:03"
+  "generated_at": "2025-12-29 15:46:37"
 };
