@@ -881,44 +881,45 @@ function renderActivityCorrelation() {
         return;
     }
 
-    // Transform history data - format for dual axis chart
-    const data = [];
+    // Transform history data into two separate arrays for DualAxes
+    const xpData = [];
+    const msgData = [];
+    
     history.forEach(d => {
         const dateStr = new Date(d.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-        data.push({
+        xpData.push({
             date: dateStr,
-            value: d.xp,
-            type: 'XP Gained'
+            xp: d.xp
         });
-        data.push({
+        msgData.push({
             date: dateStr,
-            value: d.msgs,
-            type: 'Messages'
+            msgs: d.msgs
         });
     });
 
     try {
         const dualAxes = new G2Plot.DualAxes('container-activity-trend', {
-            data: data,
+            data: [xpData, msgData],
             xField: 'date',
-            yField: 'value',
-            seriesField: 'type',
+            yField: ['xp', 'msgs'],
             geometryOptions: [
-                { geometry: 'column' },
-                { geometry: 'line', lineStyle: { lineWidth: 3 } }
+                { 
+                    geometry: 'column',
+                    color: '#00d4ff'
+                },
+                { 
+                    geometry: 'line',
+                    color: '#FFD700',
+                    lineStyle: { lineWidth: 3 }
+                }
             ],
             theme: 'dark',
-            color: ['#00d4ff', '#FFD700'],
             appendPadding: [20, 50, 50, 50],
-            legend: { position: 'top-left' },
-            tooltip: {
-                formatter: (datum) => {
-                    return { 
-                        name: datum.type, 
-                        value: datum.type === 'Messages' ? datum.value : formatNumber(datum.value) 
-                    };
-                }
-            }
+            meta: {
+                xp: { alias: 'XP Gained', formatter: (v) => formatNumber(v) },
+                msgs: { alias: 'Messages' }
+            },
+            legend: { position: 'top-left' }
         });
 
         dualAxes.render();
