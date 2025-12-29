@@ -50,22 +50,22 @@ class ClanDataPipeline:
         query = text("""
             SELECT
                 bs.boss_name,
-                COUNT(DISTINCT ws.user_id) as players_with_kills,
-                SUM(bs.kills) as total_kills,
-                AVG(bs.kills) as avg_kills,
+                COUNT(DISTINCT ws.username) as clan_members,
+                ROUND(AVG(bs.kills), 1) as avg_kills,
                 MAX(bs.kills) as max_kills,
                 AVG(CASE WHEN bs.rank > 0 THEN bs.rank END) as avg_rank,
                 MIN(CASE WHEN bs.rank > 0 THEN bs.rank END) as best_rank
             FROM boss_snapshots bs
             JOIN wom_snapshots ws ON bs.snapshot_id = ws.id
+            WHERE ws.username IN (SELECT username FROM clan_members)
             GROUP BY bs.boss_name
-            ORDER BY total_kills DESC
+            ORDER BY clan_members DESC
         """)
 
         result = self.db.execute(query).fetchall()
         return pd.DataFrame(result, columns=[
-            'boss_name', 'players_with_kills', 'total_kills',
-            'avg_kills', 'max_kills', 'avg_rank', 'best_rank'
+            'boss_name', 'clan_members', 'avg_kills',
+            'max_kills', 'avg_rank', 'best_rank'
         ])
 
     def process_member_activity(self, df: pd.DataFrame) -> Dict[str, Any]:

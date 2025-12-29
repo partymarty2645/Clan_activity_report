@@ -95,17 +95,21 @@ class Queries:
     '''
     
     GET_BOSS_DIVERSITY = '''
-        SELECT boss_name, SUM(kills)
-        FROM boss_snapshots
-        WHERE snapshot_id IN ({})
+        SELECT boss_name, COUNT(DISTINCT ws.username) as clan_members
+        FROM boss_snapshots bs
+        JOIN wom_snapshots ws ON bs.snapshot_id = ws.id
+        WHERE bs.snapshot_id IN ({})
+        AND ws.username IN (SELECT username FROM clan_members)
         GROUP BY boss_name
-        ORDER BY SUM(kills) DESC
+        ORDER BY COUNT(DISTINCT ws.username) DESC
     '''
     
     GET_BOSS_SUMS_FOR_IDS = '''
-        SELECT boss_name, SUM(kills)
-        FROM boss_snapshots
-        WHERE snapshot_id IN ({})
+        SELECT boss_name, ROUND(AVG(bs.kills), 1) as avg_kills
+        FROM boss_snapshots bs
+        JOIN wom_snapshots ws ON bs.snapshot_id = ws.id
+        WHERE bs.snapshot_id IN ({})
+        AND ws.username IN (SELECT username FROM clan_members)
         GROUP BY boss_name
     '''
 

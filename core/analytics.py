@@ -632,7 +632,7 @@ class AnalyticsService:
         return {"labels": labels, "datasets": [{"data": values}]}
 
     def get_raids_performance(self, snapshot_ids: List[int]) -> Dict[str, Any]:
-        """Calculates total raids KC for CoX, ToB, ToA."""
+        """Calculates average raids KC for CoX, ToB, ToA."""
         if not snapshot_ids: return {"labels": [], "datasets": [{"data": []}]}
         from data.queries import Queries
         placeholders = ','.join('?' * len(snapshot_ids))
@@ -643,12 +643,15 @@ class AnalyticsService:
             'Theatre Of Blood': 'ToB', 'Theatre Of Blood Hard Mode': 'ToB',
             'Tombs Of Amascut': 'ToA', 'Tombs Of Amascut Expert': 'ToA'
         }
-        raids_counts = {'CoX': 0, 'ToB': 0, 'ToA': 0}
-        for name_raw, count in rows:
+        raids_avg = {'CoX': [], 'ToB': [], 'ToA': []}
+        for name_raw, avg_kills in rows:
             name = name_raw.replace('_', ' ').title()
             if name in raids_map:
-                raids_counts[raids_map[name]] += count
-        return {"labels": list(raids_counts.keys()), "datasets": [{"data": list(raids_counts.values())}]}
+                raids_avg[raids_map[name]].append(avg_kills)
+        
+        # Calculate overall average for each raid type
+        raids_totals = {k: round(sum(v) / len(v), 1) if v else 0 for k, v in raids_avg.items()}
+        return {"labels": list(raids_totals.keys()), "datasets": [{"data": list(raids_totals.values())}]}
 
     def get_skill_mastery(self, snapshot_ids: List[int]) -> Dict[str, Any]:
         """Counts 99s across all skills using the 'raw_data' JSON column."""
