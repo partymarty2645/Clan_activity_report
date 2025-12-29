@@ -1,7 +1,7 @@
 window.aiData = {
   "pulse": [
     "Tactical Brief: Raid coordination improving.",
-    "System Status: All clan systems nominal."
+    "Intelligence Update: New recruits showing promise."
   ],
   "alerts": [
     {
@@ -15,8 +15,8 @@ window.aiData = {
     {
       "type": "trend",
       "title": "Skill Mastery Leader",
-      "message": "bagyy leads with 750,777,317 total XP. Inspiring others!"
+      "message": "bagyy leads with 751,147,981 total XP. Inspiring others!"
     }
   ],
-  "generated_at": "2025-12-29 03:02:32"
+  "generated_at": "2025-12-29 12:46:54"
 };

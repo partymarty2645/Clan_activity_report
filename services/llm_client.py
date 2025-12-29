@@ -74,8 +74,8 @@ class GeminiClient:
     
     def __init__(self, model: str = "gemini-2.5-pro"):
         try:
-            from google import genai
-            from google.genai import types
+            from google import genai  # type: ignore
+            from google.genai import types  # type: ignore
         except ImportError as e:
             raise ImportError(f"google-genai library not installed. Install with: pip install google-genai\nError: {e}")
         

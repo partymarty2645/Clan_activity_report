@@ -52,9 +52,9 @@ def _extract_joined_at(member: dict) -> Optional[str]:
         dt = datetime.datetime.fromisoformat(joined_at_str.replace('Z', '+00:00'))
         dt = TimestampHelper.to_utc(dt)
         # If joined date is in the future, ignore it (invalid data)
-        if dt > datetime.datetime.now(timezone.utc):
+        if dt is None or dt > datetime.datetime.now(timezone.utc):
             return None
-        return dt.isoformat()
+        return dt.isoformat() if dt else None
     except Exception:
         return None
 
@@ -196,9 +196,12 @@ async def run_sqlite_harvest(wom_client_inject: Optional[WOMClient] = None, disc
                         last_msg_ts += '+00:00'
                     start_date = datetime.datetime.fromisoformat(last_msg_ts)
                     start_date = TimestampHelper.to_utc(start_date)
-                    start_date += datetime.timedelta(milliseconds=1)
-                    print(f"  - Found previous messages. Resuming from {TimestampHelper.format_for_display(start_date)}...")
-                    discord_start_date = start_date
+                    if start_date is not None:
+                        start_date = start_date + datetime.timedelta(milliseconds=1)
+                        print(f"  - Found previous messages. Resuming from {TimestampHelper.format_for_display(start_date)}...")
+                        discord_start_date = start_date
+                    else:
+                        discord_start_date = founding_date
                 except:
                     discord_start_date = founding_date
             else:
@@ -417,6 +420,8 @@ async def process_wom_harvest(wom, conn, cursor):
                     try:
                         ts_dt = datetime.datetime.fromisoformat(created_at.replace('Z', '+00:00'))
                         ts_dt = TimestampHelper.to_utc(ts_dt)
+                        if ts_dt is None:
+                            continue
                         ts_now_iso = ts_dt.isoformat()
                     except:
                         continue

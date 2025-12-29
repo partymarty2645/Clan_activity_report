@@ -800,8 +800,6 @@ function renderAllCharts() {
     // UPDATED VISUALIZATIONS
     renderActivityCorrelation(); // Replaces Trend Area
     renderXPContribution();      // Replaces Player Radar
-    renderTenureDistribution();  // NEW: Clan Loyalty Tenure
-    renderLeaderboardChart();    // NEW: Top 10 Leaderboard (Composite Score)
 
     // renderPlayerRadar(); // REMOVED per user request
 
@@ -1476,57 +1474,6 @@ function renderXPvsBossChart(members) {
 
 }
 
-function renderTenureDistribution() {
-    const ctx = document.getElementById('tenure-distribution-chart');
-    if (!ctx) return;
-    if (charts.tenure) charts.tenure.destroy();
-
-    // Categorize members by tenure in days
-    const members = dashboardData.allMembers || [];
-    const categories = {
-        'New (0-30)': 0,
-        'Newcomer (31-90)': 0,
-        'Regular (91-180)': 0,
-        'Veteran (181-365)': 0,
-        'Elder (365+)': 0
-    };
-
-    members.forEach(m => {
-        const days = m.days_in_clan || 0;
-        if (days <= 30) categories['New (0-30)']++;
-        else if (days <= 90) categories['Newcomer (31-90)']++;
-        else if (days <= 180) categories['Regular (91-180)']++;
-        else if (days <= 365) categories['Veteran (181-365)']++;
-        else categories['Elder (365+)']++;
-    });
-
-    charts.tenure = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: Object.keys(categories),
-            datasets: [{
-                data: Object.values(categories),
-                backgroundColor: [
-                    '#FF6B6B',      // New (red)
-                    '#FFD700',      // Newcomer (gold)
-                    '#00d4ff',      // Regular (cyan)
-                    '#33FF33',      // Veteran (green)
-                    '#FF1493'       // Elder (hot pink)
-                ],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'right', labels: { color: '#ccc', font: { size: 11 } } },
-                tooltip: { callbacks: { label: function(ctx) { return ctx.label + ': ' + ctx.parsed.y + ' members'; } } }
-            }
-        }
-    });
-}
-
 function renderLeaderboardChart() {
     const ctx = document.getElementById('leaderboard-chart');
     if (!ctx) return;
@@ -1608,38 +1555,16 @@ function renderAIInsights(members) {
 
     // AI INSIGHTS INTEGRATION
     if (window.aiData && window.aiData.insights) {
-        window.aiData.insights.forEach((insight, idx) => {
-            // Color mapping by type
-            const colorMap = {
-                'trend': 'var(--neon-gold)',
-                'milestone': 'var(--neon-green)',
-                'battle': 'var(--neon-red)',
-                'outlier': 'var(--neon-blue)',
-                'fun': 'var(--neon-cyan)',
-                'question': 'var(--neon-yellow)',
-                'superlative': 'var(--neon-purple)'
-            };
-            const colorVar = colorMap[insight.type] || 'var(--neon-cyan)';
-            
-            // Use emoji from insight or fallback to type-based icon
-            const displayIcon = insight.icon || '⚔️';
-            
-            // Build image element if image exists - properly contained
-            let imageHTML = '';
-            if (insight.image) {
-                imageHTML = `<div style="width:100%; height:150px; margin: 10px 0; overflow:hidden; border-radius:4px; display:flex; align-items:center; justify-content:center; background: rgba(0,0,0,0.3);">
-                    <img src="assets/${insight.image}" style="max-width:100%; max-height:100%; object-fit:contain; object-position:center;" />
-                </div>`;
-            }
-            
+        window.aiData.insights.forEach(insight => {
+            const colorVar = insight.type === 'trend' ? 'var(--neon-gold)' : insight.type === 'analysis' ? 'var(--neon-blue)' : 'var(--neon-green)';
+            const icon = insight.type === 'trend' ? 'fa-chart-line' : insight.type === 'analysis' ? 'fa-brain' : 'fa-heartbeat';
             container.innerHTML += `
-            <div class="alert-card" style="border-left: 4px solid ${colorVar}; overflow: visible; display: flex; flex-direction: column;">
+            <div class="alert-card" style="border-left: 3px solid ${colorVar}">
                 <div class="alert-header" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;color:${colorVar}">
-                    <span style="font-size:1.3em;">${displayIcon}</span>
-                    <span style="font-family:'Cinzel'; font-weight: bold;">${insight.title}</span>
+                    <i class="fas ${icon}"></i>
+                    <span style="font-family:'Cinzel'">${insight.title}</span>
                 </div>
-                ${imageHTML}
-                <div class="alert-metric" style="color:#ccc; font-size: 0.9em; line-height: 1.5;">
+                <div class="alert-metric" style="color:#ccc; font-size: 0.9em;">
                     ${insight.message}
                 </div>
             </div>
