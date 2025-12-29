@@ -1571,14 +1571,16 @@ function renderAIInsights(members) {
             // Use emoji from insight or fallback to type-based icon
             const displayIcon = insight.icon || '⚔️';
             
-            // Build image element if image exists
+            // Build image element if image exists - properly contained
             let imageHTML = '';
             if (insight.image) {
-                imageHTML = `<img src="assets/${insight.image}" style="width:100%;height:120px;object-fit:cover;border-radius:4px;margin-bottom:10px;" />`;
+                imageHTML = `<div style="width:100%; height:150px; margin: 10px 0; overflow:hidden; border-radius:4px; display:flex; align-items:center; justify-content:center; background: rgba(0,0,0,0.3);">
+                    <img src="assets/${insight.image}" style="max-width:100%; max-height:100%; object-fit:contain; object-position:center;" />
+                </div>`;
             }
             
             container.innerHTML += `
-            <div class="alert-card" style="border-left: 4px solid ${colorVar}; overflow: hidden;">
+            <div class="alert-card" style="border-left: 4px solid ${colorVar}; overflow: visible; display: flex; flex-direction: column;">
                 <div class="alert-header" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;color:${colorVar}">
                     <span style="font-size:1.3em;">${displayIcon}</span>
                     <span style="font-family:'Cinzel'; font-weight: bold;">${insight.title}</span>
