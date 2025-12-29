@@ -1,6 +1,6 @@
 window.aiData = {
   "pulse": [
-    "Weather Report: Clear skies for bossing.",
+    "Tactical Brief: Raid coordination improving.",
     "Market Update: Skill prices fluctuating."
   ],
   "alerts": [
@@ -8,7 +8,7 @@ window.aiData = {
       "type": "success",
       "icon": "fa-fire",
       "title": "Raid Dominance",
-      "message": "\ud83c\udffa Tombs: 852 clan members raiding with avg 79.8 kills. Top: 921!"
+      "message": "\ud83c\udffa Tombs: 290 clan members raiding with avg 79.8 kills. Top: 921!"
     },
     {
       "type": "success",
@@ -41,12 +41,12 @@ window.aiData = {
     {
       "type": "warning",
       "title": "Activity Monitor",
-      "message": "Keep an eye on rezthepker - no chat activity detected this week. A friendly check-in might help!"
+      "message": "Keep an eye on naomhpeadar - no chat activity detected this week. A friendly check-in might help!"
     },
     {
       "type": "trend",
       "title": "Raid Specialists",
-      "message": "Your \ud83c\udffa Tombs of Amascut team is strong! 852 clan members raiding with avg 79.8 kills. Top: 921!"
+      "message": "Your \ud83c\udffa Tombs of Amascut team is strong! 290 clan members raiding with avg 79.8 kills. Top: 921!"
     },
     {
       "type": "success",
@@ -54,5 +54,5 @@ window.aiData = {
       "message": "67 members are highly engaged this week with strong grinding and chat activity. Great job keeping the clan vibrant!"
     }
   ],
-  "generated_at": "2025-12-29 15:51:23"
+  "generated_at": "2025-12-29 15:52:50"
 };

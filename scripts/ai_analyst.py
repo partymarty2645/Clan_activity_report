@@ -160,7 +160,7 @@ def generate_strategic_alerts(conn):
                 "message": f"{count} members are very chatty but light on XP. Balance is key!"
             })
         
-        # Alert 3: Raid Enthusiasts (CoX, ToA, ToB) - filter to actual clan members only
+        # Alert 3: Raid Enthusiasts (CoX, ToA, ToB) - filter to actual clan members only via username
         try:
             cursor = conn.execute("""
                 WITH clan_boss_data AS (
@@ -170,12 +170,12 @@ def generate_strategic_alerts(conn):
                             WHEN boss_name LIKE '%tombs%' THEN 'ToA'
                             WHEN boss_name LIKE '%theatre_of_blood%' THEN 'ToB'
                         END as raid_type,
-                        COUNT(DISTINCT ws.user_id) as unique_clan_raiders,
+                        COUNT(DISTINCT ws.username) as unique_clan_raiders,
                         ROUND(AVG(bs.kills), 1) as avg_kills_per_player,
                         MAX(bs.kills) as top_player_kills
                     FROM boss_snapshots bs
                     JOIN wom_snapshots ws ON bs.snapshot_id = ws.id
-                    WHERE ws.user_id IN (SELECT user_id FROM clan_members)
+                    WHERE ws.username IN (SELECT username FROM clan_members)
                     AND (boss_name LIKE '%chambers%' OR boss_name LIKE '%tombs%' OR boss_name LIKE '%theatre_of_blood%')
                     GROUP BY raid_type
                     ORDER BY unique_clan_raiders DESC
@@ -417,7 +417,7 @@ def generate_ai_insights(conn):
         except Exception as e:
             logger.error(f"✗ Insight 5 failed: {e}")
         
-        # Insight 6: Raid Specialists - filter to actual clan members
+        # Insight 6: Raid Specialists - filter to actual clan members via username
         try:
             # Get raid data from clan members only
             cursor = conn.execute("""
@@ -428,12 +428,12 @@ def generate_ai_insights(conn):
                             WHEN boss_name LIKE '%tombs%' THEN 'ToA'
                             WHEN boss_name LIKE '%theatre_of_blood%' THEN 'ToB'
                         END as raid_type,
-                        COUNT(DISTINCT ws.user_id) as unique_clan_raiders,
+                        COUNT(DISTINCT ws.username) as unique_clan_raiders,
                         ROUND(AVG(bs.kills), 1) as avg_kills_per_player,
                         MAX(bs.kills) as top_player_kills
                     FROM boss_snapshots bs
                     JOIN wom_snapshots ws ON bs.snapshot_id = ws.id
-                    WHERE ws.user_id IN (SELECT user_id FROM clan_members)
+                    WHERE ws.username IN (SELECT username FROM clan_members)
                     AND (boss_name LIKE '%chambers%' OR boss_name LIKE '%tombs%' OR boss_name LIKE '%theatre_of_blood%')
                     GROUP BY raid_type
                     ORDER BY unique_clan_raiders DESC
