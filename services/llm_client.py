@@ -1,12 +1,16 @@
 """
 Unified LLM Client - Support for multiple LLM providers
-#1 = gemini-3-flash (stable)
-#2 = gemini-2.5-pro (stable)
+#1 = gemini-2.5-pro (stable, no preview)
+#2 = gemini-2.5-flash (stable, no preview, faster)
 #3 = Groq oss-120b (stable)
+
+RATE LIMITING: Gemini free tier = 2 RPM (requests per minute)
+= 1 request every 30 seconds
 """
 
 import logging
 import os
+import time
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, Literal
 from enum import Enum
@@ -17,6 +21,27 @@ from dotenv import load_dotenv
 load_dotenv()
 
 logger = logging.getLogger("LLMClient")
+
+# ===== RATE LIMITING FOR GEMINI (2 RPM = 30 second minimum between requests) =====
+class RateLimiter:
+    """Enforces minimum delay between API calls for rate limit compliance"""
+    def __init__(self, min_interval_seconds: float = 30.0):
+        self.min_interval = min_interval_seconds
+        self.last_call_time = 0.0
+    
+    def wait_if_needed(self):
+        """Block until enough time has passed since last call"""
+        elapsed = time.time() - self.last_call_time
+        if elapsed < self.min_interval:
+            wait_time = self.min_interval - elapsed
+            logger.info(f"⏳ Rate limit: waiting {wait_time:.1f}s (2 RPM = 30s min between calls)")
+            time.sleep(wait_time)
+        self.last_call_time = time.time()
+
+# Global rate limiter for Gemini API (2 RPM = 1 request per 30 seconds)
+_gemini_rate_limiter = RateLimiter(min_interval_seconds=30.0)
+
+# ===== END RATE LIMITING =====
 
 # API Keys
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
@@ -30,9 +55,9 @@ if not GEMINI_API_KEY:
 
 class ModelProvider(str, Enum):
     """Available LLM providers"""
-    GEMINI_3_FLASH = "gemini-2.5-flash"   # #1 (fallback to 2.5 flash - faster, within quota)
-    GEMINI_2_5_PRO = "gemini-2.5-pro"     # #2
-    GROQ_OSS_120B = "groq-oss-120b"       # #3
+    GEMINI_2_5_PRO = "gemini-2.5-pro"     # #1 (primary - stable, no preview)
+    GEMINI_2_5_FLASH = "gemini-2.5-flash" # #2 (secondary - stable, no preview, faster)
+    GROQ_OSS_120B = "groq-oss-120b"       # #3 (fallback - always available)
 
 
 @dataclass
@@ -48,8 +73,11 @@ class GeminiClient:
     """Google Gemini API client wrapper"""
     
     def __init__(self, model: str = "gemini-2.5-pro"):
-        from google import genai
-        from google.genai import types
+        try:
+            from google import genai
+            from google.genai import types
+        except ImportError as e:
+            raise ImportError(f"google-genai library not installed. Install with: pip install google-genai\nError: {e}")
         
         if not GEMINI_API_KEY:
             raise ValueError("GEMINI_API_KEY not found in .env")
@@ -86,7 +114,7 @@ class GeminiClient:
         return LLMResponse(
             content=response.text,
             model=self.model,
-            provider=ModelProvider.GEMINI_3_FLASH if "3-flash" in self.model else ModelProvider.GEMINI_2_5_PRO,
+            provider=ModelProvider.GEMINI_2_5_FLASH if "flash" in self.model else ModelProvider.GEMINI_2_5_PRO,
             raw={"text": response.text}
         )
 
@@ -154,15 +182,24 @@ class UnifiedLLMClient:
     
     def __init__(self, provider: ModelProvider = ModelProvider.GROQ_OSS_120B):
         self.provider = provider
+        self.original_provider = provider
         
-        if provider == ModelProvider.GEMINI_3_FLASH:
-            self.client = GeminiClient(model=provider.value)  # Use the actual provider value (gemini-2.5-flash)
-        elif provider == ModelProvider.GEMINI_2_5_PRO:
-            self.client = GeminiClient(model=provider.value)
-        elif provider == ModelProvider.GROQ_OSS_120B:
-            self.client = GroqClient(model="openai/gpt-oss-120b")
-        else:
-            raise ValueError(f"Unknown provider: {provider}")
+        try:
+            if provider == ModelProvider.GEMINI_2_5_FLASH:
+                self.client = GeminiClient(model=provider.value)
+            elif provider == ModelProvider.GEMINI_2_5_PRO:
+                self.client = GeminiClient(model=provider.value)
+            elif provider == ModelProvider.GROQ_OSS_120B:
+                self.client = GroqClient(model="openai/gpt-oss-120b")
+            else:
+                raise ValueError(f"Unknown provider: {provider}")
+        except (ImportError, ValueError) as e:
+            if provider in [ModelProvider.GEMINI_2_5_FLASH, ModelProvider.GEMINI_2_5_PRO]:
+                logger.warning(f"⚠️ Gemini provider unavailable ({type(e).__name__}), falling back to Groq")
+                self.provider = ModelProvider.GROQ_OSS_120B
+                self.client = GroqClient(model="openai/gpt-oss-120b")
+            else:
+                raise
     
     def generate(
         self,
@@ -175,11 +212,11 @@ class UnifiedLLMClient:
     
     @staticmethod
     def get_provider_by_number(number: int) -> ModelProvider:
-        """Get provider by number: 1=Gemini 3-flash, 2=Gemini 2.5-pro, 3=Groq"""
+        """Get provider by number: 1=Gemini 2.5-pro, 2=Gemini 2.5-flash, 3=Groq"""
         if number == 1:
-            return ModelProvider.GEMINI_3_FLASH
-        elif number == 2:
             return ModelProvider.GEMINI_2_5_PRO
+        elif number == 2:
+            return ModelProvider.GEMINI_2_5_FLASH
         elif number == 3:
             return ModelProvider.GROQ_OSS_120B
         else:
