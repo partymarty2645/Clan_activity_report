@@ -74,6 +74,11 @@ class Config:
     # Harvest Safety
     HARVEST_STALE_THRESHOLD_SECONDS = int(os.getenv('HARVEST_STALE_THRESHOLD_SECONDS', 86400))
     HARVEST_SAFE_DELETE_RATIO = float(os.getenv('HARVEST_SAFE_DELETE_RATIO', 0.20))
+    
+    # WOM Snapshot Staleness Optimization (skip fetching players with recent data)
+    # Set to 0 to disable staleness skipping (fetch all players every run)
+    # Set to desired hours threshold (e.g., 6 = skip players with snapshots < 6 hours old)
+    WOM_STALENESS_SKIP_HOURS = int(os.getenv('WOM_STALENESS_SKIP_HOURS', 6))
 
     # Dashboard Limits
     LEADERBOARD_SIZE = int(os.getenv('LEADERBOARD_SIZE', 10))

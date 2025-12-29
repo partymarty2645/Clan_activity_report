@@ -328,11 +328,15 @@ async def process_wom_harvest(wom, conn, cursor):
         
     # OPTIMIZATION: Only fetch snapshots AFTER the latest stored timestamp for each player
     # This reduces API load from ~600K requests/run to ~1-2K for incremental updates
-    # ADDITIONAL OPTIMIZATION: Skip players with recent snapshots (< 12 hours old)
+    # ADDITIONAL OPTIMIZATION: Skip players with recent snapshots (< threshold hours old)
     tasks = []
     now_utc = datetime.datetime.now(timezone.utc)
-    staleness_threshold = 12 * 3600  # 12 hours in seconds
+    staleness_threshold_seconds = Config.WOM_STALENESS_SKIP_HOURS * 3600
     skipped_count = 0
+    
+    # Skip staleness optimization if WOM_STALENESS_SKIP_HOURS is 0
+    if Config.WOM_STALENESS_SKIP_HOURS == 0:
+        staleness_threshold_seconds = float('inf')  # Never skip based on staleness
     
     for m in members:
         username = m['username']
@@ -344,7 +348,7 @@ async def process_wom_harvest(wom, conn, cursor):
                 latest_dt = datetime.datetime.fromisoformat(latest_ts.replace('Z', '+00:00'))
                 age_seconds = (now_utc - latest_dt).total_seconds()
                 
-                if age_seconds < staleness_threshold:
+                if age_seconds < staleness_threshold_seconds:
                     # Data is fresh, skip fetching
                     skipped_count += 1
                     continue
@@ -365,7 +369,8 @@ async def process_wom_harvest(wom, conn, cursor):
     
     # Log optimization impact
     if skipped_count > 0:
-        print(f"Skipped {skipped_count} players with recent data (< 12 hours old). Fetching {len(tasks)} players...")
+        hours_threshold = Config.WOM_STALENESS_SKIP_HOURS
+        print(f"Skipped {skipped_count} players with recent data (< {hours_threshold}h old). Fetching {len(tasks)} players...")
     else:
         print(f"Downloading player snapshots ({len(tasks)} in queue)...")
     
