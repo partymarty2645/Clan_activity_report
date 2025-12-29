@@ -63,9 +63,9 @@ def generate_pulse_headlines(conn):
         top_boss = cursor.fetchone()
         if top_boss:
             templates = [
-                f"System Alert: {top_boss['boss_name'].title()} population declining - {top_boss['total_kills']} kills this week!",
-                f"Boss Watch: {top_boss['boss_name'].title()} is under siege with {top_boss['total_kills']} kills.",
-                f"Combat Report: {top_boss['boss_name'].title()} KC up {top_boss['total_kills']} this week."
+                f"System Alert: {top_boss['boss_name'].title()} top raid spot - {top_boss['clan_members']} clan members, avg {top_boss['avg_kills']} kills!",
+                f"Boss Watch: {top_boss['boss_name'].title()} is popular with {top_boss['clan_members']} clan raiders averaging {top_boss['avg_kills']} kills.",
+                f"Combat Report: {top_boss['boss_name'].title()} engagement: {top_boss['clan_members']} raiders, {top_boss['avg_kills']} avg KC."
             ]
             headlines.append(random.choice(templates))
         
