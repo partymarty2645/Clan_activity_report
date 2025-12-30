@@ -147,6 +147,10 @@ class ExcelReporter:
         # 3. Sort & Decorate (Medals)
         df = pd.DataFrame(rows)
         if not df.empty:
+            # Enforce numeric types for sorting columns to prevent string comparison stats
+            df['Msgs 30d'] = pd.to_numeric(df['Msgs 30d'], errors='coerce').fillna(0)
+            df['Total XP'] = pd.to_numeric(df['Total XP'], errors='coerce').fillna(0)
+
             # Sort by Msgs 30d (highest to lowest), then by Total XP as tiebreaker
             df.sort_values(by=['Msgs 30d', 'Total XP'], ascending=[False, False], inplace=True)
             df.insert(0, '#', range(1, len(df) + 1))

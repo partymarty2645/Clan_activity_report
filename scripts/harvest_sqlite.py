@@ -329,9 +329,17 @@ async def process_wom_harvest(wom, conn, cursor):
     except Exception as e:
         print(f"Error syncing members: {e}")
         
-    # OPTIMIZATION: Only fetch snapshots AFTER the latest stored timestamp for each player
-    # This reduces API load from ~600K requests/run to ~1-2K for incremental updates
-    # ADDITIONAL OPTIMIZATION: Skip players with recent snapshots (< threshold hours old)
+    # --- LOAD HARVEST STATE ---
+    STATE_FILE = "data/harvest_state.json"
+    harvest_state = {}
+    if os.path.exists(STATE_FILE):
+        try:
+            with open(STATE_FILE, 'r') as f:
+                harvest_state = json.load(f)
+        except Exception as e:
+            print(f"Warning: Could not load harvest state: {e}")
+
+    # OPTIMIZATION: Check 'last_api_check' from local state to avoid spamming WOM for inactive users
     tasks = []
     now_utc = datetime.datetime.now(timezone.utc)
     skipped_count = 0
@@ -340,29 +348,44 @@ async def process_wom_harvest(wom, conn, cursor):
     use_staleness_optimization = Config.WOM_STALENESS_SKIP_HOURS > 0
     staleness_threshold_seconds = Config.WOM_STALENESS_SKIP_HOURS * 3600 if use_staleness_optimization else 0
     
+    # List of users we intend to update in state
+    users_processed_in_this_run = []
+
     for m in members:
         username = m['username']
+        
+        # Check explicit API staleness (When did we last ASK Wom?)
+        if use_staleness_optimization:
+            last_check_iso = harvest_state.get(username)
+            if last_check_iso:
+                try:
+                    last_check_dt = datetime.datetime.fromisoformat(last_check_iso)
+                    # Handle TZ naive/aware mismatch if needed (isoformat usually preserves it)
+                    if last_check_dt.tzinfo is None:
+                         last_check_dt = last_check_dt.replace(tzinfo=timezone.utc)
+                         
+                    age_seconds = (now_utc - last_check_dt).total_seconds()
+                    
+                    if age_seconds < staleness_threshold_seconds:
+                        # We checked this user recently (whether they had data or not)
+                        skipped_count += 1
+                        continue
+                except Exception as e:
+                    # If parse error, assume stale and fetch
+                    pass
+
+        # If we are here, we are going to fetch.
+        # Track this username to update the state file later
+        users_processed_in_this_run.append(username)
+
+        # Still use latest_ts to fetch INCREMENTAL data (optimization #2)
         latest_ts = get_latest_snapshot_timestamp(cursor, username)
         
         if latest_ts:
-            # Parse timestamp and check if data is fresh (only if staleness optimization is enabled)
-            if use_staleness_optimization:
-                try:
-                    latest_dt = datetime.datetime.fromisoformat(latest_ts.replace('Z', '+00:00'))
-                    age_seconds = (now_utc - latest_dt).total_seconds()
-                    
-                    if age_seconds < staleness_threshold_seconds:
-                        # Data is fresh, skip fetching
-                        skipped_count += 1
-                        continue
-                except:
-                    pass
-            
-            # Player has history: fetch only NEW snapshots since last stored timestamp
-            tasks.append(fetch_member_data(username, wom=wom, start_date=latest_ts))
+             tasks.append(fetch_member_data(username, wom=wom, start_date=latest_ts))
         else:
-            # New player: fetch full history
-            tasks.append(fetch_member_data(username, wom=wom))
+             tasks.append(fetch_member_data(username, wom=wom))
+            
     # Determine if we are running in an interactive terminal
     # is_interactive = sys.stdout.isatty() and not os.environ.get("NO_RICH")
     is_interactive = False
@@ -373,7 +396,7 @@ async def process_wom_harvest(wom, conn, cursor):
     # Log optimization impact
     if skipped_count > 0:
         hours_threshold = Config.WOM_STALENESS_SKIP_HOURS
-        print(f"Skipped {skipped_count} players with recent data (< {hours_threshold}h old). Fetching {len(tasks)} players...")
+        print(f"Skipped {skipped_count} players (Checked < {hours_threshold}h ago). Fetching {len(tasks)} players...")
     else:
         print(f"Downloading player snapshots ({len(tasks)} in queue)...")
     
@@ -386,7 +409,6 @@ async def process_wom_harvest(wom, conn, cursor):
                 results.append(res)
         else:
             # Non-interactive mode (e.g. piped to main.py)
-            print(f"Downloading player snapshots ({len(tasks)} in queue)...")
             completed_count = 0
             for f in asyncio.as_completed(tasks):
                 res = await f
@@ -404,7 +426,20 @@ async def process_wom_harvest(wom, conn, cursor):
         count_snaps = 0
         count_bosses = 0
         
-        ts_now = datetime.datetime.now(timezone.utc)
+        ts_now_iso_state = now_utc.isoformat()
+        
+        # Update State for all processed users (success or not, we TRIED)
+        for u in users_processed_in_this_run:
+            harvest_state[u] = ts_now_iso_state
+            
+        # Save State File
+        try:
+            with open(STATE_FILE, 'w') as f:
+                json.dump(harvest_state, f, indent=2)
+            print(f"Updated harvest state for {len(users_processed_in_this_run)} users.")
+        except Exception as e:
+            print(f"Failed to save harvest state: {e}")
+
         
         # Note: Member ID resolution skipped due to dual database access pattern
         for username, data in results:

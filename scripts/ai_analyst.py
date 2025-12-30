@@ -56,6 +56,7 @@ def generate_pulse_headlines(conn):
             JOIN wom_snapshots ws ON bs.snapshot_id = ws.id
             WHERE ws.username IN (SELECT username FROM clan_members)
             AND ws.timestamp >= datetime('now', '-7 days')
+            AND bs.kills > 0
             GROUP BY bs.boss_name
             ORDER BY COUNT(DISTINCT ws.username) DESC
             LIMIT 1
@@ -178,6 +179,7 @@ def generate_strategic_alerts(conn):
                     JOIN wom_snapshots ws ON bs.snapshot_id = ws.id
                     WHERE ws.username IN (SELECT username FROM clan_members)
                     AND (boss_name LIKE '%chambers%' OR boss_name LIKE '%tombs%' OR boss_name LIKE '%theatre_of_blood%')
+                    AND bs.kills > 0
                     GROUP BY raid_type
                     ORDER BY unique_clan_raiders DESC
                     LIMIT 1
@@ -383,6 +385,8 @@ def generate_ai_insights(conn):
         except Exception as e:
             logger.error(f"✗ Insight 4 failed: {e}")
         
+
+
         # Insight 5: Prediction - Potential Inactive
         try:
             cursor = conn.execute("""
@@ -436,6 +440,7 @@ def generate_ai_insights(conn):
                     JOIN wom_snapshots ws ON bs.snapshot_id = ws.id
                     WHERE ws.username IN (SELECT username FROM clan_members)
                     AND (boss_name LIKE '%chambers%' OR boss_name LIKE '%tombs%' OR boss_name LIKE '%theatre_of_blood%')
+                    AND bs.kills > 0
                     GROUP BY raid_type
                     ORDER BY unique_clan_raiders DESC
                     LIMIT 1

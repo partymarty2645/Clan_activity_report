@@ -7,6 +7,7 @@ Integrated the manually-improved `data/clan_lore.md` into the AI insights genera
 ## What Changed
 
 ### 1. **Lore File Already Being Loaded**
+
 - File: `data/clan_lore.md` (2,540 characters - concise but valuable)
 - It was already being loaded in `scripts/mcp_enrich.py`
 - Now properly leveraged in prompt instructions
@@ -14,6 +15,7 @@ Integrated the manually-improved `data/clan_lore.md` into the AI insights genera
 ### 2. **Enhanced Prompt Instructions**
 
 **Added:**
+
 - **The Golden Rule**: `Messages > Boss KC > XP` - emphasizing that chatters/yappers are more valuable than grinders
 - **Duckling Detection**: Identifies new players to Tombs of Amascut for celebration moments
 - **Clan Terminology Usage**: Instructions to use "Spoon", "Dry", "The Grind" appropriately
@@ -24,18 +26,23 @@ Integrated the manually-improved `data/clan_lore.md` into the AI insights genera
 ### 3. **Simplified Leadership Context**
 
 Removed redundant static leadership lists. Now references the lore's actual hierarchy:
+
 ```
-- Owner: partymarty94 (dev, codes, hates agility)
-- Deputy-owners: docofmed (The Golden Boy), jbwell, mtndck
-- Zenytes: jakestl314, psilocyn (both moderators, equal)
+- Owner: partymarty94 (dev, codes, hates agility)(highest rank)
+- Deputy-owners: docofmed, jbwell, mtndck, maakif (2nd highest rank)
+- Zenytes: jakestl314, psilocyn (3rd highest rank)
+- Dragonstones: Sir Gowi, VanVolter II (3rd highest ran as well)
+- Saviour: 4th highest rank
+- All other ranks selected (5th highest rank)
+- Prospector (new guys often) (6th highest rank)
 ```
 
 ## Benefits
 
-✅ **Better Insights**: AI now generates content aligned with clan values  
-✅ **Smarter Tone**: Uses clan terminology and personality  
-✅ **Player-Aware**: Can spot Ducklings, highlight Yappers, celebrate The Grind  
-✅ **More Authentic**: Reflects actual clan culture, not generic stats  
+✅ **Better Insights**: AI now generates content aligned with clan values
+✅ **Smarter Tone**: Uses clan terminology and personality
+✅ **Player-Aware**: Can spot Ducklings, highlight Yappers, celebrate The Grind
+✅ **More Authentic**: Reflects actual clan culture, not generic stats
 ✅ **Token Efficient**: Removed duplicate leadership info (~200 tokens saved)
 
 ## How It Works
@@ -49,6 +56,7 @@ Removed redundant static leadership lists. Now references the lore's actual hier
 ## Example Integration Points
 
 **From Lore** → **Applied in Prompt**
+
 - "Messages > Boss KC > XP" → "Look for Yappers (high messages)"
 - "Ducklings (low ToA KC)" → "If anyone has low ToA KC, that's a celebration"
 - "Spoon/Dry/The Grind" → "Use Clan Terminology in insights"
@@ -58,6 +66,7 @@ Removed redundant static leadership lists. Now references the lore's actual hier
 ## Files Updated
 
 ✅ `scripts/mcp_enrich.py`
+
 - Enhanced mission statement with lore-based directives
 - Simplified leadership context (removed ~200 tokens)
 - Added Golden Rule emphasis

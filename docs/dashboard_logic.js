@@ -803,7 +803,7 @@ function renderAllCharts() {
     safelyRun(() => renderTenureDistribution(), "renderTenureDistribution");
 
     // renderPlayerRadar(); // REMOVED per user request
-
+    safelyRun(() => renderActiveRoster(), "renderActiveRoster");
 }
 
 function renderActivityHealthChart() {
@@ -920,18 +920,20 @@ function renderXPContribution() {
     if (charts.xpContrib) charts.xpContrib.destroy();
 
     const members = dashboardData.allMembers;
-    const sorted = [...members].sort((a, b) => b.xp_7d - a.xp_7d);
+    // User requested "Annual XP Gain"
+    // We use xp_year if available, else fall back to total_xp? No, xp_year should be there now.
+    const sorted = [...members].sort((a, b) => (b.xp_year || 0) - (a.xp_year || 0));
 
     // Top 25 + Others (Expanded from Top 5 per user request)
     // Filter 0 XP first
-    const active = sorted.filter(m => m.xp_7d > 0);
+    const active = sorted.filter(m => (m.xp_year || 0) > 0);
 
     // Show top 25 individually, group rest
     const showCount = 25;
     const topSlice = active.slice(0, showCount);
-    const othersXP = active.slice(showCount).reduce((sum, m) => sum + m.xp_7d, 0);
+    // const othersXP = active.slice(showCount).reduce((sum, m) => sum + m.xp_year, 0);
 
-    const data = topSlice.map(m => ({ type: m.username, value: m.xp_7d }));
+    const data = topSlice.map(m => ({ type: m.username, value: m.xp_year || 0 }));
     // Removed 'Others' slice based on user feedback to "dont use others"
 
 
@@ -1050,8 +1052,8 @@ function renderMessagesSection(members) {
         heatmap.innerHTML = '';
         heatmap.style.display = 'grid';
         heatmap.style.gridTemplateColumns = 'repeat(24, 1fr)';
-        heatmap.style.gap = '2px';
-        heatmap.style.height = '60px';
+        heatmap.style.gap = '4px'; // Increased gap
+        heatmap.style.height = '150px'; // Enlarged from 60px
         heatmap.style.alignItems = 'end'; // bars from bottom
 
         const maxVal = Math.max(...dashboardData.activity_heatmap);
@@ -1613,17 +1615,21 @@ function renderAIInsights(members) {
     container.innerHTML = '';
 
     // AI INSIGHTS INTEGRATION
-    if (window.aiData && window.aiData.insights) {
-        window.aiData.insights.forEach(insight => {
+    // Check global window.aiInsights (from ai_data.js) OR fallback to embedded
+    const insights = window.aiInsights || (window.aiData ? window.aiData.insights : []) || [];
+
+    if (insights && insights.length > 0) {
+        insights.forEach(insight => {
             const colorVar = insight.type === 'trend' ? 'var(--neon-gold)' : insight.type === 'analysis' ? 'var(--neon-blue)' : 'var(--neon-green)';
-            const icon = insight.type === 'trend' ? 'fa-chart-line' : insight.type === 'analysis' ? 'fa-brain' : 'fa-heartbeat';
+            const icon = insight.type === 'trend' ? 'fa-chart-line' : insight.type === 'analysis' ? 'fa-brain' : 'fa-lightbulb';
+
             container.innerHTML += `
             <div class="alert-card" style="border-left: 3px solid ${colorVar}">
                 <div class="alert-header" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;color:${colorVar}">
                     <i class="fas ${icon}"></i>
-                    <span style="font-family:'Cinzel'">${insight.title}</span>
+                    <span style="font-family:'Cinzel'">${insight.title || 'Clan Insight'}</span>
                 </div>
-                <div class="alert-metric" style="color:#ccc; font-size: 0.9em;">
+                <div class="alert-metric" style="color:#ccc; font-size: 0.9em; line-height: 1.4;">
                     ${insight.message}
                 </div>
             </div>
@@ -1632,6 +1638,30 @@ function renderAIInsights(members) {
     } else {
         container.innerHTML = '<div class="glass-card" style="padding:20px;grid-column:1/-1;text-align:center;color:#4fec4f">AI Insights will be available after next data refresh.</div>';
     }
+}
+
+function renderActiveRoster() {
+    const container = document.getElementById('ai-roster-container');
+    if (!container) return;
+
+    const data = window.aiData || {};
+    const roster = data.active_roster || [];
+    const meta = data.meta || {};
+    const windowDays = meta.window_days || 30; // fallback per user request
+
+    if (roster.length === 0) return;
+
+    container.innerHTML = `
+        <div class="glass-card" style="margin-top: 20px; padding: 20px; border: 1px solid rgba(0, 212, 255, 0.1);">
+            <div style="font-family:'Cinzel'; color:var(--neon-gold); font-size:1.1em; margin-bottom:15px; display:flex; align-items:center; gap:10px;">
+                <i class="fas fa-users-cog"></i> 
+                <span>Data Based On ${roster.length} Active Players (Last ${windowDays} Days)</span>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:8px; font-size:0.85em; line-height:1.6; color:#aaa;">
+                ${roster.map(name => `<span style="background:rgba(255,255,255,0.05); padding:4px 10px; border-radius:4px; border:1px solid rgba(255,255,255,0.05);">${name}</span>`).join('')}
+            </div>
+        </div>
+    `;
 }
 
 // Player Profile Modal Handling

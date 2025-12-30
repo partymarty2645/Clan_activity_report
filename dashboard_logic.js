@@ -786,20 +786,21 @@ function renderAllCharts() {
     Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
     Chart.defaults.font.family = "'Outfit', sans-serif";
 
-    renderActivityHealthChart();
-    renderTopXPChart();
-    // renderTrendChart(); // REPLACED
+    safelyRun(() => renderActivityHealthChart(), "renderActivityHealthChart");
+    safelyRun(() => renderTopXPChart(), "renderTopXPChart");
 
     // NEW CHARTS
-    renderScatterInteraction();
-    renderBossDiversity();
-    renderRaidsPerformance();
-    renderSkillMastery();
-    renderBossTrend();
+    safelyRun(() => renderScatterInteraction(), "renderScatterInteraction");
+    safelyRun(() => renderBossDiversity(), "renderBossDiversity");
+    safelyRun(() => renderRaidsPerformance(), "renderRaidsPerformance");
+    safelyRun(() => renderSkillMastery(), "renderSkillMastery");
+    safelyRun(() => renderBossTrend(), "renderBossTrend");
 
     // UPDATED VISUALIZATIONS
-    renderActivityCorrelation(); // Replaces Trend Area
-    renderXPContribution();      // Replaces Player Radar
+    safelyRun(() => renderActivityCorrelation(), "renderActivityCorrelation"); // Weekly Activity Trend
+    safelyRun(() => renderXPContribution(), "renderXPContribution");
+    safelyRun(() => renderLeaderboardChart(), "renderLeaderboardChart");
+    safelyRun(() => renderTenureDistribution(), "renderTenureDistribution");
 
     // renderPlayerRadar(); // REMOVED per user request
 
@@ -1169,7 +1170,7 @@ function renderXpSection(members) {
     }
 
     // Scatter: XP vs Messages
-    const ctxScat = document.getElementById('container-activity-trend');
+    const ctxScat = document.getElementById('container-xp-scatter');
     if (ctxScat) {
         if (charts.scat) charts.scat.destroy();
         // Filter outliers for better chart view
@@ -1430,6 +1431,64 @@ function renderPlayerRadar() {
         console.warn("Failed to render Top 5 Comparison chart:", e);
         document.getElementById(container).innerHTML = `<div style="text-align:center;padding:20px;color:#ff6b6b">Error rendering chart</div>`;
     }
+}
+
+function renderTenureDistribution() {
+    const ctx = document.getElementById('tenure-distribution-chart');
+    if (!ctx) return;
+    if (charts.tenure) charts.tenure.destroy();
+
+    const members = dashboardData.allMembers;
+
+    // Buckets: 0-30, 31-90, 91-180, 180-365, 365+
+    const buckets = {
+        'New Blood (0-30d)': 0,
+        'Rising (1-3mo)': 0,
+        'Established (3-6mo)': 0,
+        'Veterans (6-12mo)': 0,
+        'Legends (1y+)': 0
+    };
+
+    members.forEach(m => {
+        const days = m.days_in_clan || 0;
+        if (days <= 30) buckets['New Blood (0-30d)']++;
+        else if (days <= 90) buckets['Rising (1-3mo)']++;
+        else if (days <= 180) buckets['Established (3-6mo)']++;
+        else if (days <= 365) buckets['Veterans (6-12mo)']++;
+        else buckets['Legends (1y+)']++;
+    });
+
+    charts.tenure = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(buckets),
+            datasets: [{
+                data: Object.values(buckets),
+                backgroundColor: [
+                    '#00d4ff', // New - Blue
+                    '#33FF33', // Rising - Green
+                    '#FFD700', // Est - Gold
+                    '#FFA500', // Vet - Orange
+                    '#FF00FF'  // Legend - Magenta
+                ],
+                borderColor: '#1a1c2e',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: { color: '#ccc', boxWidth: 10 }
+                },
+                title: {
+                    display: false
+                }
+            }
+        }
+    });
 }
 
 

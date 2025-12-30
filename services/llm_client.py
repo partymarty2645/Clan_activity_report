@@ -1,11 +1,12 @@
 """
 Unified LLM Client - Support for multiple LLM providers
-#1 = gemini-2.5-pro (stable, no preview)
-#2 = gemini-2.5-flash (stable, no preview, faster)
-#3 = Groq oss-120b (stable)
+#1 = gemini-2.5-flash-lite (production - higher rate limits for agents/free tier)
+#2 = gemini-2.5-flash (fallback - standard tier)
+#3 = Groq oss-120b (fallback - always available)
 
-RATE LIMITING: Gemini free tier = 2 RPM (requests per minute)
-= 1 request every 30 seconds
+RATE LIMITING: 
+- Gemini Flash Lite = ~15 RPM
+- Gemini Flash/Pro = ~2 RPM
 """
 
 import logging
@@ -22,10 +23,10 @@ load_dotenv()
 
 logger = logging.getLogger("LLMClient")
 
-# ===== RATE LIMITING FOR GEMINI (2 RPM = 30 second minimum between requests) =====
+# ===== RATE LIMITING =====
 class RateLimiter:
     """Enforces minimum delay between API calls for rate limit compliance"""
-    def __init__(self, min_interval_seconds: float = 30.0):
+    def __init__(self, min_interval_seconds: float = 4.0):
         self.min_interval = min_interval_seconds
         self.last_call_time = 0.0
     
@@ -34,12 +35,13 @@ class RateLimiter:
         elapsed = time.time() - self.last_call_time
         if elapsed < self.min_interval:
             wait_time = self.min_interval - elapsed
-            logger.info(f"⏳ Rate limit: waiting {wait_time:.1f}s (2 RPM = 30s min between calls)")
+            logger.info(f"⏳ Rate limit: waiting {wait_time:.1f}s")
             time.sleep(wait_time)
         self.last_call_time = time.time()
 
-# Global rate limiter for Gemini API (2 RPM = 1 request per 30 seconds)
-_gemini_rate_limiter = RateLimiter(min_interval_seconds=30.0)
+# Rate limiters
+_flash_lite_limiter = RateLimiter(min_interval_seconds=4.0) # ~15 RPM
+_standard_limiter = RateLimiter(min_interval_seconds=30.0) # 2 RPM
 
 # ===== END RATE LIMITING =====
 
@@ -55,9 +57,9 @@ if not GEMINI_API_KEY:
 
 class ModelProvider(str, Enum):
     """Available LLM providers"""
-    GEMINI_2_5_PRO = "gemini-2.5-pro"     # #1 (primary - stable, no preview)
-    GEMINI_2_5_FLASH = "gemini-2.5-flash" # #2 (secondary - stable, no preview, faster)
-    GROQ_OSS_120B = "groq-oss-120b"       # #3 (fallback - always available)
+    GEMINI_FLASH_LITE = "gemini-2.5-flash-lite" # #1 Primary (High RPM)
+    GEMINI_FLASH = "gemini-2.5-flash"           # #2 Secondary (Low RPM)
+    GROQ_OSS_120B = "groq-oss-120b"             # #3 Fallback
 
 
 @dataclass
@@ -72,7 +74,7 @@ class LLMResponse:
 class GeminiClient:
     """Google Gemini API client wrapper"""
     
-    def __init__(self, model: str = "gemini-2.5-pro"):
+    def __init__(self, model: str):
         try:
             from google import genai  # type: ignore
             from google.genai import types  # type: ignore
@@ -84,13 +86,6 @@ class GeminiClient:
         self.client = genai.Client(api_key=GEMINI_API_KEY)
         self.model = model
         self.types = types
-        self.config = types.GenerateContentConfig(
-            temperature=1.0,
-            top_p=0.95,
-            top_k=40,
-            max_output_tokens=8192,
-            response_mime_type="text/plain"
-        )
     
     def generate(
         self,
@@ -99,6 +94,12 @@ class GeminiClient:
         temperature: float = 1.0,
     ) -> LLMResponse:
         """Generate content using Gemini API"""
+        # Enforce appropriate rate limit
+        if "lite" in self.model:
+            _flash_lite_limiter.wait_if_needed()
+        else:
+            _standard_limiter.wait_if_needed()
+        
         config = self.types.GenerateContentConfig(
             temperature=temperature,
             max_output_tokens=max_tokens,
@@ -111,10 +112,13 @@ class GeminiClient:
             config=config
         )
         
+        # Determine provider enum
+        provider = ModelProvider.GEMINI_FLASH_LITE if "lite" in self.model else ModelProvider.GEMINI_FLASH
+
         return LLMResponse(
             content=response.text,
             model=self.model,
-            provider=ModelProvider.GEMINI_2_5_FLASH if "flash" in self.model else ModelProvider.GEMINI_2_5_PRO,
+            provider=provider,
             raw={"text": response.text}
         )
 
@@ -178,83 +182,84 @@ class GroqClient:
 
 
 class UnifiedLLMClient:
-    """Unified interface for multiple LLM providers"""
+    """Unified interface for multiple LLM providers with fallback logic"""
     
-    def __init__(self, provider: ModelProvider = ModelProvider.GROQ_OSS_120B):
-        self.provider = provider
-        self.original_provider = provider
+    def __init__(self, provider: Optional[ModelProvider] = None):
+        # Default to highest priority if not specified
+        self.current_provider = provider or ModelProvider.GEMINI_FLASH_LITE
+        self.client = self._get_client(self.current_provider)
         
+    def _get_client(self, provider: ModelProvider):
         try:
-            if provider == ModelProvider.GEMINI_2_5_FLASH:
-                self.client = GeminiClient(model=provider.value)
-            elif provider == ModelProvider.GEMINI_2_5_PRO:
-                self.client = GeminiClient(model=provider.value)
+            if provider == ModelProvider.GEMINI_FLASH_LITE:
+                return GeminiClient(model=provider.value)
+            elif provider == ModelProvider.GEMINI_FLASH:
+                return GeminiClient(model=provider.value)
             elif provider == ModelProvider.GROQ_OSS_120B:
-                self.client = GroqClient(model="openai/gpt-oss-120b")
+                return GroqClient(model="openai/gpt-oss-120b")
             else:
-                raise ValueError(f"Unknown provider: {provider}")
-        except (ImportError, ValueError) as e:
-            if provider in [ModelProvider.GEMINI_2_5_FLASH, ModelProvider.GEMINI_2_5_PRO]:
-                logger.warning(f"⚠️ Gemini provider unavailable ({type(e).__name__}), falling back to Groq")
-                self.provider = ModelProvider.GROQ_OSS_120B
-                self.client = GroqClient(model="openai/gpt-oss-120b")
-            else:
-                raise
-    
+                return GroqClient(model="openai/gpt-oss-120b")
+        except Exception as e:
+            logger.error(f"Failed to initialize {provider}: {e}")
+            return None # Handle in generate
+
     def generate(
         self,
         prompt: str,
         max_tokens: int = 8192,
         temperature: float = 1.0,
     ) -> LLMResponse:
-        """Generate content using the selected provider"""
-        return self.client.generate(prompt, max_tokens, temperature)
-    
+        """Generate content with automatic fallback"""
+        
+        # Priority Order: 
+        # 1. Gemini Flash Lite
+        # 2. Gemini Flash
+        # 3. Groq OSS 120b
+        
+        providers = [
+            ModelProvider.GEMINI_FLASH_LITE,
+            ModelProvider.GEMINI_FLASH,
+            ModelProvider.GROQ_OSS_120B
+        ]
+        
+        errors = []
+        
+        for provider in providers:
+            try:
+                # Attempt to use this provider
+                logger.info(f"Attempting generation with {provider.value}...")
+                client = self._get_client(provider)
+                if not client:
+                    continue
+                    
+                response = client.generate(prompt, max_tokens, temperature)
+                logger.info(f"✅ Success with {provider.value}")
+                return response
+                
+            except Exception as e:
+                error_msg = f"{provider.value} failed: {str(e)}"
+                logger.warning(error_msg)
+                errors.append(error_msg)
+                continue
+        
+        # If all fail
+        raise RuntimeError(f"All LLM providers failed: {'; '.join(errors)}")
+
     @staticmethod
     def get_provider_by_number(number: int) -> ModelProvider:
-        """Get provider by number: 1=Gemini 2.5-pro, 2=Gemini 2.5-flash, 3=Groq"""
+        """Get provider by number: 1=Flash Lite, 2=Flash, 3=Groq"""
         if number == 1:
-            return ModelProvider.GEMINI_2_5_PRO
+            return ModelProvider.GEMINI_FLASH_LITE
         elif number == 2:
-            return ModelProvider.GEMINI_2_5_FLASH
+            return ModelProvider.GEMINI_FLASH
         elif number == 3:
             return ModelProvider.GROQ_OSS_120B
         else:
             raise ValueError(f"Invalid provider number: {number}. Use 1, 2, or 3.")
 
 
-# Default clients for lazy initialization
-_gemini_3_flash = None
-_gemini_2_5_pro = None
-_groq_client = None
-_default_client = None
-
-def get_gemini_3_flash():
-    global _gemini_3_flash
-    if _gemini_3_flash is None:
-        _gemini_3_flash = GeminiClient(model="gemini-3-flash")
-    return _gemini_3_flash
-
-def get_gemini_2_5_pro():
-    global _gemini_2_5_pro
-    if _gemini_2_5_pro is None:
-        _gemini_2_5_pro = GeminiClient(model="gemini-2.5-pro")
-    return _gemini_2_5_pro
-
-def get_groq_client():
-    global _groq_client
-    if _groq_client is None:
-        _groq_client = GroqClient(model="openai/gpt-oss-120b")
-    return _groq_client
-
 def get_default_client():
-    global _default_client
-    if _default_client is None:
-        _default_client = UnifiedLLMClient(provider=ModelProvider.GROQ_OSS_120B)
-    return _default_client
+    return UnifiedLLMClient()
 
 # Backward compatibility aliases
-gemini_3_flash = get_gemini_3_flash
-gemini_2_5_pro = get_gemini_2_5_pro
-groq_client = get_groq_client
 default_client = get_default_client

@@ -1,154 +1,182 @@
-# ClanStats: Advanced OSRS Clan Tracking
+# ⚔️ ClanStats: The "Enterpise-Grade" OSRS Tracker
 
-A robust, enterprise-grade tool for tracking Old School RuneScape (OSRS) clan statistics by correlating **Wise Old Man (WOM)** XP data with **Discord** activity.
+> **"Where Data Science Meets Shitposting."**
 
-## ✅ Current Status
+![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Discord](https://img.shields.io/badge/Discord-Bot-5865F2?style=for-the-badge&logo=discord&logoColor=white)
+![Wise Old Man](https://img.shields.io/badge/WOM-Integration-23272A?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Online-brightgreen?style=for-the-badge)
 
-- **WOM API Connectivity:** Verified working (HTTP 200). Group `11114` (Nevr Lucky) returns `membersCount: 303`.
-- **Boss Data Export:** Fixed filter to include boss-only players; dashboard now shows 1,455,479 total boss kills.
-- **Data Linkage Proof:** 99.4% of WOM snapshots linked to members. See proof doc below.
-- **Tests:** 82/82 passing.
+**ClanStats** isn't just another XP tracker. It's a **psychological warfare tool** disguised as analytics. By correlating **Wise Old Man (WOM)** game data with **Discord** social activity, we answer the real questions:
 
-## 🚀 Key Features
+* *"Who chats the most but grinds the least?"*
+* *"Who is effectively a ghost?"*
+* *"Who deserves a promotion based on 'Vibes'?"*
 
-- **Integrated Tracking**: Merges game progress (XP/Bosses) with social engagement (Discord messages).
-- **Discord Sync**: Tracks message counts, "questions asked", and "favorite words" via efficient local database caching.
-- **Visual Dashboard**: A deployed HTML/JS Dashboard (via Google Drive) featuring:
-  - **Activity Heatmaps**
-  - **Performance Analytics**: Scatter plots ("Chatterbox vs Grinder"), Trend lines, and Skill Mastery clouds.
-  - **Boss Highlight Grids**
-  - **Purging Candidates**: Auto-lists inactive members (>30d tenure, 0 messages/XP).
-  - **Live Search & Filtering**
-- **Excel Reporting**: Generates a polished, conditionally formatted Excel report with:
-  - **Custom Columns**: `7d`, `30d`, `Total` periods.
-  - **Auto-Styling**: Color-coded columns (Identity, XP, Messages, Bosses).
+---
 
-## 🛠️ Architecture
+## 🚀 The Goods
 
-The project follows a modular **Process Isolation** design (no shared memory state):
+### 📊 The Dashboard (Neon Mode)
 
-1. **Harvest (`scripts/harvest_sqlite.py`)**:
-    - Fetches data from WOM API and Discord API.
-    - Writes incrementally to `clan_data.db`.
-    - Runs as an isolated subprocess.
+A deployed, static HTML/JS dashboard that feels like a futuristic command center.
 
-2. **Report (`scripts/report_sqlite.py`)**:
-    - Generates the classic `clan_report_summary_merged.xlsx` (Excel).
-    - Syncs Excel files to Google Drive.
+* **Activity Heatmaps**: See exactly *when* your clan wakes up.
+* **Boss Highlight Grid**: 3x3 grid of top killers backed by official OSRS art.
+* **"The Matrix"**: A scatter plot comparing **XP Gains** vs **Message Volume**. Find your "Chatterboxes" (High Msg, Low XP) and "Grinders" (Low Msg, High XP).
 
-3. **Export (`scripts/export_sqlite.py`)**:
-    - **The Dashboard Engine**.
-    - Generates `clan_data.json` (Raw Data) and `clan_data.js` (Frontend Loader).
-    - Uses `core/analytics.py` for chart aggregations.
+### 🤖 The AI Analyst
 
-4. **Deploy (`scripts/publish_docs.py`)**:
-    - Deploys the static HTML Dashboard (`clan_dashboard.html` + `assets`) to the `docs/` folder (GitHub Pages ready).
+We don't just show numbers; we judge them.
 
-5. **Orchestrator (`main.py`)**:
-    - The "Conductor". Sequentially runs Harvest -> Report -> Export -> Deploy.
-    - Ensures clean exits and error handling.
+* **Roast Logic**: The AI detects "Unhealthy Obsessions" (e.g., higher KC than distinct messages) and tells members to "Touch Grass".
+* **Leadership Banter**: Customized prompts ensure the AI knows who the boss is (and who to roast).
+* **Context Aware**: Knows the difference between a "Slacker" (0 XP/0 Msgs) and a "Vacationer".
 
-## 🔎 Quick Connectivity Check (WOM)
+### 📑 The "Boss-Level" Excel Report
 
-Run a single request to confirm the WOM API is reachable:
+For the officers who love spreadsheets.
 
-```powershell
-D:/Clan_activity_report/.venv/Scripts/python.exe wom_ping.py
-```
+* **Conditional Formatting**: Red/Yellow/Green scales for easy spotting of underperformers.
+* **Retention Risk**: Auto-flags members who are drifting away.
+* **Merged Stats**: 7-Day, 30-Day, and All-Time stats in a single view.
 
-Expected output (example):
+---
 
-- Status: 200
-- Group: Nevr Lucky (ID: 11114)
-- Members count: 303
+## ⚡ Quick Start
 
-If `requests` is missing:
-
-```powershell
-D:/Clan_activity_report/.venv/Scripts/pip.exe install requests
-```
-
-## 📦 Installation & Setup
-
-### Prerequisites
-
-- **Python 3.10+**: [Download](https://www.python.org/downloads/) (IMPORTANT: Check the box **"Add Python to PATH"** during installation).
+You don't need a PhD in Computer Science to run this (but it helps).
 
 ### 1. Setup
 
-1. Unzip the project folder.
-2. Double-click `setup.bat`.
-    - It creates a virtual environment and installs dependencies.
-    - It generates a `.env` file for your keys.
+Runs the "One-Click" installer to set up Python and dependencies.
 
-### 2. Configuration (`.env`)
+```powershell
+./setup.bat
+```
 
-Fill in your keys in the `.env` file:
+### 2. Configure
 
-| Key | Description |
-| :--- | :--- |
-| `WOM_API_KEY` | Wise Old Man API Key. |
-| `WOM_GROUP_ID` | Your WOM Group ID (e.g. `11114`). |
-| `DISCORD_TOKEN` | Discord Bot Token (Requires "Message Content Intent"). |
-| `LOCAL_DRIVE_PATH`| **Crucial**: Path to a Google Drive folder. The Dashboard will be deployed here! |
+Edit the generated `.env` file with your keys:
 
-## 🏃 Usage
+```ini
+WOM_API_KEY=your_key_here
+WOM_GROUP_ID=11114  <-- Your Clan ID
+DISCORD_TOKEN=your_bot_token
+LOCAL_DRIVE_PATH="G:/My Drive/Shared_clan_data" <-- Where to deploy the dashboard
+```
 
-### Generate Report & Dashboard
+### 3. Run
 
-Double-click **`run_auto.bat`**.
-This script will:
+Smash that big red button (virtually):
 
-1. Update database (WOM + Discord).
-2. Generate Excel Reports.
-3. **Deploy the Visual Dashboard** to your Google Drive folder.
+```powershell
+./run_auto.bat
+```
 
-### 3. Quick Actions (Slash Commands)
+*This fetches data, crunches numbers, consults the AI, generates the report, and deploys the dashboard.*
 
-If using an AI Agent (like me), you can run these workflows directly:
+---
 
-| Command | Action |
-| :--- | :--- |
-| `/run-pipeline` | Runs the full **Harvest -> Report -> Export** cycle. The "Big Red Button". |
-| `/verify-system` | Runs a full health check (JSON integrity, Drive audit, Data consistency). |
-| `/generate-dashboard` | Re-generates the HTML/JSON only (skips fetching new data). Useful for design tweaks. |
-| `/optimizedatabase` | Runs `PRAGMA` optimizations on the SQLite DB. |
+## 🛠️ Tech Stack
 
-## 📊 Outputs
+* **Core**: Python 3.10+ (AsyncIO for speed)
+* **Database**: SQLite (Local, fast, no server fees)
+* **Data Sources**:
+  * **Wise Old Man API** (OSRS Stats)
+  * **Discord API** (Social Stats)
+* **Frontend**: HTML5 / Chart.js / G2Plot (Static generation)
+* **AI**: Gemini Flash / Groq (The brains of the operation)
 
-### 1. Excel Report (`clan_report_summary_merged.xlsx`)
+---
 
-- The classic spreadsheet with conditional formatting (Green/Yellow/Red).
-- Tracks XP, Messages, Boss Kills over 7d/30d/All-Time.
+## 🏗️ Data Pipeline
 
-### 2. Visual Dashboard (`clan_dashboard.html`)
+```mermaid
+graph TD
+    subgraph Orch ["Orchestration (main.py)"]
+        Harvest["harvest_sqlite.py"]:::script
+        Report["report_sqlite.py"]:::script
+        Export["export_sqlite.py"]:::script
+        Optimize["optimize_database.py"]:::ops
+        Deploy["publish_docs.py"]:::ops
+    end
 
-- **Live Web View**: Open `clan_dashboard.html` from your Google Drive folder.
-- **Features**:
-  - **Top Messenger / Top XP** Cards.
-  - **Performance Analytics**:
-    - **Activity Matrix**: Scatter plot identifying playstyles.
-    - **Boss Trends**: Monthly trend lines for top kills.
-    - **Diversity & Mastery**: Donut and bar charts for broad activity tracking.
-  - **Boss Highlights Grid**: 3x3 grid of top boss killers with background art.
-  - **Activity Heatmap**: When are your clan members sending messages?
-  - **Full Roster**: Sortable table with Rank Icons.
+    subgraph Ext ["External Sources"]
+        WOM["Wise Old Man API"]:::source
+        Disc["Discord API"]:::source
+    end
 
-## 📑 Proof & Troubleshooting
+    subgraph Core ["The Brain (core/)"]
+        DB[("SQLite DB")]:::storage
+        Logic["analytics.py"]:::logic
+        AI_Host["ai_analyst.py"]:::ai
+        LLM{"Gemini / Groq"}:::ai
+    end
 
-- **Comprehensive Proof:** See [archive/PROOF_OF_DATA_LINKAGE.md](archive/PROOF_OF_DATA_LINKAGE.md) for cold hard proof of data linkage (303 active members tracked, 99.4% WOM linkage, boss data verified).
-- **Regenerate Dashboard:**
+    subgraph Out ["Outputs"]
+        Dashboard["Web Dashboard HTML/JS"]:::output
+        Excel["Excel Report"]:::output
+        Drive["Google Drive (Hosting)"]:::cloud
+    end
 
-  ```powershell
-  D:/Clan_activity_report/.venv/Scripts/python.exe scripts/export_sqlite.py
-  ```
+    %% Data Ingestion
+    WOM -.->|JSON| Harvest
+    Disc -.->|JSON| Harvest
+    Harvest ==>|Upsert| DB
 
-- **Run Tests:**
+    %% Optimization Loop
+    Harvest --> Optimize
+    Optimize -->|"VACUUM / Index"| DB
 
-  ```powershell
-  D:/Clan_activity_report/.venv/Scripts/python.exe -m pytest tests/ -v --tb=short
-  ```
+    %% AI Enrichment
+    DB -->|Context| AI_Host
+    AI_Host <-->|Prompts| LLM
+    AI_Host -->|"Injected Insights"| DB
 
-- **Common Fixes:**
-  - Missing packages: `D:/Clan_activity_report/.venv/Scripts/pip.exe install -r requirements.txt`
-  - Verify env: `.env` must include `WOM_API_KEY`, `WOM_GROUP_ID=11114`, `DISCORD_TOKEN`, `WOM_BASE_URL=https://api.wiseoldman.net/v2`
+    %% Reporting & Analytics
+    DB --> Logic
+    Logic -->|"Aggregated Stats"| Report
+    Logic -->|"Aggregated Stats"| Export
+
+    %% Final Outputs
+    Report -->|Generates| Excel
+    Export -->|Generates| Dashboard
+
+    %% Deployment
+    Excel -->|Sync| Deploy
+    Dashboard -->|Sync| Deploy
+    Deploy -->|Upload| Drive
+
+    %% Styling
+    classDef source fill:#23272A,stroke:#5865F2,color:white;
+    classDef script fill:#3776AB,stroke:white,color:white;
+    classDef storage fill:#f1c40f,stroke:#333,color:black;
+    classDef logic fill:#e67e22,stroke:white,color:white;
+    classDef ai fill:#8E44AD,stroke:white,color:white;
+    classDef output fill:#2ECC71,stroke:#333,color:black;
+    classDef ops fill:#95a5a6,stroke:white,color:black;
+    classDef cloud fill:#3498db,stroke:white,color:white;
+```
+
+---
+
+## 📜 The "Golden Rule"
+
+> **"Messages > XP"**
+
+In this clan, we value **yappers**. Someone who talks all day but gets 0 XP is a **Social Pillar**. Someone who gets 200M XP but never talks is a **Ghost**. The analytics engine is weighted to reflect this profound truth.
+
+---
+
+### 📂 Directory Map
+
+* `core/` - The brains (Config, Analytics, Math).
+* `services/` - The hands (Discord, WOM, AI Clients).
+* `scripts/` - The workers (Harvest, Report, Export).
+* `assets/` - The bling (Images, CSS).
+* `docs/` - The deployment zone (Live Dashboard).
+
+---
+
+*Built with ❤️ (and a little bit of spite) for the boys.*

@@ -43,6 +43,10 @@ class Config:
     WOM_GROUP_SECRET = os.getenv('WOM_GROUP_SECRET')
     WOM_BASE_URL = os.getenv('WOM_BASE_URL', 'https://api.wiseoldman.net/v2')
     
+    # --- AI Keys ---
+    GROQ_API_KEY = os.getenv('GROQ_API_KEY')
+    GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+    
     _w_conf = _yaml_config.get('wom', {})
     WOM_TARGET_RPM = int(os.getenv('WOM_TARGET_RPM', _w_conf.get('target_rpm', 90)))
     WOM_RATE_LIMIT_DELAY = float(os.getenv('WOM_RATE_LIMIT_DELAY', _w_conf.get('rate_limit_delay', 0.67)))

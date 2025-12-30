@@ -619,16 +619,42 @@ class AnalyticsService:
 
     # --- Chart & Dashboard Analytics (Migrated from export_sqlite.py) ---
 
-    def get_boss_diversity(self, snapshot_ids: List[int]) -> Dict[str, Any]:
-        """Calculates boss diversity for the given snapshot IDs."""
+    def get_boss_diversity(self, snapshot_ids: List[int], old_snapshot_ids: Optional[List[int]] = None) -> Dict[str, Any]:
+        """
+        Calculates boss diversity. 
+        If old_snapshot_ids provided, calculates diversity of KILLS GAINED in the interval.
+        Otherwise, calculates diversity of TOTAL KILLS (Lifetime).
+        """
         if not snapshot_ids: return {"labels": [], "datasets": [{"data": []}]}
         from data.queries import Queries
-        placeholders = ','.join('?' * len(snapshot_ids))
-        rows = self.db.connection().exec_driver_sql(Queries.GET_BOSS_DIVERSITY.format(placeholders), tuple(snapshot_ids)).fetchall()
         
-        sorted_data = sorted(rows, key=lambda x: x[1], reverse=True)
-        labels = [row[0].replace('_', ' ').title() for row in sorted_data if row[1] > 0]
-        values = [row[1] for row in sorted_data if row[1] > 0]
+        # Helper to get sums
+        def get_sums(ids):
+             placeholders = ','.join('?' * len(ids))
+             rows = self.db.connection().exec_driver_sql(Queries.GET_BOSS_SUMS_FOR_IDS.format(placeholders), tuple(ids)).fetchall()
+             return {r[0]: r[1] for r in rows}
+
+        curr_sums = get_sums(snapshot_ids)
+        
+        final_data = {}
+        
+        if old_snapshot_ids:
+            old_sums = get_sums(old_snapshot_ids)
+            # Calculate Diff
+            for boss, kills in curr_sums.items():
+                prev = old_sums.get(boss, 0)
+                if kills > prev:
+                     final_data[boss] = kills - prev
+        else:
+            final_data = {k: v for k, v in curr_sums.items() if v > 0}
+            
+        sorted_data = sorted(final_data.items(), key=lambda x: x[1], reverse=True)
+        # Top 20 only to keep chart readable
+        sorted_data = sorted_data[:20]
+        
+        labels = [x[0].replace('_', ' ').title() for x in sorted_data]
+        values = [x[1] for x in sorted_data]
+        
         return {"labels": labels, "datasets": [{"data": values}]}
 
     def get_raids_performance(self, snapshot_ids: List[int]) -> Dict[str, Any]:
