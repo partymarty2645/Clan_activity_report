@@ -786,22 +786,21 @@ function renderAllCharts() {
     Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
     Chart.defaults.font.family = "'Outfit', sans-serif";
 
-    renderActivityHealthChart();
-    renderTopXPChart();
-    // renderTrendChart(); // REPLACED
+    safelyRun(() => renderActivityHealthChart(), "renderActivityHealthChart");
+    safelyRun(() => renderTopXPChart(), "renderTopXPChart");
 
     // NEW CHARTS
-    renderScatterInteraction();
-    renderBossDiversity();
-    renderRaidsPerformance();
-    renderSkillMastery();
-    renderBossTrend();
+    safelyRun(() => renderScatterInteraction(), "renderScatterInteraction");
+    safelyRun(() => renderBossDiversity(), "renderBossDiversity");
+    safelyRun(() => renderRaidsPerformance(), "renderRaidsPerformance");
+    safelyRun(() => renderSkillMastery(), "renderSkillMastery");
+    safelyRun(() => renderBossTrend(), "renderBossTrend");
 
     // UPDATED VISUALIZATIONS
-    renderActivityCorrelation(); // Weekly Activity Trend
-    renderXPContribution();      // Replaces Player Radar
-    renderTenureDistribution(); // Clan Loyalty (Tenure)
-    renderLeaderboardChart();    // Top 10 Leaderboard (Composite Score)
+    safelyRun(() => renderActivityCorrelation(), "renderActivityCorrelation"); // Weekly Activity Trend
+    safelyRun(() => renderXPContribution(), "renderXPContribution");
+    safelyRun(() => renderLeaderboardChart(), "renderLeaderboardChart");
+    safelyRun(() => renderTenureDistribution(), "renderTenureDistribution");
 
     // renderPlayerRadar(); // REMOVED per user request
 
@@ -876,58 +875,41 @@ function renderActivityCorrelation() {
     if (charts.trend) charts.trend.destroy();
 
     const history = dashboardData.history || [];
-    if (history.length === 0) {
-        container.innerHTML = '<div style="padding:20px;text-align:center;color:#888;">No activity data available</div>';
-        return;
-    }
+    const dualData = [];
 
-    // Transform history data into two separate arrays for DualAxes
-    const xpData = [];
-    const msgData = [];
-    
+    // Transform History: Need flattened array? G2Plot DualAxes often takes one array or array of arrays.
+    // Let's use single array data structure
     history.forEach(d => {
         const dateStr = new Date(d.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-        xpData.push({
+        dualData.push({
             date: dateStr,
-            xp: d.xp
-        });
-        msgData.push({
-            date: dateStr,
+            xp: d.xp,
             msgs: d.msgs
         });
     });
 
-    try {
-        const dualAxes = new G2Plot.DualAxes('container-activity-trend', {
-            data: [xpData, msgData],
-            xField: 'date',
-            yField: ['xp', 'msgs'],
-            geometryOptions: [
-                { 
-                    geometry: 'column',
-                    color: '#00d4ff'
-                },
-                { 
-                    geometry: 'line',
-                    color: '#FFD700',
-                    lineStyle: { lineWidth: 3 }
-                }
-            ],
-            theme: 'dark',
-            appendPadding: [20, 50, 50, 50],
-            meta: {
-                xp: { alias: 'XP Gained', formatter: (v) => formatNumber(v) },
-                msgs: { alias: 'Messages' }
-            },
-            legend: { position: 'top-left' }
-        });
-
-        dualAxes.render();
-        charts.trend = dualAxes;
-    } catch (e) {
-        console.error('Error rendering activity trend chart:', e);
-        container.innerHTML = '<div style="padding:20px;color:red;">Error rendering chart: ' + e.message + '</div>';
+    if (dualData.length === 0) {
+        dualData.push({ date: 'Mon', xp: 0, msgs: 0 });
     }
+
+    const dualAxes = new G2Plot.DualAxes('container-activity-trend', {
+        data: [dualData, dualData],
+        xField: 'date',
+        yField: ['xp', 'msgs'],
+        geometryOptions: [
+            { geometry: 'column', color: '#00d4ff' }, // XP Bars
+            { geometry: 'line', color: '#FFD700', lineStyle: { lineWidth: 3 } } // Msg Line
+        ],
+        theme: 'dark',
+        meta: {
+            xp: { alias: 'XP Gained', formatter: (v) => formatNumber(Number(v)) },
+            msgs: { alias: 'Messages' }
+        },
+        legend: { position: 'top-left' }
+    });
+
+    dualAxes.render();
+    charts.trend = dualAxes;
 }
 
 function renderXPContribution() {
@@ -1188,7 +1170,7 @@ function renderXpSection(members) {
     }
 
     // Scatter: XP vs Messages
-    const ctxScat = document.getElementById('container-activity-trend');
+    const ctxScat = document.getElementById('container-xp-scatter');
     if (ctxScat) {
         if (charts.scat) charts.scat.destroy();
         // Filter outliers for better chart view
@@ -1451,6 +1433,64 @@ function renderPlayerRadar() {
     }
 }
 
+function renderTenureDistribution() {
+    const ctx = document.getElementById('tenure-distribution-chart');
+    if (!ctx) return;
+    if (charts.tenure) charts.tenure.destroy();
+
+    const members = dashboardData.allMembers;
+
+    // Buckets: 0-30, 31-90, 91-180, 180-365, 365+
+    const buckets = {
+        'New Blood (0-30d)': 0,
+        'Rising (1-3mo)': 0,
+        'Established (3-6mo)': 0,
+        'Veterans (6-12mo)': 0,
+        'Legends (1y+)': 0
+    };
+
+    members.forEach(m => {
+        const days = m.days_in_clan || 0;
+        if (days <= 30) buckets['New Blood (0-30d)']++;
+        else if (days <= 90) buckets['Rising (1-3mo)']++;
+        else if (days <= 180) buckets['Established (3-6mo)']++;
+        else if (days <= 365) buckets['Veterans (6-12mo)']++;
+        else buckets['Legends (1y+)']++;
+    });
+
+    charts.tenure = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(buckets),
+            datasets: [{
+                data: Object.values(buckets),
+                backgroundColor: [
+                    '#00d4ff', // New - Blue
+                    '#33FF33', // Rising - Green
+                    '#FFD700', // Est - Gold
+                    '#FFA500', // Vet - Orange
+                    '#FF00FF'  // Legend - Magenta
+                ],
+                borderColor: '#1a1c2e',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: { color: '#ccc', boxWidth: 10 }
+                },
+                title: {
+                    display: false
+                }
+            }
+        }
+    });
+}
+
 
 function renderXPvsBossChart(members) {
     // XP vs Boss Kills Scatter
@@ -1553,66 +1593,6 @@ function renderLeaderboardChart() {
     });
 }
 
-function renderTenureDistribution() {
-    const ctx = document.getElementById('tenure-distribution-chart');
-    if (!ctx) return;
-    if (charts.tenure) charts.tenure.destroy();
-
-    // Categorize members by tenure (days_in_clan)
-    const members = dashboardData.allMembers || [];
-    
-    // Buckets: 0-30d, 31-90d, 91-180d, 181-365d, 365d+
-    const buckets = {
-        'New (0-30d)': 0,
-        'Recent (31-90d)': 0,
-        'Established (91-180d)': 0,
-        'Loyal (181-365d)': 0,
-        'Veteran (365d+)': 0
-    };
-    
-    members.forEach(m => {
-        const days = m.days_in_clan || 0;
-        if (days <= 30) buckets['New (0-30d)']++;
-        else if (days <= 90) buckets['Recent (31-90d)']++;
-        else if (days <= 180) buckets['Established (91-180d)']++;
-        else if (days <= 365) buckets['Loyal (181-365d)']++;
-        else buckets['Veteran (365d+)']++;
-    });
-
-    const labels = Object.keys(buckets);
-    const data = Object.values(buckets);
-
-    charts.tenure = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Members by Tenure',
-                data: data,
-                backgroundColor: [
-                    'rgba(255, 107, 107, 0.7)',  // New - Red
-                    'rgba(255, 170, 107, 0.7)',  // Recent - Orange
-                    'rgba(255, 215, 0, 0.7)',    // Established - Gold
-                    'rgba(100, 200, 255, 0.7)',  // Loyal - Blue
-                    'rgba(78, 255, 78, 0.7)'     // Veteran - Green
-                ],
-                borderRadius: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
-                x: { grid: { display: false } }
-            },
-            plugins: {
-                legend: { display: false }
-            }
-        }
-    });
-}
-
 
 
 function renderTime(id, isoDate) {
@@ -1628,54 +1608,28 @@ function renderAIInsights(members) {
     renderTime('updated-time-ai', dashboardData.generated_at);
 
     const container = document.getElementById('ai-insights-container');
-    if (!container) {
-        console.error("AI insights container not found");
-        return;
-    }
+    if (!container) return;
 
     container.innerHTML = '';
 
     // AI INSIGHTS INTEGRATION
     if (window.aiData && window.aiData.insights) {
-        console.log("aiData.insights found, count:", window.aiData.insights.length);
-        
-        window.aiData.insights.forEach((insight, index) => {
-            console.log(`Rendering insight ${index + 1}:`, insight.title);
-            
-            const colorVar = insight.type === 'trend' ? 'var(--neon-gold)' 
-                           : insight.type === 'analysis' ? 'var(--neon-blue)' 
-                           : insight.type === 'health' ? 'var(--neon-cyan)'
-                           : insight.type === 'warning' ? 'var(--neon-red)'
-                           : insight.type === 'success' ? 'var(--neon-green)'
-                           : 'var(--neon-green)';
-            
-            const icon = insight.type === 'trend' ? 'fa-chart-line' 
-                       : insight.type === 'analysis' ? 'fa-brain' 
-                       : insight.type === 'health' ? 'fa-heart'
-                       : insight.type === 'warning' ? 'fa-exclamation-triangle'
-                       : insight.type === 'success' ? 'fa-check-circle'
-                       : 'fa-heartbeat';
-            
-            try {
-                const html = `
-                <div class="alert-card" style="border-left: 3px solid ${colorVar}">
-                    <div class="alert-header" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;color:${colorVar}">
-                        <i class="fas ${icon}"></i>
-                        <span style="font-family:'Cinzel'">${insight.title}</span>
-                    </div>
-                    <div class="alert-metric" style="color:#ccc; font-size: 0.9em;">
-                        ${insight.message}
-                    </div>
+        window.aiData.insights.forEach(insight => {
+            const colorVar = insight.type === 'trend' ? 'var(--neon-gold)' : insight.type === 'analysis' ? 'var(--neon-blue)' : 'var(--neon-green)';
+            const icon = insight.type === 'trend' ? 'fa-chart-line' : insight.type === 'analysis' ? 'fa-brain' : 'fa-heartbeat';
+            container.innerHTML += `
+            <div class="alert-card" style="border-left: 3px solid ${colorVar}">
+                <div class="alert-header" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;color:${colorVar}">
+                    <i class="fas ${icon}"></i>
+                    <span style="font-family:'Cinzel'">${insight.title}</span>
                 </div>
-                `;
-                container.innerHTML += html;
-                console.log(`✓ Insight ${index + 1} rendered successfully`);
-            } catch (e) {
-                console.error(`Error rendering insight ${index + 1}:`, e);
-            }
+                <div class="alert-metric" style="color:#ccc; font-size: 0.9em;">
+                    ${insight.message}
+                </div>
+            </div>
+            `;
         });
     } else {
-        console.warn("aiData or aiData.insights not found");
         container.innerHTML = '<div class="glass-card" style="padding:20px;grid-column:1/-1;text-align:center;color:#4fec4f">AI Insights will be available after next data refresh.</div>';
     }
 }
