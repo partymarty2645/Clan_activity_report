@@ -43,7 +43,7 @@ class WOMClient:
         if self._rate_limit_hits:
             recent_hits = [t for t in self._rate_limit_hits if asyncio.get_event_loop().time() - t < 3600]
             if recent_hits:
-                print(f"\033[91m⚠️  WOM Rate Limit Summary: {len(recent_hits)} hits in last hour\033[0m")
+                self.logger.warning(f"WOM Rate Limit Summary: {len(recent_hits)} hits in last hour")
         
         if self._session and not self._session.closed:
             await self._session.close()
@@ -135,7 +135,6 @@ class WOMClient:
                         
                         wait_time = min((2 ** attempt) * 5.0, 60.0)
                         rate_limit_msg = f"🔴 WOM RATE LIMIT HIT (429) - Waiting {wait_time:.1f}s before retry (Attempt {attempt+1}/6)"
-                        print(f"\033[91m{rate_limit_msg}\033[0m")  # Print in RED to stdout
                         self.logger.warning(rate_limit_msg)
                         await asyncio.sleep(wait_time)
                         continue

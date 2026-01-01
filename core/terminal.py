@@ -1,3 +1,4 @@
+from typing import Optional
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
@@ -9,10 +10,10 @@ console = Console()
 def get_timestamp():
     return datetime.datetime.now().strftime("%H:%M:%S")
 
-def log_section(title: str, subtitle: str = None):
+def log_section(title: str, subtitle: Optional[str] = None):
     """Prints a major section header."""
     text = Text(title, style="bold magenta")
-    if subtitle:
+    if subtitle is not None:
         text.append(f"\n{subtitle}", style="italic cyan")
     console.print(Panel(text, border_style="bright_magenta", expand=False))
 

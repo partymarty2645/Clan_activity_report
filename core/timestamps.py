@@ -112,6 +112,8 @@ class TimestampHelper:
 
         # Ensure UTC
         dt_utc = TimestampHelper.to_utc(dt)
+        if dt_utc is None:
+            return "N/A"
 
         # Format as ISO 8601 with UTC suffix
         return dt_utc.strftime("%Y-%m-%d %H:%M:%S UTC")

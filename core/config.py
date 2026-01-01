@@ -84,6 +84,11 @@ class Config:
     LEADERBOARD_SIZE = int(os.getenv('LEADERBOARD_SIZE', 10))
     TOP_BOSS_CARDS = int(os.getenv('TOP_BOSS_CARDS', 4))
     
+    # AI Insights Configuration
+    AI_PLAYER_LIMIT = int(os.getenv('AI_PLAYER_LIMIT', 100))  # Number of top players to analyze for context
+    AI_ACTIVITY_DAYS = int(os.getenv('AI_ACTIVITY_DAYS', 7))  # Activity window in days to consider for "recent" trends
+    AI_ASSET_LIMIT = int(os.getenv('AI_ASSET_LIMIT', 300))    # Limit for assets provided to LLM context
+    
     # --- Key Dates ---
     # Parse CUSTOM_START_DATE or default
     try:

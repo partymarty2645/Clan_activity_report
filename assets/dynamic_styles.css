@@ -1,0 +1,79 @@
+/* Auto-generated context styles */
+
+.context-pvm {
+  --primary-color: #8B0000;
+  --secondary-color: #FF4500;
+  --border-color: #DAA520;
+  --bg-overlay: rgba(139, 0, 0, 0.15);
+}
+
+.card.context-pvm {
+  background: linear-gradient(135deg, rgba(139, 0, 0, 0.15), rgba(0,0,0,0.3));
+  border: 2px solid #DAA520;
+  box-shadow: 0 4px 12px rgba(139, 0, 0, 0.15), 0 0 20px rgba(139, 0, 0, 0.15);
+}
+
+.context-social {
+  --primary-color: #4169E1;
+  --secondary-color: #00BFFF;
+  --border-color: #4682B4;
+  --bg-overlay: rgba(65, 105, 225, 0.15);
+}
+
+.card.context-social {
+  background: linear-gradient(135deg, rgba(65, 105, 225, 0.15), rgba(0,0,0,0.3));
+  border: 2px solid #4682B4;
+  box-shadow: 0 4px 12px rgba(65, 105, 225, 0.15), 0 0 20px rgba(65, 105, 225, 0.15);
+}
+
+.context-skills {
+  --primary-color: #228B22;
+  --secondary-color: #32CD32;
+  --border-color: #FFD700;
+  --bg-overlay: rgba(34, 139, 34, 0.15);
+}
+
+.card.context-skills {
+  background: linear-gradient(135deg, rgba(34, 139, 34, 0.15), rgba(0,0,0,0.3));
+  border: 2px solid #FFD700;
+  box-shadow: 0 4px 12px rgba(34, 139, 34, 0.15), 0 0 20px rgba(34, 139, 34, 0.15);
+}
+
+.context-general {
+  --primary-color: #8B4513;
+  --secondary-color: #D2691E;
+  --border-color: #CD853F;
+  --bg-overlay: rgba(139, 69, 19, 0.15);
+}
+
+.card.context-general {
+  background: linear-gradient(135deg, rgba(139, 69, 19, 0.15), rgba(0,0,0,0.3));
+  border: 2px solid #CD853F;
+  box-shadow: 0 4px 12px rgba(139, 69, 19, 0.15), 0 0 20px rgba(139, 69, 19, 0.15);
+}
+
+.context-leaderboard {
+  --primary-color: #FFD700;
+  --secondary-color: #FFA500;
+  --border-color: #FF8C00;
+  --bg-overlay: rgba(255, 215, 0, 0.15);
+}
+
+.card.context-leaderboard {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(0,0,0,0.3));
+  border: 2px solid #FF8C00;
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.15), 0 0 20px rgba(255, 215, 0, 0.15);
+}
+
+.context-milestone {
+  --primary-color: #9370DB;
+  --secondary-color: #BA55D3;
+  --border-color: #DDA0DD;
+  --bg-overlay: rgba(147, 112, 219, 0.15);
+}
+
+.card.context-milestone {
+  background: linear-gradient(135deg, rgba(147, 112, 219, 0.15), rgba(0,0,0,0.3));
+  border: 2px solid #DDA0DD;
+  box-shadow: 0 4px 12px rgba(147, 112, 219, 0.15), 0 0 20px rgba(147, 112, 219, 0.15);
+}

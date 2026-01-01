@@ -40,7 +40,9 @@ def retry_async(max_attempts: int = 3, delay: float = 1.0, backoff: float = 2.0)
                     await asyncio.sleep(current_delay)
                     current_delay *= backoff
             
-            raise last_exception
+            if last_exception is not None:
+                raise last_exception
+            raise RuntimeError(f"{func.__name__} failed without raising a specific exception")
         
         return wrapper
     return decorator
@@ -91,7 +93,7 @@ class PerformanceMonitor:
     
     def __init__(self, operation_name: str):
         self.operation_name = operation_name
-        self.start_time = None
+        self.start_time: Optional[float] = None
         
     def __enter__(self):
         self.start_time = time.time()
@@ -99,6 +101,9 @@ class PerformanceMonitor:
         return self
         
     def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.start_time is None:
+            logger.error(f"❌ Failed: {self.operation_name} (start time was not set)")
+            return False
         elapsed = time.time() - self.start_time
         if exc_type is None:
             logger.info(f"✅ Completed: {self.operation_name} ({elapsed:.2f}s)")

@@ -55,9 +55,10 @@ if not GEMINI_API_KEY:
 
 class ModelProvider(str, Enum):
     """Available LLM providers"""
-    GEMINI_2_5_PRO = "gemini-2.5-pro"     # #1 (primary - stable, no preview)
-    GEMINI_2_5_FLASH = "gemini-2.5-flash" # #2 (secondary - stable, no preview, faster)
-    GROQ_OSS_120B = "groq-oss-120b"       # #3 (fallback - always available)
+    GEMINI_2_5_FLASH_LITE = "gemini-2.5-flash-lite" # #1 (primary - fast, cheap)
+    GEMINI_2_5_FLASH = "gemini-2.5-flash"      # #2 (secondary - stable, no preview, faster)
+    GEMINI_2_5_PRO = "gemini-2.5-pro"          # Legacy/Heavy
+    GROQ_OSS_120B = "groq-oss-120b"            # #3 (fallback - always available)
 
 
 @dataclass
@@ -111,10 +112,18 @@ class GeminiClient:
             config=config
         )
         
+        # Determine provider enum based on model string
+        if "flash-lite" in self.model:
+            provider = ModelProvider.GEMINI_2_5_FLASH_LITE
+        elif "flash" in self.model:
+            provider = ModelProvider.GEMINI_2_5_FLASH
+        else:
+            provider = ModelProvider.GEMINI_2_5_PRO
+
         return LLMResponse(
             content=response.text,
             model=self.model,
-            provider=ModelProvider.GEMINI_2_5_FLASH if "flash" in self.model else ModelProvider.GEMINI_2_5_PRO,
+            provider=provider,
             raw={"text": response.text}
         )
 
@@ -185,7 +194,9 @@ class UnifiedLLMClient:
         self.original_provider = provider
         
         try:
-            if provider == ModelProvider.GEMINI_2_5_FLASH:
+            if provider == ModelProvider.GEMINI_2_5_FLASH_LITE:
+                self.client = GeminiClient(model=provider.value)
+            elif provider == ModelProvider.GEMINI_2_5_FLASH:
                 self.client = GeminiClient(model=provider.value)
             elif provider == ModelProvider.GEMINI_2_5_PRO:
                 self.client = GeminiClient(model=provider.value)
@@ -194,7 +205,7 @@ class UnifiedLLMClient:
             else:
                 raise ValueError(f"Unknown provider: {provider}")
         except (ImportError, ValueError) as e:
-            if provider in [ModelProvider.GEMINI_2_5_FLASH, ModelProvider.GEMINI_2_5_PRO]:
+            if "gemini" in provider.value:
                 logger.warning(f"⚠️ Gemini provider unavailable ({type(e).__name__}), falling back to Groq")
                 self.provider = ModelProvider.GROQ_OSS_120B
                 self.client = GroqClient(model="openai/gpt-oss-120b")
@@ -212,9 +223,9 @@ class UnifiedLLMClient:
     
     @staticmethod
     def get_provider_by_number(number: int) -> ModelProvider:
-        """Get provider by number: 1=Gemini 2.5-pro, 2=Gemini 2.5-flash, 3=Groq"""
+        """Get provider by number: 1=Flash-Lite, 2=Flash, 3=Groq"""
         if number == 1:
-            return ModelProvider.GEMINI_2_5_PRO
+            return ModelProvider.GEMINI_2_5_FLASH_LITE
         elif number == 2:
             return ModelProvider.GEMINI_2_5_FLASH
         elif number == 3:

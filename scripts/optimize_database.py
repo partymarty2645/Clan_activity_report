@@ -1,7 +1,7 @@
 """
 DATABASE OPTIMIZER (The Alchemist's Transmutation)
 ==================================================
-This script performs a surgical operation on 'clan_data.db' to:
+This script performs a surgical operation on the database to:
 1. Remove redundant indexes that slow down writes.
 2. Create 'Functional Indexes' to speed up harvest.py and report.py.
 3. Vacuum the database to reduce file size.
@@ -13,20 +13,20 @@ import time
 import os
 import sys
 from rich.console import Console
+from core.config import Config
 
 console = Console()
-DB_PATH = "clan_data.db"
 
 def optimize():
-    if not os.path.exists(DB_PATH):
+    if not os.path.exists(Config.DB_FILE):
         console.print("[red]Database not found![/red]")
         return
 
     # Measure before
-    size_before = os.path.getsize(DB_PATH) / (1024*1024)
+    size_before = os.path.getsize(Config.DB_FILE) / (1024*1024)
     console.print(f"[bold cyan]Starting Optimization... (Current Size: {size_before:.2f} MB)[/bold cyan]")
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(Config.DB_FILE)
     # Set a 60-second timeout to wait for locks to clear (harvesting etc)
     conn.execute("PRAGMA busy_timeout = 60000")
     
@@ -175,7 +175,7 @@ def optimize():
     conn.close()
 
     # Measure after
-    size_after = os.path.getsize(DB_PATH) / (1024*1024)
+    size_after = os.path.getsize(Config.DB_FILE) / (1024*1024)
     saved = size_before - size_after
     console.print(f"[bold green]Optimization Complete![/bold green]")
     if saved > 0.01:

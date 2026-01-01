@@ -8,6 +8,7 @@ from core.usernames import UsernameNormalizer
 from database.connector import SessionLocal
 from database.models import DiscordMessage
 from services.identity_service import resolve_member_by_name
+from services.user_access_service import UserAccessService
 
 logger = logging.getLogger('DiscordService')
 
@@ -128,13 +129,20 @@ class DiscordFetcher:
 
     def _save_batch(self, db, batch, current_total=None):
         try:
-            from services.identity_service import resolve_member_by_name
+            # Use UserAccessService for consistent user resolution
+            user_service = UserAccessService(db)
             
             for msg in batch:
-                # Resolve member_id via alias lookup before saving
+                # Resolve member_id via UserAccessService for consistency
                 if msg.author_name:
-                    member_id = resolve_member_by_name(db, msg.author_name)
-                    msg.user_id = member_id
+                    try:
+                        user_id = user_service.resolve_user_id(msg.author_name)
+                        msg.user_id = user_id
+                    except Exception as e:
+                        logger.debug(f"Could not resolve user_id for '{msg.author_name}': {e}")
+                        # Fallback to legacy method
+                        member_id = resolve_member_by_name(db, msg.author_name)
+                        msg.user_id = member_id
                 
                 db.merge(msg) 
             db.commit()

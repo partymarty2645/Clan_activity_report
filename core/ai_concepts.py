@@ -1,10 +1,11 @@
 import random
 import logging
+from typing import Any, List, Mapping
 
 logger = logging.getLogger(__name__)
 
 class AIInsightGenerator:
-    def __init__(self, members):
+    def __init__(self, members: List[Mapping[str, Any]]):
         """
         members: list of dicts containing player stats
         """
@@ -294,11 +295,16 @@ class AIInsightGenerator:
 
     def gen_outliers(self):
         insights = []
-        if not self.members: return []
+        if not self.members: 
+            return []
 
-        # XP Variance
+        # XP Variance - Filter to ensure we only work with valid dictionaries
+        valid_members = [m for m in self.members if isinstance(m, dict)]
+        if not valid_members:
+            return []
+            
         # Let's do: "Top Gainer" absolute
-        top_xp = max(self.members, key=lambda x: x.get('xp_7d', 0))
+        top_xp = max(valid_members, key=lambda x: x.get('xp_7d', 0))
         if top_xp.get('xp_7d', 0) > 2_000_000:
             insights.append({
                 "type": "trend",
@@ -307,7 +313,7 @@ class AIInsightGenerator:
                 "icon": "fa-arrow-up"
             })
             
-        top_boss = max(self.members, key=lambda x: x.get('boss_7d', 0))
+        top_boss = max(valid_members, key=lambda x: x.get('boss_7d', 0))
         if top_boss.get('boss_7d', 0) > 50:
             insights.append({
                 "type": "trend",
@@ -360,12 +366,12 @@ class AIInsightGenerator:
 
         # Most popular fav boss
         if fav_counts:
-            popular = max(fav_counts, key=fav_counts.get)
-            if fav_counts[popular] > 2:
+            popular, count = max(fav_counts.items(), key=lambda item: item[1])
+            if count > 2:
                 insights.append({
                     "type": "trend",
                     "title": "Crowd Favorite",
-                    "message": f"❤️ {popular} is the current favorite boss of {fav_counts[popular]} members.",
+                    "message": f"❤️ {popular} is the current favorite boss of {count} members.",
                     "icon": "fa-heart"
                 })
         return insights

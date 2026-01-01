@@ -16,8 +16,8 @@ from core.assets import BOSS_ASSET_MAP, DEFAULT_BOSS_IMAGE
 from core.analytics import AnalyticsService
 from data.queries import Queries
 from core.ai_concepts import AIInsightGenerator
+from core.asset_manager import AssetManager, AssetContext
 
-DB_PATH = "clan_data.db"
 OUTPUT_FILE = "clan_data.json"
 
 
@@ -88,7 +88,7 @@ def format_number(num):
     return str(num)
 
 def get_db_connection():
-    return sqlite3.connect(DB_PATH)
+    return sqlite3.connect(Config.DB_FILE)
 
 def run_export():
     logger.info("Starting Web Dashboard Export...")
@@ -119,8 +119,10 @@ def run_export():
         
         # 1. Snapshots
         latest_snaps = analytics.get_latest_snapshots()
+        latest_snaps = analytics.get_latest_snapshots()
         past_7d_snaps = analytics.get_snapshots_at_cutoff(datetime.datetime.now(timezone.utc) - timedelta(days=7))
         past_30d_snaps = analytics.get_snapshots_at_cutoff(datetime.datetime.now(timezone.utc) - timedelta(days=30))
+        past_year_snaps = analytics.get_snapshots_at_cutoff(datetime.datetime.now(timezone.utc) - timedelta(days=365)) # FIX: Load Year Data
         
         logger.info(f"Data Points: {len(latest_snaps)} recent snapshots loaded.")
         
@@ -140,12 +142,17 @@ def run_export():
         msg_stats_7d = analytics.get_discord_stats_simple(days=7)
         msg_stats_30d = analytics.get_discord_stats_simple(days=30)
         
+        msg_stats_30d = analytics.get_discord_stats_simple(days=30)
+        
         logger.info("Generating secondary charts (Heatmaps, Trends, Diversity)...")
         activity_heatmap = analytics.get_activity_heatmap(days=30)
         clan_history = analytics.get_clan_trend(days=30)
         
+        # FIX: Re-enable Correlation Data
+        correlation_data = analytics.get_correlation_data() 
+        
         # Charts via Service
-        boss_diversity = analytics.get_boss_diversity(latest_ids)
+        boss_diversity = analytics.get_boss_diversity_7d() # FIX: Use 7d gains instead of total
         raids_performance = analytics.get_raids_performance(latest_ids)
         skill_mastery = analytics.get_skill_mastery(latest_ids)
         trending_boss = analytics.get_trending_boss(days=30)
@@ -162,10 +169,12 @@ def run_export():
             "history": clan_history, 
             
             # New Chart Data
+            # New Chart Data
             "chart_boss_diversity": boss_diversity,
             "chart_raids": raids_performance,
             "chart_skills": skill_mastery,
             "chart_boss_trend": trending_boss,
+            "correlation_data": correlation_data, # FIX: Expose to JSON
             "clan_records": clan_records,
             
             "allMembers": [],
@@ -307,6 +316,13 @@ def run_export():
             if baseline and baseline.timestamp < curr.timestamp:
                 xp_30d = curr.total_xp - baseline.total_xp
                 boss_30d = curr.total_boss_kills - baseline.total_boss_kills
+            
+            # Year Gains (Annual XP)
+            xp_year = 0
+            if u_clean in past_year_snaps:
+                y_snap = past_year_snaps[u_clean]
+                if y_snap.timestamp < curr.timestamp:
+                    xp_year = max(0, curr.total_xp - y_snap.total_xp)
                 
             if u_clean in active_users:
                 mem_data = active_users[u_clean] # Might contain other enriched data?
@@ -371,6 +387,27 @@ def run_export():
                     pass
 
             # Construct User Object
+            
+            # Determine Context for Asset Selection
+            context = AssetContext.GENERAL  # Default
+            
+            # PvM specialists: High boss kill rate vs XP
+            if boss_7d > 10 and curr.total_boss_kills > 500:
+                context = AssetContext.PVM
+            # Social butterflies: High message count
+            elif u_clean in msg_stats_7d and msg_stats_7d[u_clean] > 50:
+                context = AssetContext.SOCIAL
+            # Skillers: High XP with low boss kills
+            elif xp_7d > 100000 and boss_7d < 5:
+                context = AssetContext.SKILLS
+            # Recent milestones: Large 7d gains
+            elif xp_7d > 500000 or boss_7d > 50:
+                context = AssetContext.MILESTONE
+            
+            # Select context-aware fallbacks
+            context_boss_fallback = AssetManager.get_boss_fallback(context)
+            context_rank_fallback = AssetManager.get_rank_fallback(context)
+            
             user_obj = {
                 "username": username, 
                 "role": role,
@@ -382,15 +419,17 @@ def run_export():
 
                 "xp_30d": xp_30d,
                 "boss_30d": boss_30d,
+                "xp_year": xp_year, # FIX: Include in user object
                 "favorite_boss": fav_boss_name, 
-                "favorite_boss_img": fav_boss_img, 
+                "favorite_boss_img": fav_boss_img if fav_boss_img != "boss_pet_rock.png" else context_boss_fallback, 
                 "favorite_boss_all_time": fav_boss_all_time_name,
-                "favorite_boss_all_time_img": fav_boss_all_time_img,
+                "favorite_boss_all_time_img": fav_boss_all_time_img if fav_boss_all_time_img != "boss_pet_rock.png" else context_boss_fallback,
                  "total_xp": curr.total_xp,
                  "total_boss": curr.total_boss_kills,
                  "msgs_7d": 0,
                  "msgs_30d": 0,
-                 "msgs_total": 0
+                 "msgs_total": 0,
+                 "context_class": f"context-{context.value}"  # NEW: CSS class for theming
             }
 
             # Enhanced Name Matching for Discord Stats
@@ -455,6 +494,12 @@ def run_export():
         output_data['topBossers'] = top_boss
         
         # Top XP (Top 9)
+        # Top XP (Top 9) - FIX: Use xp_year for "XP Contribution" chart if requested, or keep 7d for others?
+        # User requested "XP Contribution (Top 25) --> change into per player annual xp gain"
+        # We will expose a separate list for this chart.
+        top_xp_year = sorted(output_data['allMembers'], key=lambda x: x.get('xp_year', 0), reverse=True)[:25]
+        output_data['topXPYear'] = top_xp_year
+        
         top_xp = sorted(output_data['allMembers'], key=lambda x: x['xp_7d'], reverse=True)[:9]
         output_data['topXPGainers'] = top_xp
         
@@ -521,24 +566,45 @@ def run_export():
         # Drive Export (Legacy Support)
         if Config.LOCAL_DRIVE_PATH:
             from core.drive import DriveExporter
-            # Data Files
-            DriveExporter.export_file("clan_data.js")
-            DriveExporter.export_file("clan_data.json")
             
-            # Dashboard Files
-            DriveExporter.export_file("clan_dashboard.html")
-            DriveExporter.export_file("dashboard_logic.js")
-            if os.path.exists("ai_data.js"):
-                 DriveExporter.export_file("ai_data.js")
+            # Check if manual dashboard fixes should be preserved
+            dashboard_fixes_file = "DASHBOARD_FIXES_APPLIED.md"
+            docs_dashboard = "docs/dashboard_logic.js"
+            preserve_fixes = False
             
-            # Export Assets Folder (Recursive)
-            assets_dir = os.path.join(os.getcwd(), "assets")
-            if os.path.exists(assets_dir):
-                for root, dirs, files in os.walk(assets_dir):
-                    for file in files:
-                        abs_path = os.path.join(root, file)
-                        rel_path = os.path.relpath(abs_path, os.getcwd())
-                        DriveExporter.export_file(abs_path, target_filename=rel_path)
+            if os.path.exists(dashboard_fixes_file) and os.path.exists(docs_dashboard):
+                root_dashboard = "dashboard_logic.js"
+                if os.path.exists(root_dashboard):
+                    docs_time = os.path.getmtime(docs_dashboard)
+                    root_time = os.path.getmtime(root_dashboard)
+                    preserve_fixes = docs_time > root_time
+            
+            if preserve_fixes:
+                logger.info("Manual dashboard fixes detected - preserving dashboard files, updating data only")
+                # Data Files Only
+                DriveExporter.export_file("clan_data.js")
+                DriveExporter.export_file("clan_data.json")
+                if os.path.exists("ai_data.js"):
+                     DriveExporter.export_file("ai_data.js")
+            else:
+                # Data Files
+                DriveExporter.export_file("clan_data.js")
+                DriveExporter.export_file("clan_data.json")
+                
+                # Dashboard Files
+                DriveExporter.export_file("clan_dashboard.html")
+                DriveExporter.export_file("dashboard_logic.js")
+                if os.path.exists("ai_data.js"):
+                     DriveExporter.export_file("ai_data.js")
+                
+                # Export Assets Folder (Recursive)
+                assets_dir = os.path.join(os.getcwd(), "assets")
+                if os.path.exists(assets_dir):
+                    for root, dirs, files in os.walk(assets_dir):
+                        for file in files:
+                            abs_path = os.path.join(root, file)
+                            rel_path = os.path.relpath(abs_path, os.getcwd())
+                            DriveExporter.export_file(abs_path, target_filename=rel_path)
 
         
     except Exception as e:

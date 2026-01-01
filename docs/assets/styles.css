@@ -317,9 +317,10 @@ th,
     background: var(--card-bg);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: var(--glass-border);
+    border: 2px solid rgba(255,215,0,0.3);  /* Enhanced border */
     border-radius: 12px;
-    padding: 24px;
+    padding: 40px;  /* Increased from 24px */
+    min-width: 380px;  /* Added minimum width */
     position: relative;
     overflow: hidden;
     transition: transform 0.3s, box-shadow 0.3s;
@@ -378,9 +379,32 @@ th,
 
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
     gap: 24px;
     margin-bottom: 40px;
+}
+
+.stat-card {
+    min-width: 380px;
+    padding: 40px;
+    border: 2px solid rgba(255,215,0,0.3);
+    box-shadow: 0 0 15px rgba(255,215,0,0.3);
+}
+
+.stat-card img {
+    width: 100px !important;
+    height: 100px !important;
+    filter: drop-shadow(0 0 20px currentColor);
+}
+
+.stat-value {
+    font-size: 52px;
+    text-shadow: 0 0 15px var(--neon-gold), 0 0 30px var(--neon-gold);
+}
+
+.stat-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 40px rgba(255,215,0,0.6);
 }
 
 .stat-label {
@@ -883,4 +907,15 @@ tr:hover td {
 .profile-title h2 {
     margin: 0;
     font-size: 2rem;
+}
+/* AI Insights Square Cards Override */
+#ai-insights-container .alert-card {
+    aspect-ratio: 1;
+    min-width: 380px;
+    height: 380px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border-radius: 15px;
+    backdrop-filter: var(--glass-blur);
 }

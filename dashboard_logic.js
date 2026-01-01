@@ -350,10 +350,27 @@ function renderGeneralStats(data) {
         const m = data.topBossKiller;
         // Try to find full member data
         const fullMember = members.find(p => p.username === m.name);
-        const bossImg = fullMember && fullMember.favorite_boss_img ? fullMember.favorite_boss_img : (m.rank_img || 'rank_minion.png');
+        
+        // NEW: Use context-aware fallback if available
+        let bossImg = 'rank_minion.png'; // Ultimate fallback
+        
+        if (fullMember) {
+            // Priority: User's actual favorite boss image
+            if (fullMember.favorite_boss_img && fullMember.favorite_boss_img !== 'boss_pet_rock.png') {
+                bossImg = fullMember.favorite_boss_img;
+            }
+            // Fallback to rank image if exists
+            else if (fullMember.rank_img) {
+                bossImg = fullMember.rank_img;
+            }
+        }
+        // Last resort: use leaderboard data if available
+        else if (m.rank_img) {
+            bossImg = m.rank_img;
+        }
 
         setHtml('stat-top-boss', `
-             <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
+             <div style="display:flex;align-items:center;justify-content:center;gap:10px;" class="${fullMember?.context_class || 'context-general'}">
                 <img src="assets/${bossImg}" style="width:30px;height:auto;object-fit:contain;" onerror="this.src='assets/rank_minion.png';this.onerror=null;">
                 <span>${m.name} <span style="color:var(--neon-red);font-size:0.9em">(${formatNumber(m.kills)})</span></span>
             </div>

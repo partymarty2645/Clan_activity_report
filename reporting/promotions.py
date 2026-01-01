@@ -11,6 +11,7 @@ import logging
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Tuple
 
+from core.config import Config
 from core.roles import RoleAuthority, ClanRole
 from services.factory import ServiceFactory
 from database.connector import SessionLocal
@@ -21,12 +22,11 @@ logging.basicConfig(level=logging.ERROR) # Quiet most logs
 logger = logging.getLogger("PromotionReport")
 logger.setLevel(logging.INFO)
 
-DB_PATH = 'e:/Clan_activity_report/clan_data.db'
 ZAMORAKIAN_ALIASES = ['zamorakian', 'zenyte', 'dragonstone', 'administrator'] # Fallback ranks
 
 async def get_role_map(group_id) -> Dict[str, str]:
     """Fetches current members from API to get accurate roles."""
-    print("Fetching live role data from WOM...")
+    logger.info("Fetching live role data from WOM...")
     wom = await ServiceFactory.get_wom_client()
     members = await wom.get_group_members(group_id)
     role_map = {}
@@ -37,7 +37,7 @@ async def get_role_map(group_id) -> Dict[str, str]:
 
 def get_recent_metrics(days=7) -> Dict[str, Dict]:
     """Calculates XP gains and gets latest boss kills from DB."""
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(Config.DB_FILE)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     
@@ -47,7 +47,7 @@ def get_recent_metrics(days=7) -> Dict[str, Dict]:
     cutoff_30d = now_utc - timedelta(days=30)
     
     # 1. Get Messages (30d)
-    print("Analyzing Discord activity...")
+    logger.info("Analyzing Discord activity...")
     cursor.execute("""
         SELECT lower(author_name) as name, count(*) as count 
         FROM discord_messages 
@@ -57,7 +57,7 @@ def get_recent_metrics(days=7) -> Dict[str, Dict]:
     msg_map_30d = {row['name']: row['count'] for row in cursor.fetchall()}
     
     # 2. Get Snapshots (Latest & 7d ago)
-    print("Analyzing XP and Boss data...")
+    logger.info("Analyzing XP and Boss data...")
     # Fetch latest snapshot for every user
     cursor.execute("""
         SELECT username, total_xp, raw_data 
@@ -121,7 +121,7 @@ def get_recent_metrics(days=7) -> Dict[str, Dict]:
     return metrics
 
 def generate_report(role_map, metrics):
-    print("\nProcessing Promotion Logic...")
+    logger.info("Processing Promotion Logic...")
     
     recommendations = []
     
@@ -143,7 +143,7 @@ def generate_report(role_map, metrics):
         avg_zam_xp = sum(zam_xp_gains) / len(zam_xp_gains)
         limit_msg = f"(> {avg_zam_xp:,.0f} XP)"
 
-    print(f"Benchmark: {target_rank_name} Avg 7d XP = {avg_zam_xp:,.0f}")
+    logger.info(f"Benchmark: {target_rank_name} Avg 7d XP = {avg_zam_xp:,.0f}")
     
     prospectors = [u for u, r in role_map.items() if r == 'prospector']
     for user in prospectors:
@@ -164,7 +164,7 @@ def generate_report(role_map, metrics):
         # Ensure at least 1 person if list is small, but index 0 is top
         cutoff_val = all_msgs[top_10_cutoff_index] if top_10_cutoff_index < len(all_msgs) else all_msgs[0]
         
-        print(f"Benchmark: Top 10% Msg Threshold = {cutoff_val}")
+        logger.info(f"Benchmark: Top 10% Msg Threshold = {cutoff_val}")
         
         for user, data in metrics.items():
             role = role_map.get(user, 'unknown')
@@ -192,7 +192,7 @@ def generate_report(role_map, metrics):
         raid_threshold = raid_counts[int(len(raid_counts) * 0.15)]
         if raid_threshold < 50: raid_threshold = 50 # Minimum floor
         
-        print(f"Benchmark: Carry Raid Threshold = {raid_threshold}")
+        logger.info(f"Benchmark: Carry Raid Threshold = {raid_threshold}")
         
         for user, data in metrics.items():
             role = role_map.get(user, 'unknown')
@@ -210,12 +210,12 @@ def generate_report(role_map, metrics):
     return recommendations
 
 def print_markdown_report(recommendations):
-    print("\n" + "="*40)
-    print("PROMOTION RECOMMENDATION REPORT")
-    print("="*40)
+    logger.info("=" * 40)
+    logger.info("PROMOTION RECOMMENDATION REPORT")
+    logger.info("=" * 40)
     
     if not recommendations:
-        print("No promotions recommended at this time.")
+        logger.info("No promotions recommended at this time.")
         return
 
     # Group by User to combine reasons
@@ -229,13 +229,13 @@ def print_markdown_report(recommendations):
     # Sort by Rank priority? Or just Name? Let's Sort by Name.
     sorted_users = sorted(grouped.items())
     
-    print(f"{'User':<20} | {'Current Rank':<15} | {'Reason for Recommendation'}")
-    print("-" * 80)
+    logger.info(f"{'User':<20} | {'Current Rank':<15} | {'Reason for Recommendation'}")
+    logger.info("-" * 80)
     
     for user, data in sorted_users:
         reasons = "; ".join(data['reasons'])
-        print(f"{user:<20} | {data['rank']:<15} | {reasons}")
-    print("-" * 80)
+        logger.info(f"{user:<20} | {data['rank']:<15} | {reasons}")
+    logger.info("-" * 80)
 
 async def main():
     from core.config import Config

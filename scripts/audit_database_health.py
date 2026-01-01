@@ -2,10 +2,9 @@ import sqlite3
 import pandas as pd
 from rich.console import Console
 from rich.table import Table
+from core.config import Config
 
 console = Console()
-
-DB_PATH = 'clan_data.db'
 
 def get_tables(conn):
     cursor = conn.cursor()
@@ -44,7 +43,7 @@ def check_nulls(conn, table_name):
 
 def main():
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(Config.DB_FILE)
         tables = get_tables(conn)
         
         console.print(f"[bold green]Found {len(tables)} tables[/bold green]")

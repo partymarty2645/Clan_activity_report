@@ -1,44 +1,100 @@
 [
   {
     "type": "trend",
-    "title": "Chat Master",
-    "message": "Docofmed tops chat with 6,906 messages, the clan's true Yapper.",
-    "image": "skill_prayer.png",
-    "icon": "\ud83d\udcac"
+    "title": "Weekly Message Activity Surges!",
+    "message": "Our clan's message count jumped by 68.4% this week, from 5893 to 9922 messages!",
+    "icon": "chat",
+    "players": [],
+    "_provider": "gemini-2.5-flash"
   },
   {
-    "type": "battle",
-    "title": "Kill King",
-    "message": "Loafy leads boss kills: 15,996 slaughters, unmatched grinding machine.",
-    "image": "boss_verzik.png",
-    "icon": "\u2694\ufe0f"
+    "type": "leadership",
+    "title": "Sirgowi: The Yapper King!",
+    "message": "Sirgowi led the charge with 585 messages and 4.9M XP gained this week, a true Top 5% yapper!",
+    "icon": "star",
+    "players": [
+      "sirgowi"
+    ],
+    "_provider": "gemini-2.5-flash"
+  },
+  {
+    "type": "leadership",
+    "title": "JakeSTL314: Zenyte, where's the grind?",
+    "message": "JakeSTL314, our Zenyte, only gained 261,550 XP and 3 kills this week. Step it up!",
+    "icon": "skull",
+    "players": [
+      "jakestl314"
+    ],
+    "_provider": "gemini-2.5-flash"
+  },
+  {
+    "type": "roast",
+    "title": "Tylenolchugr: The Ultimate Ghost!",
+    "message": "Tylenolchugr is a Top 5% XP earner with 19.8M XP and 1036 kills, but sent 0 messages. Touch grass!",
+    "icon": "ghost",
+    "players": [
+      "tylenolchugr"
+    ],
+    "_provider": "gemini-2.5-flash"
+  },
+  {
+    "type": "roast",
+    "title": "Ares06: The XP Grinder, not the Killer!",
+    "message": "Ares06 gained 10.4M XP this week but secured 0 boss kills and sent 0 messages. Where's the action?",
+    "icon": "silent",
+    "players": [
+      "ares06"
+    ],
+    "_provider": "gemini-2.5-flash"
   },
   {
     "type": "milestone",
-    "title": "XP Giant",
-    "message": "Docofmed boasts 285,354,182 XP, second only to loafy's 322M.",
-    "image": "skill_mining.png",
-    "icon": "\u26cf\ufe0f"
+    "title": "S1ayde's Prayer Power!",
+    "message": "S1ayde achieved an incredible 8.9M Prayer XP gain this week, securing a Top 5% XP rank!",
+    "icon": "trophy",
+    "players": [
+      "s1ayde"
+    ],
+    "_provider": "gemini-2.5-flash"
   },
   {
-    "type": "trend",
-    "title": "Rising Duckling",
-    "message": "Strixter, 98\u2011day veteran, already posted 332 messages, climbing the chatter ladder.",
-    "image": "rank_prospector.png",
-    "icon": "\ud83d\ude80"
+    "type": "milestone",
+    "title": "Alprosia's Dominant Week!",
+    "message": "Alprosia was active 7/7 days, gaining 10.4M XP and 1073 kills, ranking Top 5% in both!",
+    "icon": "achievement",
+    "players": [
+      "alprosia"
+    ],
+    "_provider": "gemini-2.5-flash"
   },
   {
-    "type": "outlier",
-    "title": "Silent Grinder",
-    "message": "Theerecter whispers with only 20 messages\u2014silent grinder lurking behind 10,948 kills.",
-    "image": "boss_kraken.png",
-    "icon": "\ud83d\udc7b"
+    "type": "milestone",
+    "title": "Pointndclick's Construction Boom!",
+    "message": "Pointndclick built up 6.0M Construction XP this week, showing serious dedication!",
+    "icon": "hammer",
+    "players": [
+      "pointndclick"
+    ],
+    "_provider": "gemini-2.5-flash"
   },
   {
-    "type": "fun",
-    "title": "Ghost of XP",
-    "message": "Loafy, XP titan with 322M but just 4 messages\u2014silent powerhouse.",
-    "image": "skill_runecraft.png",
-    "icon": "\ud83d\uddff"
+    "type": "general",
+    "title": "Samaelilith: The Triple Threat!",
+    "message": "Samaelilith is a Top 5% in messages (585), kills (736), and Top 25% in XP (3.4M) this week!",
+    "icon": "star",
+    "players": [
+      "samaelilith"
+    ],
+    "_provider": "gemini-2.5-flash"
+  },
+  {
+    "type": "general",
+    "title": "Geoblocks34: Woodcutting Master!",
+    "message": "Geoblocks34 gained 3.1M Woodcutting XP, ranking Top 25% in XP, but has 0 kills this week.",
+    "icon": "tree",
+    "players": [
+      "geoblocks34"
+    ],
+    "_provider": "gemini-2.5-flash"
   }
 ]

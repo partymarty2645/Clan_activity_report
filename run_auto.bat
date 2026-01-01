@@ -28,11 +28,11 @@ echo Running Orchestrator...
 ".venv\Scripts\python.exe" main.py
 if errorlevel 1 goto error
 
-echo Running AI Analyst...
-".venv\Scripts\python.exe" scripts/ai_analyst.py
-if errorlevel 1 (
-    echo WARNING: AI Analyst failed. Dashboard will use cached/empty AI data.
-)
+REM echo Running AI Analyst...
+REM ".venv\Scripts\python.exe" scripts/ai_analyst.py
+REM if errorlevel 1 (
+REM     echo WARNING: AI Analyst failed. Dashboard will use cached/empty AI data.
+REM )
 
 REM Fun Stats disabled by request; removing weekly spotlight generation.
 

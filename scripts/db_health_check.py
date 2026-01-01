@@ -1,16 +1,15 @@
 import sqlite3
 import sys
 import os
-
-DB_PATH = "clan_data.db"
+from core.config import Config
 
 def check():
-    if not os.path.exists(DB_PATH):
-        print(f"FAIL: {DB_PATH} not found.")
+    if not os.path.exists(Config.DB_FILE):
+        print(f"FAIL: {Config.DB_FILE} not found.")
         return False
     
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(Config.DB_FILE)
         cursor = conn.cursor()
         
         # Check Tables

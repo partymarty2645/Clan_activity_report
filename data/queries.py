@@ -37,7 +37,7 @@ class Queries:
         SELECT id, username, timestamp, total_xp, total_boss_kills
         FROM (
             SELECT id, username, timestamp, total_xp, total_boss_kills,
-                   ROW_NUMBER() OVER (PARTITION BY username ORDER BY timestamp DESC, id DESC) AS rn
+                ROW_NUMBER() OVER (PARTITION BY username ORDER BY timestamp DESC, id DESC) AS rn
             FROM wom_snapshots
         ) ranked
         WHERE rn = 1
@@ -58,7 +58,7 @@ class Queries:
         SELECT id, username, timestamp, total_xp, total_boss_kills
         FROM (
             SELECT id, username, timestamp, total_xp, total_boss_kills,
-                   ROW_NUMBER() OVER (PARTITION BY username ORDER BY timestamp DESC, id DESC) AS rn
+                ROW_NUMBER() OVER (PARTITION BY username ORDER BY timestamp DESC, id DESC) AS rn
             FROM wom_snapshots
             WHERE timestamp <= ?
         ) ranked
