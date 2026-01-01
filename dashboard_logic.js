@@ -1604,48 +1604,7 @@ function renderXPContribution() {
     }
 }
 
-const data = dashboardData.topXPYear || [];
-if (data.length === 0) {
-    document.getElementById(container).innerHTML = '<div class="no-data">No Annual XP Data</div>';
-    return;
-}
 
-// Prepare for G2Plot Bar (Horizontal)
-// G2Plot Bar expects xField (value) and yField (category)
-const plotData = data.slice(0, 25).map(m => ({
-    username: m.username,
-    xp: m.xp_year || (m.xp_30d * 12) || (m.xp_7d * 52) // Fallback projection if xp_year missing
-}));
-
-try {
-    const bar = new G2Plot.Bar(container, {
-        data: plotData,
-        xField: 'xp',
-        yField: 'username',
-        seriesField: 'username', // Color by user? Or single color?
-        color: '#FFD700', // Gold color for Annual XP
-        barStyle: { radius: [0, 2, 2, 0] },
-        theme: 'dark',
-        xAxis: {
-            label: { formatter: (v) => formatNumber(Number(v)) },
-            grid: { line: { style: { stroke: '#333' } } }
-        },
-        yAxis: {
-            label: { style: { fill: '#ccc' } }
-        },
-        legend: false,
-        tooltip: {
-            formatter: (d) => ({ name: 'Annual XP', value: formatNumber(d.xp) })
-        },
-        scrollbar: { type: 'vertical' } // If 25 is too tall
-    });
-
-    bar.render();
-    charts.xpContribution = bar;
-} catch (e) {
-    console.warn("Failed to render XP Contribution:", e);
-}
-}
 
 
 function renderPlayerRadar() {
