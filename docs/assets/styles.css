@@ -207,7 +207,8 @@ th,
 .premium-card-bg {
     position: absolute;
     inset: 0;
-    background-size: cover;
+    background-size: contain;
+    background-repeat: no-repeat;
     background-position: center;
     opacity: 0.35;
     /* Visible but not overwhelming */

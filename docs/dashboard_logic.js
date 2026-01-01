@@ -1305,7 +1305,7 @@ function renderBossesSection(members) {
             const bg = m.favorite_boss_img || 'boss_pet_rock.png';
             cards.innerHTML += `
                 <div class="glass-card stat-card" style="position:relative; overflow:hidden; aspect-ratio:2/3; display:flex; flex-direction:column; justify-content:flex-end; padding:15px; text-align:center;">
-                    <div style="position:absolute; inset:0; background-image:url('assets/${bg}'); background-size:cover; background-position:center; opacity:0.3; transition:transform 0.5s;"></div>
+                    <div style="position:absolute; inset:0; background-image:url('assets/${bg}'); background-size:contain; background-repeat:no-repeat; background-position:center; opacity:0.3; transition:transform 0.5s;"></div>
                     <div style="position:relative; z-index:1; text-shadow:0 2px 10px rgba(0,0,0,0.8);">
                         <div style="font-weight:700; font-size:1.1rem; color:#fff; margin-bottom:5px;">${m.username}</div>
                         <div style="font-family:'Outfit'; font-size:1.8rem; color:var(--neon-red); line-height:1;">${formatNumber(m.boss_30d || 0)}</div>
