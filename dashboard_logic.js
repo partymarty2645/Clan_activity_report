@@ -1978,7 +1978,7 @@ function renderAIInsights(members) {
 
     // AI INSIGHTS INTEGRATION
     if (dashboardData.ai && dashboardData.ai.insights) {
-        container.className = 'vertical-feed'; // Switch to vertical layout
+        container.className = 'grid-3-col'; // Switch to 3-column grid layout
         dashboardData.ai.insights.forEach(insight => {
             const colorVar = insight.type === 'trend' ? 'var(--neon-gold)' : insight.type === 'analysis' ? 'var(--neon-blue)' : 'var(--neon-green)';
             const icon = insight.type === 'trend' ? 'fa-chart-line' : insight.type === 'analysis' ? 'fa-brain' : 'fa-heartbeat';

@@ -369,6 +369,24 @@ th,
 }
 
 /* Vertical Feed Layout for AI Insights */
+.grid-3-col {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 25px;
+}
+
+@media (max-width: 1200px) {
+    .grid-3-col {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .grid-3-col {
+        grid-template-columns: 1fr;
+    }
+}
+
 .vertical-feed {
     display: flex;
     flex-direction: column;
