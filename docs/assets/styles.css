@@ -1,28 +1,38 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=Rajdhani:wght@400;600;700&display=swap');
+
 :root {
+    /* Base Colors - Deep Obsidian / Shadow Nexus */
     --obsidian: #050505;
     --dark-metal: #0a0a0a;
-    --card-bg: rgba(5, 5, 5, 0.90);
-    /* Deep Obsidian: 90% Opacity */
-    --glass-border: 1px solid rgba(255, 255, 255, 0.1);
-    /* Tech Border: Crisp 1px */
-    --glass-blur: blur(0px);
-    /* Clean Plate: No performance-heavy blur needed for opaque bg */
+    --void-bg: radial-gradient(ellipse at center, #0a0a0f 0%, #000000 100%);
 
+    /* Card Backgrounds */
+    --card-bg: rgba(5, 5, 5, 0.90);
+    --void-card-bg: linear-gradient(135deg, rgba(5, 5, 10, 0.98) 0%, rgba(10, 8, 15, 0.95) 50%, rgba(8, 5, 12, 0.98) 100%);
+
+    /* Tech Borders */
+    --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+    --tech-border-color: rgba(255, 255, 255, 0.15);
+
+    /* Accents */
     --neon-gold: #FFD700;
     --neon-red: #FF3333;
     --neon-green: #33FF33;
     --neon-blue: #00d4ff;
+    --neon-void: #a78bfa;
+    /* Light Purple for void accents */
 
+    /* Typography */
     --text-main: #E0E0E0;
     --text-mute: #888888;
-
-    --text-glow: 0 0 10px rgba(255, 255, 255, 0.1);
-    /* Removed box-glow to stop 'glowing borders' */
-    --box-glow: none;
-
     --font-headings: 'Outfit', sans-serif;
-    /* Unified Typography */
+    /* Standardized per user request */
     --font-body: 'Outfit', sans-serif;
+    --font-tech: 'Rajdhani', sans-serif;
+    /* For small tech details */
+
+    /* Effects */
+    --text-glow: 0 0 10px rgba(255, 255, 255, 0.1);
 }
 
 * {
@@ -31,14 +41,210 @@
     box-sizing: border-box;
 }
 
+/* ANIMATIONS (Ported from Shadow Nexus) */
+@keyframes tendril-sweep {
+    0% {
+        opacity: 0;
+        transform: translateX(-50%);
+    }
+
+    30% {
+        opacity: 0.4;
+    }
+
+    70% {
+        opacity: 0.4;
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateX(50%);
+    }
+}
+
+@keyframes void-pulse {
+
+    0%,
+    100% {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 0.2;
+    }
+
+    50% {
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 0.4;
+    }
+}
+
+@keyframes border-pulse {
+
+    0%,
+    100% {
+        filter: brightness(1);
+    }
+
+    50% {
+        filter: brightness(1.3);
+    }
+}
+
+@keyframes rune-glow {
+    from {
+        filter: drop-shadow(0 0 5px currentColor);
+    }
+
+    to {
+        filter: drop-shadow(0 0 20px currentColor);
+    }
+}
+
+@keyframes void-drift {
+    0% {
+        opacity: 0;
+        transform: scale(0);
+    }
+
+    10% {
+        opacity: 0.6;
+        transform: scale(1);
+    }
+
+    90% {
+        opacity: 0.6;
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(0);
+    }
+}
+
+/* SHADOW TECH COMPONENT CLASSES */
+.scanlines {
+    position: absolute;
+    inset: 0;
+    z-index: 7;
+    background: repeating-linear-gradient(0deg,
+            transparent,
+            transparent 2px,
+            rgba(0, 0, 0, 0.1) 2px,
+            rgba(0, 0, 0, 0.1) 4px);
+    pointer-events: none;
+}
+
+.void-particles {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.void-particle {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: currentColor;
+    opacity: 0;
+    animation: void-drift 10s linear infinite;
+}
+
+/* Randomized particle delays */
+.void-particle:nth-child(1) {
+    left: 5%;
+    top: 10%;
+    animation-delay: 0s;
+}
+
+.void-particle:nth-child(2) {
+    left: 20%;
+    top: 30%;
+    animation-delay: 1s;
+}
+
+.void-particle:nth-child(3) {
+    left: 35%;
+    top: 50%;
+    animation-delay: 2s;
+}
+
+.void-particle:nth-child(4) {
+    left: 50%;
+    top: 20%;
+    animation-delay: 3s;
+}
+
+.void-particle:nth-child(5) {
+    left: 65%;
+    top: 60%;
+    animation-delay: 4s;
+}
+
+.corner-accent {
+    position: absolute;
+    width: 15px;
+    height: 15px;
+    z-index: 11;
+    pointer-events: none;
+    border-color: currentColor;
+    opacity: 0.7;
+}
+
+.corner-accent.top-left {
+    top: 5px;
+    left: 5px;
+    border-top: 2px solid;
+    border-left: 2px solid;
+}
+
+.corner-accent.top-right {
+    top: 5px;
+    right: 5px;
+    border-top: 2px solid;
+    border-right: 2px solid;
+}
+
+.corner-accent.bottom-left {
+    bottom: 5px;
+    left: 5px;
+    border-bottom: 2px solid;
+    border-left: 2px solid;
+}
+
+.corner-accent.bottom-right {
+    bottom: 5px;
+    right: 5px;
+    border-bottom: 2px solid;
+    border-right: 2px solid;
+}
+
+.necrotic-border {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    pointer-events: none;
+    padding: 1px;
+    /* The border width */
+    background: linear-gradient(135deg, transparent 0%, currentColor 30%, currentColor 70%, transparent 100%);
+    -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0.5;
+}
+
+/* Global Styles */
 body {
     background-color: var(--obsidian);
+    background-image: var(--void-bg);
+    /* Use the void gradient */
+    background-attachment: fixed;
     color: var(--text-main);
     font-family: var(--font-body);
     margin: 0;
     min-height: 100vh;
     overflow-x: hidden;
-    /* Removed static gradient to let Particles.js shine */
 }
 
 h1,
@@ -60,15 +266,18 @@ th,
 
 /* Glassmorphism Classes */
 /* Glassmorphism Classes - Tech Update */
+/* Glass-Card (Standard Components) - Tech Update */
 .glass-card {
     background: var(--card-bg);
-    /* backdrop-filter removed via var(--glass-blur) = 0px */
-    border: var(--glass-border);
-    /* Refined Tech Border: Single hairline */
-    border-radius: 8px;
-    /* Tighter radius for tech feel */
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    /* Very subtle */
+    /* Tech corners: slightly angled */
+    clip-path: polygon(0 0,
+            100% 0,
+            100% calc(100% - 10px),
+            calc(100% - 10px) 100%,
+            0 100%);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    /* Subtle shadow only */
     transition: box-shadow 0.3s ease;
 }
 
@@ -181,27 +390,33 @@ th,
 
 /* PREMIUM CARD STYLING (Boss Card Style) */
 /* PREMIUM CARD STYLING (Boss Card Style) - Tech Update */
+/* PREMIUM CARD STYLING (Shadow Tech Update) */
 .premium-card {
     position: relative;
     overflow: hidden;
-    background: var(--card-bg);
-    border: var(--glass-border);
+    background: var(--void-card-bg);
+    /* No border on main element, necrotic-border handles it */
+    border: none;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    border-radius: 8px;
-    transition: border-color 0.3s;
+    /* Clip Path for Tech Shape */
+    clip-path: polygon(0 0,
+            100% 0,
+            100% 85%,
+            95% 100%,
+            5% 100%,
+            0 85%);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
     min-height: 200px;
-    /* Spacious */
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
     padding: 30px;
-    /* Spacious Padding */
     text-align: center;
 }
 
 .premium-card:hover {
-    /* transform removed */
-    border-color: rgba(255, 255, 255, 0.4);
+    transform: scale(1.02);
+    z-index: 10;
 }
 
 .premium-card-bg {

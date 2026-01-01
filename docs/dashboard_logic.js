@@ -1292,6 +1292,19 @@ function renderXpSection(members) {
     // renderXPvsBossChart(members);
 }
 
+const SHADOW_DECORATORS = `
+    <div class="necrotic-border"></div>
+    <div class="scanlines"></div>
+    <div class="corner-accent top-left"></div>
+    <div class="corner-accent top-right"></div>
+    <div class="corner-accent bottom-left"></div>
+    <div class="corner-accent bottom-right"></div>
+    <div class="void-particles">
+        <div class="void-particle"></div><div class="void-particle"></div><div class="void-particle"></div>
+        <div class="void-particle"></div><div class="void-particle"></div>
+    </div>
+`;
+
 function renderBossesSection(members) {
     console.log("renderBossesSection called with", members ? members.length : 0, "members");
     renderTime('updated-time-boss', dashboardData.generated_at);
@@ -1302,11 +1315,13 @@ function renderBossesSection(members) {
         cards.innerHTML = '';
         const topKillers = [...members].sort((a, b) => (b.boss_7d || 0) - (a.boss_7d || 0)).slice(0, CONFIG.TOP_BOSS_CARDS);
         topKillers.forEach(m => {
+            // Shadow Tech Update: Use premium-card structure instead of ad-hoc glass-card
             const bg = m.favorite_boss_img || 'boss_pet_rock.png';
             cards.innerHTML += `
-                <div class="glass-card stat-card" style="position:relative; overflow:hidden; aspect-ratio:2/3; display:flex; flex-direction:column; justify-content:flex-end; padding:15px; text-align:center;">
-                    <div style="position:absolute; inset:0; background-image:url('assets/${bg}'); background-size:contain; background-repeat:no-repeat; background-position:center; opacity:0.3; transition:transform 0.5s;"></div>
-                    <div style="position:relative; z-index:1; text-shadow:0 2px 10px rgba(0,0,0,0.8);">
+                <div class="premium-card">
+                    ${SHADOW_DECORATORS}
+                    <div class="premium-card-bg" style="background-image:url('assets/${bg}');"></div>
+                    <div class="premium-card-content">
                         <div style="font-weight:700; font-size:1.1rem; color:#fff; margin-bottom:5px;">${m.username}</div>
                         <div style="font-family:'Outfit'; font-size:1.8rem; color:var(--neon-red); line-height:1;">${formatNumber(m.boss_30d || 0)}</div>
                         <div style="font-size:0.8rem; color:#aaa; margin-top:5px; text-transform:uppercase; letter-spacing:1px;">Kills (7d)</div>
@@ -1970,6 +1985,7 @@ function renderAIInsights(members) {
             const asset = findAssetForInsight(insight);
             container.innerHTML += `
             <div class="premium-card ${insight.type === 'trend' ? 'gold' : insight.type === 'analysis' ? 'blue' : 'green'}">
+                 ${SHADOW_DECORATORS}
                  <div class="premium-card-bg" style="background-image: url('assets/${asset}');"></div>
                  <div class="premium-card-content">
                     <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px;color:${colorVar}">
