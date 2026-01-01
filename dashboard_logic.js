@@ -1868,7 +1868,7 @@ function renderAIInsights(members) {
     console.log("renderAIInsights called with", members ? members.length : 0, "members");
     renderTime('updated-time-ai', dashboardData.generated_at);
 
-    const container = document.getElementById('ai-insights-container');
+    const container = document.getElementById('ai-feed-container');
     if (!container) return;
 
     container.innerHTML = '';
@@ -1935,18 +1935,21 @@ function renderAIInsights(members) {
 
     // AI INSIGHTS INTEGRATION
     if (dashboardData.ai && dashboardData.ai.insights) {
+        container.className = 'vertical-feed'; // Switch to vertical layout
         dashboardData.ai.insights.forEach(insight => {
             const colorVar = insight.type === 'trend' ? 'var(--neon-gold)' : insight.type === 'analysis' ? 'var(--neon-blue)' : 'var(--neon-green)';
             const icon = insight.type === 'trend' ? 'fa-chart-line' : insight.type === 'analysis' ? 'fa-brain' : 'fa-heartbeat';
             const asset = findAssetForInsight(insight);
             container.innerHTML += `
-            <div class="alert-card" style="border-left: 3px solid ${colorVar}; aspect-ratio:1; min-height:360px; background: radial-gradient(rgba(255,255,255,0.04), rgba(0,0,0,0.6)); position: relative; overflow: hidden;">
-                <div style="position:absolute; inset:0; background-image:url('assets/${asset}'); background-repeat:no-repeat; background-position:center 60%; background-size:70%; opacity:0.18;"></div>
-                <div class="alert-header" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;color:${colorVar}; position:relative; z-index:1;">
-                    <i class="fas ${icon}"></i>
-                    <span style="font-family:'Cinzel'">${insight.title}</span>
+            <div class="alert-card" style="border-left: 4px solid ${colorVar}; min-height:180px; background: radial-gradient(circle at center, rgba(30,30,40,0.8), rgba(0,0,0,0.9)); position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: center;">
+                <div style="position:absolute; inset:0; background-image:url('assets/${asset}'); background-repeat:no-repeat; background-position:center; background-size:cover; opacity:0.4; mix-blend-mode: luminosity;"></div>
+                <div style="position:absolute; inset:0; background: linear-gradient(90deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.8) 100%);"></div>
+                
+                <div class="alert-header" style="display:flex;align-items:center;gap:15px;margin-bottom:12px;color:${colorVar}; position:relative; z-index:2; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">
+                    <i class="fas ${icon}" style="font-size: 1.4em;"></i>
+                    <span style="font-family:'Cinzel'; font-size: 1.4em; font-weight: 700; letter-spacing: 1px;">${insight.title}</span>
                 </div>
-                <div class="alert-metric" style="color:#ccc; font-size: 0.9em; position:relative; z-index:1;">
+                <div class="alert-metric" style="color:#e0e0e0; font-size: 1.1em; line-height: 1.5; position:relative; z-index:2; text-shadow: 0 1px 3px rgba(0,0,0,1);">
                     ${insight.message}
                 </div>
             </div>
