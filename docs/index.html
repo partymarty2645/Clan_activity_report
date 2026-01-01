@@ -65,14 +65,11 @@
                     </div>
                 </div>
                 <!-- WEEKLY INTELLIGENCE BRIEFING (PULSE TICKER) -->
-                <div class="stat-card"
-                    style="width: 100%; margin-bottom: 20px; padding: 15px; background: linear-gradient(90deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 100, 150, 0.15) 100%); display: flex; align-items: center; gap: 15px;">
-                    <div style="color: var(--neon-blue); font-weight: bold; white-space: nowrap;"><i
-                            class="fas fa-satellite-dish"></i> CLAN PULSE:</div>
-                    <div
-                        style="flex: 1; overflow: hidden; position: relative; mask-image: linear-gradient(90deg, transparent, white 20px, white calc(100% - 20px), transparent);">
-                        <div id="news-ticker"
-                            style="white-space: nowrap; animation: tickerScroll 20s linear infinite; display: inline-block;">
+                <!-- WEEKLY INTELLIGENCE BRIEFING (PULSE TICKER) -->
+                <div class="news-card">
+                    <div class="news-label"><i class="fas fa-satellite-dish"></i> CLAN PULSE:</div>
+                    <div class="news-ticker-wrapper">
+                        <div id="news-ticker" class="news-ticker-content">
                             <span class="loading">Establishing sat-link...</span>
                         </div>
                     </div>
@@ -104,9 +101,9 @@
                         <div class="stat-label">Top Boss Killer</div>
                         <div class="stat-value" id="stat-top-boss">Loading...</div>
                     </div>
-                    <div class="stat-card" id="card-boss-of-month">
-                        <div class="stat-label">Boss of the Month</div>
-                        <div class="stat-value" id="stat-boss-of-month">Loading...</div>
+                    <div class="stat-card" id="card-active-members">
+                        <div class="stat-label">Active Members <span id="lbl-active-period">(30d)</span></div>
+                        <div class="stat-value" id="stat-active-members">Loading...</div>
                     </div>
                 </div>
 
@@ -263,7 +260,7 @@
                 <div class="chart-container">
                     <div class="chart-title"><i class="fas fa-th"></i>Activity Heatmap
                         (Hourly)</div>
-                    <div class="chart-wrapper">
+                    <div class="chart-wrapper" style="min-height: 200px;">
                         <div id="activity-heatmap" style="width:100%; height:100%;"></div>
                     </div>
                 </div>
@@ -304,7 +301,7 @@
                         </div>
                     </div>
                     <div class="chart-item">
-                        <div class="chart-item-title">XP Contribution (Top 25)</div>
+                        <div class="chart-item-title">Top 25 Annualized XP Contribution</div>
                         <div class="chart-wrapper" id="xp-contribution-chart"></div>
                         <!-- Changed from Player Radar Canvas to DIV -->
                     </div>

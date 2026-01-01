@@ -145,7 +145,7 @@ def run_export():
         msg_stats_30d = analytics.get_discord_stats_simple(days=30)
         
         logger.info("Generating secondary charts (Heatmaps, Trends, Diversity)...")
-        activity_heatmap = analytics.get_activity_heatmap(days=30)
+        activity_heatmap = analytics.get_activity_heatmap_simple(days=30)
         clan_history = analytics.get_clan_trend(days=30)
         
         # FIX: Re-enable Correlation Data
@@ -566,45 +566,84 @@ def run_export():
         # Drive Export (Legacy Support)
         if Config.LOCAL_DRIVE_PATH:
             from core.drive import DriveExporter
-            
-            # Check if manual dashboard fixes should be preserved
-            dashboard_fixes_file = "DASHBOARD_FIXES_APPLIED.md"
-            docs_dashboard = "docs/dashboard_logic.js"
-            preserve_fixes = False
-            
-            if os.path.exists(dashboard_fixes_file) and os.path.exists(docs_dashboard):
+
+            def sync_dashboard_files():
+                """Keep root/docs dashboard copies identical by copying the newer file."""
                 root_dashboard = "dashboard_logic.js"
-                if os.path.exists(root_dashboard):
-                    docs_time = os.path.getmtime(docs_dashboard)
-                    root_time = os.path.getmtime(root_dashboard)
-                    preserve_fixes = docs_time > root_time
-            
-            if preserve_fixes:
-                logger.info("Manual dashboard fixes detected - preserving dashboard files, updating data only")
-                # Data Files Only
-                DriveExporter.export_file("clan_data.js")
-                DriveExporter.export_file("clan_data.json")
-                if os.path.exists("ai_data.js"):
-                     DriveExporter.export_file("ai_data.js")
-            else:
-                # Data Files
-                DriveExporter.export_file("clan_data.js")
-                DriveExporter.export_file("clan_data.json")
-                
-                # Dashboard Files
-                DriveExporter.export_file("clan_dashboard.html")
-                DriveExporter.export_file("dashboard_logic.js")
-                if os.path.exists("ai_data.js"):
-                     DriveExporter.export_file("ai_data.js")
-                
-                # Export Assets Folder (Recursive)
-                assets_dir = os.path.join(os.getcwd(), "assets")
-                if os.path.exists(assets_dir):
-                    for root, dirs, files in os.walk(assets_dir):
-                        for file in files:
-                            abs_path = os.path.join(root, file)
-                            rel_path = os.path.relpath(abs_path, os.getcwd())
-                            DriveExporter.export_file(abs_path, target_filename=rel_path)
+                docs_dashboard = os.path.join("docs", "dashboard_logic.js")
+
+                # One-sided existence cases
+                if os.path.exists(root_dashboard) and not os.path.exists(docs_dashboard):
+                    os.makedirs(os.path.dirname(docs_dashboard), exist_ok=True)
+                    shutil.copy2(root_dashboard, docs_dashboard)
+                    logger.info("Synced dashboard root -> docs (docs copy missing)")
+                    return
+                if os.path.exists(docs_dashboard) and not os.path.exists(root_dashboard):
+                    shutil.copy2(docs_dashboard, root_dashboard)
+                    logger.info("Synced dashboard docs -> root (root copy missing)")
+                    return
+                if not os.path.exists(root_dashboard) or not os.path.exists(docs_dashboard):
+                    return
+
+                root_time = os.path.getmtime(root_dashboard)
+                docs_time = os.path.getmtime(docs_dashboard)
+                if docs_time > root_time:
+                    shutil.copy2(docs_dashboard, root_dashboard)
+                    logger.info("Synced dashboard docs -> root (docs newer)")
+                elif root_time > docs_time:
+                    shutil.copy2(root_dashboard, docs_dashboard)
+                    logger.info("Synced dashboard root -> docs (root newer)")
+
+            # Ensure both dashboard copies are in sync before export
+            sync_dashboard_files()
+
+            def sync_dashboard_html():
+                """Keep root HTML (clan_dashboard.html) and docs/index.html in sync."""
+                root_html = "clan_dashboard.html"
+                docs_html = os.path.join("docs", "index.html")
+
+                os.makedirs(os.path.dirname(docs_html), exist_ok=True)
+
+                if os.path.exists(root_html) and not os.path.exists(docs_html):
+                    shutil.copy2(root_html, docs_html)
+                    logger.info("Synced dashboard HTML root -> docs (docs missing)")
+                    return
+                if os.path.exists(docs_html) and not os.path.exists(root_html):
+                    shutil.copy2(docs_html, root_html)
+                    logger.info("Synced dashboard HTML docs -> root (root missing)")
+                    return
+                if not os.path.exists(root_html) or not os.path.exists(docs_html):
+                    return
+
+                root_time = os.path.getmtime(root_html)
+                docs_time = os.path.getmtime(docs_html)
+                if docs_time > root_time:
+                    shutil.copy2(docs_html, root_html)
+                    logger.info("Synced dashboard HTML docs -> root (docs newer)")
+                elif root_time > docs_time:
+                    shutil.copy2(root_html, docs_html)
+                    logger.info("Synced dashboard HTML root -> docs (root newer)")
+
+            sync_dashboard_html()
+
+            # Data Files
+            DriveExporter.export_file("clan_data.js")
+            DriveExporter.export_file("clan_data.json")
+
+            # Dashboard Files (already synced)
+            DriveExporter.export_file("clan_dashboard.html")
+            DriveExporter.export_file("dashboard_logic.js")
+            if os.path.exists("ai_data.js"):
+                 DriveExporter.export_file("ai_data.js")
+
+            # Export Assets Folder (Recursive)
+            assets_dir = os.path.join(os.getcwd(), "assets")
+            if os.path.exists(assets_dir):
+                for root, dirs, files in os.walk(assets_dir):
+                    for file in files:
+                        abs_path = os.path.join(root, file)
+                        rel_path = os.path.relpath(abs_path, os.getcwd())
+                        DriveExporter.export_file(abs_path, target_filename=rel_path)
 
         
     except Exception as e:

@@ -62,3 +62,4 @@ clan_data.js
 # !docs/clan_data.js
 docs/
 
+.env

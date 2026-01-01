@@ -878,10 +878,16 @@ class AnalyticsService:
             return {r[0]: r[1] for r in conn.exec_driver_sql(Queries.GET_BOSS_SUMS_FOR_IDS.format(','.join('?' * len(ids))), tuple(ids)).fetchall()}
             
         now_sums = get_sums(latest_ids)
-        old_sums = get_sums(past_ids)
+        old_sums = get_sums(past_ids) if past_ids else {}
         
         deltas = {boss: kills - old_sums.get(boss, 0) for boss, kills in now_sums.items() if kills - old_sums.get(boss, 0) > 0}
-        if not deltas: return None
+        if not deltas: 
+            # No deltas in past 30d, use highest kill count as fallback
+            if now_sums:
+                top_boss = max(now_sums.keys(), key=lambda k: now_sums[k])
+                deltas = {top_boss: now_sums[top_boss]}
+            else:
+                return None
         
         top_boss = max(deltas.keys(), key=lambda k: deltas[k])
         
