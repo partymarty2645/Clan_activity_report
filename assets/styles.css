@@ -58,10 +58,16 @@ th,
     background: var(--card-bg);
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
-    border: var(--glass-border);
-    border-radius: 12px;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    /* Refined Border */
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    /* Top Highlight */
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    /* Left Highlight */
+    border-radius: 16px;
+    /* Increased Radius */
+    box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.2);
+    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .glass-card:hover {
@@ -199,8 +205,11 @@ th,
 .alert-card {
     padding: 25px;
     position: relative;
-    background: rgba(255, 51, 51, 0.05);
+    background: linear-gradient(135deg, rgba(255, 51, 51, 0.05) 0%, rgba(20, 0, 0, 0.4) 100%);
     border-left: 4px solid var(--neon-red);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
 }
 
 .alert-name {

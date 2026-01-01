@@ -198,82 +198,100 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // Table Sorting Logic
+// ---------------------------------------------------------
+// OPTIMIZED TABLE SORTING (Async with Spinner)
+// ---------------------------------------------------------
 window.sortTable = function (n) {
     const table = document.getElementById("roster-table");
     if (!table) return;
+
+    // Determine Sort Direction
     const prevCol = table.dataset.sortCol ? parseInt(table.dataset.sortCol, 10) : null;
     const prevDir = table.dataset.sortDir || 'asc';
     let dir = 'asc';
-    if (prevCol === n) {
-        dir = prevDir === 'asc' ? 'desc' : 'asc';
-    }
+    if (prevCol === n && prevDir === 'asc') dir = 'desc';
+
     table.dataset.sortCol = n;
     table.dataset.sortDir = dir;
 
-    let switching = true;
-    let shouldSwitch;
-    let i;
+    // Update Header Icons
+    updateSortIcons(table, n, dir);
 
-    while (switching) {
-        switching = false;
-        const rows = table.rows;
-
-        // Loop through all table rows (except the first, which contains table headers)
-        for (i = 1; i < (rows.length - 1); i++) {
-            shouldSwitch = false;
-
-            const x = rows[i].getElementsByTagName("TD")[n];
-            const y = rows[i + 1].getElementsByTagName("TD")[n];
-
-            let xVal = x.textContent || x.innerText;
-            let yVal = y.textContent || y.innerText;
-
-            // Clean numbers (remove k, M, commas)
-            // If column is Ratio (idx 7) or Days (idx 8), treat as number
-            // XP (1,2), Boss (3,4), Msgs (5,6) are also numbers
-            // Name (0) is string
-
-            const isNumeric = n !== 0;
-
-            let xNum = parseFloat(xVal.replace(/[+,kM\s]/g, ''));
-            let yNum = parseFloat(yVal.replace(/[+,kM\s]/g, ''));
-
-            // Handle multipliers if needed (k=1000, M=1000000) - simplified here as formatNumber puts them back
-            // Actually, sorting pre-formatted numbers (1.2k vs 900) requires parsing suffixes
-            if (xVal.includes('M')) xNum = parseFloat(xVal) * 1000000;
-            else if (xVal.includes('k')) xNum = parseFloat(xVal) * 1000;
-
-            if (yVal.includes('M')) yNum = parseFloat(yVal) * 1000000;
-            else if (yVal.includes('k')) yNum = parseFloat(yVal) * 1000;
-
-            if (dir == "asc") {
-                if (isNumeric) {
-                    if (xNum > yNum) shouldSwitch = true;
-                } else {
-                    if (xVal.toLowerCase() > yVal.toLowerCase()) shouldSwitch = true;
-                }
-            } else {
-                if (isNumeric) {
-                    if (xNum < yNum) shouldSwitch = true;
-                } else {
-                    if (xVal.toLowerCase() < yVal.toLowerCase()) shouldSwitch = true;
-                }
-            }
-
-            if (shouldSwitch) {
-                rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-                switching = true;
-                break;
-            }
-        }
+    // Show Loading Spinner (Critical for UX on large tables)
+    const tbody = document.getElementById("roster-body");
+    if (tbody) {
+        // height: 500px ensures the table doesn't collapse excessively during sort
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:50px;"><div class="spinner"></div> Sorting Roster...</td></tr>';
     }
 
-    // Update Icons
-    document.querySelectorAll("th i").forEach(i => i.className = "fas fa-sort");
-    const header = table.getElementsByTagName("TH")[n];
-    const icon = header.querySelector("i");
-    if (icon) icon.className = dir === "asc" ? "fas fa-sort-up" : "fas fa-sort-down";
+    // Defer the heavy lifting to allow the browser to paint the spinner
+    setTimeout(() => {
+        performSort(n, dir);
+    }, 10);
 };
+
+function updateSortIcons(table, colIdx, dir) {
+    const headers = table.querySelectorAll('th');
+    headers.forEach((th, i) => {
+        const icon = th.querySelector('i');
+        if (!icon) return;
+        icon.className = 'fas fa-sort'; // Reset
+        icon.style.opacity = '0.3';
+
+        if (i === colIdx) {
+            icon.className = dir === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+            icon.style.opacity = '1';
+            icon.style.color = 'var(--neon-gold)'; // Highlight active sort
+        }
+    });
+}
+
+function performSort(n, dir) {
+    // Column Mapping
+    // 0: Player (string)
+    // 1: XP 7d
+    // 2: XP Total
+    // 3: Boss 7d
+    // 4: Boss Total
+    // 5: Msgs 7d
+    // 6: Msgs Total
+    // 7: Ratio (Total XP / Total Msgs)
+    // 8: Days
+
+    const members = dashboardData.allMembers;
+    if (!members) return;
+
+    // Create a copy to sort
+    const sorted = [...members].sort((a, b) => {
+        let valA, valB;
+
+        switch (n) {
+            case 0: // Username
+                valA = a.username.toLowerCase();
+                valB = b.username.toLowerCase();
+                return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+            case 1: valA = a.xp_7d || 0; valB = b.xp_7d || 0; break;
+            case 2: valA = a.total_xp || 0; valB = b.total_xp || 0; break;
+            case 3: valA = a.boss_7d || 0; valB = b.boss_7d || 0; break;
+            case 4: valA = a.total_boss || 0; valB = b.total_boss || 0; break;
+            case 5: valA = a.msgs_7d || 0; valB = b.msgs_7d || 0; break;
+            case 6: valA = a.msgs_total || 0; valB = b.msgs_total || 0; break;
+            case 7: // Ratio
+                valA = a.msgs_total > 0 ? (a.total_xp / a.msgs_total) : 0;
+                valB = b.msgs_total > 0 ? (b.total_xp / b.msgs_total) : 0;
+                break;
+            case 8: valA = a.days_in_clan || 0; valB = b.days_in_clan || 0; break;
+            default: return 0;
+        }
+
+        // Numeric Sort
+        return dir === 'asc' ? valA - valB : valB - valA;
+    });
+
+    // Re-render
+    renderFullRoster(sorted);
+}
+
 
 function safelyRun(fn, name) {
     try {
@@ -399,12 +417,12 @@ function renderNewsTicker(members) {
     if (!tickerContainer) return;
 
     // AI PULSE INTEGRATION
-    if (window.aiData && window.aiData.pulse && window.aiData.pulse.length > 0) {
+    if (dashboardData.ai && dashboardData.ai.pulse && dashboardData.ai.pulse.length > 0) {
         console.log("Using AI Pulse Data");
-        let html = window.aiData.pulse.map(item => `<span style="color:var(--neon-green)">[AI-NET]</span> ${item}`).join(' &nbsp;&bull;&nbsp; ');
+        let html = dashboardData.ai.pulse.map(item => `<span style="color:var(--neon-green)">[AI-NET]</span> ${item}`).join(' &nbsp;&bull;&nbsp; ');
 
         // Loop it for smoothness
-        if (window.aiData.pulse.length < 5) html += ' &nbsp;&bull;&nbsp; ' + html;
+        if (dashboardData.ai.pulse.length < 5) html += ' &nbsp;&bull;&nbsp; ' + html;
         tickerContainer.innerHTML = html;
         return;
     }
@@ -834,7 +852,6 @@ function renderAllCharts() {
 
     renderActivityHealthChart();
     renderTopXPChart();
-    // renderTrendChart(); // REPLACED
 
     // NEW CHARTS
     renderScatterInteraction();
@@ -847,11 +864,9 @@ function renderAllCharts() {
     renderLeaderboardChart();
 
     // UPDATED VISUALIZATIONS
-    renderActivityCorrelation(); // Replaces Trend Area
-    renderXPContribution();      // Replaces Player Radar
-
-    // renderPlayerRadar(); // REMOVED per user request
-
+    renderActivityHeatmap();     // NEW: Weekly 24h Heatmap
+    renderActivityTrend();       // NEW: Weekly Trend (Replaces Correlation/Area)
+    renderXPContribution();      // NEW: Top 25 Annual XP (Replaces Radar)
 }
 
 function renderActivityHealthChart() {
@@ -993,7 +1008,7 @@ function renderXPContribution() {
             value: { alias: 'Annualized XP', formatter: (v) => formatNumber(v) }
         },
         xAxis: {
-            label: { autoHide: true, autoRotate: true }
+            label: { autoRotate: true, autoHide: true }
         },
         yAxis: {
             min: 0,
@@ -1315,7 +1330,7 @@ function renderBossesSection(members) {
     const cards = document.getElementById('boss-cards');
     if (cards) {
         cards.innerHTML = '';
-        const topKillers = [...members].sort((a, b) => (b.boss_30d || 0) - (a.boss_30d || 0)).slice(0, CONFIG.TOP_BOSS_CARDS);
+        const topKillers = [...members].sort((a, b) => (b.boss_7d || 0) - (a.boss_7d || 0)).slice(0, CONFIG.TOP_BOSS_CARDS);
         topKillers.forEach(m => {
             const bg = m.favorite_boss_img || 'boss_pet_rock.png';
             cards.innerHTML += `
@@ -1324,7 +1339,7 @@ function renderBossesSection(members) {
                     <div style="position:relative; z-index:1; text-shadow:0 2px 10px rgba(0,0,0,0.8);">
                         <div style="font-weight:700; font-size:1.1rem; color:#fff; margin-bottom:5px;">${m.username}</div>
                         <div style="font-family:'Cinzel'; font-size:1.8rem; color:var(--neon-red); line-height:1;">${formatNumber(m.boss_30d || 0)}</div>
-                        <div style="font-size:0.8rem; color:#aaa; margin-top:5px; text-transform:uppercase; letter-spacing:1px;">Kills (30d)</div>
+                        <div style="font-size:0.8rem; color:#aaa; margin-top:5px; text-transform:uppercase; letter-spacing:1px;">Kills (7d)</div>
                          <div style="font-size:0.75rem; color:var(--neon-gold); margin-top:8px; border-top:1px solid rgba(255,255,255,0.1); padding-top:4px;">${m.favorite_boss || 'Unknown'}</div>
                     </div>
                 </div>
@@ -1415,6 +1430,223 @@ function getPurgeCandidates(members) {
 // ---------------------------------------------------------
 // ADDED MISSING RENDER FUNCTIONS
 // ---------------------------------------------------------
+
+function renderActivityHeatmap() {
+    // 24h Hourly Activity (Aggregated)
+    const container = 'activity-heatmap';
+    if (!document.getElementById(container)) return;
+    if (charts.heatmap) charts.heatmap.destroy();
+
+    const data = dashboardData.activity_heatmap;
+    if (!data || !Array.isArray(data) || data.length === 0) {
+        document.getElementById(container).innerHTML = '<div class="no-data">No heatmap data</div>';
+        return;
+    }
+
+    // transform [v0, v1...] to [{hour: '00:00', value: v0}, ...]
+    const plotData = data.map((val, idx) => ({
+        hour: `${String(idx).padStart(2, '0')}:00`,
+        value: Number(val) || 0
+    }));
+
+    try {
+        const column = new G2Plot.Column(container, {
+            data: plotData,
+            xField: 'hour',
+            yField: 'value',
+            color: '#00d4ff',
+            columnStyle: {
+                radius: [4, 4, 0, 0],
+            },
+            autoFit: true,
+            theme: 'dark',
+            meta: {
+                value: { alias: 'Messages' }
+            },
+            xAxis: {
+                label: { autoRotate: false, style: { fill: '#666', fontSize: 10 } },
+                grid: null
+            },
+            yAxis: {
+                grid: { line: { style: { stroke: '#333', lineDash: [2, 2] } } }
+            },
+            tooltip: {
+                formatter: (datum) => {
+                    return { name: 'Activity', value: datum.value + ' msgs' };
+                }
+            }
+        });
+
+        column.render();
+        charts.heatmap = column;
+    } catch (e) {
+        console.warn("Failed to render Heatmap:", e);
+    }
+}
+
+function renderActivityTrend() {
+    // Weekly Activity Trend (Line/Area Chart)
+    const container = 'container-activity-trend';
+    const el = document.getElementById(container);
+    if (!el) return;
+
+    // Clear previous if G2Plot attached to div
+    el.innerHTML = '';
+
+    const hist = dashboardData.history; // This is a list of objects: [{date: '...', msgs: ...}, ...]
+    if (!hist || !Array.isArray(hist) || hist.length === 0) {
+        el.innerHTML = '<div class="no-data">No trend data available</div>';
+        return;
+    }
+
+    // Transform to [{date: '...', value: ..., category: 'Messages'}, ...]
+    const data = hist.map(item => ({
+        date: item.date,
+        value: Number(item.msgs) || 0,
+        category: 'Messages'
+    }));
+
+    try {
+        const area = new G2Plot.Area(container, {
+            data: data,
+            xField: 'date',
+            yField: 'value',
+            seriesField: 'category',
+            color: ['#00d4ff'],
+            areaStyle: {
+                fill: 'l(270) 0:#00d4ff 1:rgba(0, 212, 255, 0.1)',
+            },
+            theme: 'dark',
+            xAxis: {
+                range: [0, 1], // optimize time axis range
+                label: { style: { fill: '#666' }, autoRotate: true }
+            },
+            yAxis: {
+                grid: { line: { style: { stroke: '#333' } } },
+                label: { formatter: (v) => formatNumber(Number(v)) }
+            },
+            legend: false,
+            tooltip: {
+                showMarkers: true
+            },
+            smooth: true,
+            animation: {
+                appear: {
+                    animation: 'wave-in',
+                    duration: 1000,
+                },
+            },
+        });
+
+        area.render();
+        charts.activityTrend = area;
+    } catch (e) {
+        console.warn("Failed to render Activity Trend:", e);
+    }
+}
+
+function renderXPContribution() {
+    // Top 25 Annualized XP (Bar Chart)
+    const container = 'xp-contribution-chart';
+    if (!document.getElementById(container)) return;
+
+    document.getElementById(container).innerHTML = '';
+
+    const data = dashboardData.topXPYear || [];
+    if (!Array.isArray(data) || data.length === 0) {
+        document.getElementById(container).innerHTML = '<div class="no-data">No Annual XP Data</div>';
+        return;
+    }
+
+    // Prepare for G2Plot Bar (Horizontal)
+    const plotData = data.slice(0, 25).map(m => {
+        // Safe number extraction
+        let val = m.xp_year;
+        if (!val) val = (m.xp_30d || 0) * 12;
+        if (!val) val = (m.xp_7d || 0) * 52;
+        return {
+            username: m.username,
+            xp: Number(val) || 0
+        };
+    }).sort((a, b) => a.xp - b.xp); // Sort ascending for bar chart (appears descending)
+
+    // Dynamic height based on item count to avoid crowding
+    const chartHeight = Math.max(400, plotData.length * 30);
+
+    try {
+        const bar = new G2Plot.Bar(container, {
+            data: plotData,
+            height: chartHeight,
+            xField: 'xp',
+            yField: 'username',
+            seriesField: 'username', // Color by user
+            color: '#FFD700', // Gold color for Annual XP
+            barStyle: { radius: [0, 2, 2, 0] },
+            theme: 'dark',
+            xAxis: {
+                label: { formatter: (v) => formatNumber(Number(v)) },
+                grid: { line: { style: { stroke: '#333' } } }
+            },
+            yAxis: {
+                label: { style: { fill: '#ccc', fontSize: 11 } }
+            },
+            legend: false,
+            tooltip: {
+                formatter: (d) => ({ name: 'Annual XP', value: formatNumber(d.xp) })
+            },
+            scrollbar: { type: 'vertical' }
+        });
+
+        bar.render();
+        charts.xpContribution = bar;
+    } catch (e) {
+        console.warn("Failed to render XP Contribution:", e);
+    }
+}
+
+const data = dashboardData.topXPYear || [];
+if (data.length === 0) {
+    document.getElementById(container).innerHTML = '<div class="no-data">No Annual XP Data</div>';
+    return;
+}
+
+// Prepare for G2Plot Bar (Horizontal)
+// G2Plot Bar expects xField (value) and yField (category)
+const plotData = data.slice(0, 25).map(m => ({
+    username: m.username,
+    xp: m.xp_year || (m.xp_30d * 12) || (m.xp_7d * 52) // Fallback projection if xp_year missing
+}));
+
+try {
+    const bar = new G2Plot.Bar(container, {
+        data: plotData,
+        xField: 'xp',
+        yField: 'username',
+        seriesField: 'username', // Color by user? Or single color?
+        color: '#FFD700', // Gold color for Annual XP
+        barStyle: { radius: [0, 2, 2, 0] },
+        theme: 'dark',
+        xAxis: {
+            label: { formatter: (v) => formatNumber(Number(v)) },
+            grid: { line: { style: { stroke: '#333' } } }
+        },
+        yAxis: {
+            label: { style: { fill: '#ccc' } }
+        },
+        legend: false,
+        tooltip: {
+            formatter: (d) => ({ name: 'Annual XP', value: formatNumber(d.xp) })
+        },
+        scrollbar: { type: 'vertical' } // If 25 is too tall
+    });
+
+    bar.render();
+    charts.xpContribution = bar;
+} catch (e) {
+    console.warn("Failed to render XP Contribution:", e);
+}
+}
+
 
 function renderPlayerRadar() {
     const container = 'player-radar-chart';
@@ -1743,8 +1975,8 @@ function renderAIInsights(members) {
     };
 
     // AI INSIGHTS INTEGRATION
-    if (window.aiData && window.aiData.insights) {
-        window.aiData.insights.forEach(insight => {
+    if (dashboardData.ai && dashboardData.ai.insights) {
+        dashboardData.ai.insights.forEach(insight => {
             const colorVar = insight.type === 'trend' ? 'var(--neon-gold)' : insight.type === 'analysis' ? 'var(--neon-blue)' : 'var(--neon-green)';
             const icon = insight.type === 'trend' ? 'fa-chart-line' : insight.type === 'analysis' ? 'fa-brain' : 'fa-heartbeat';
             const asset = findAssetForInsight(insight);
