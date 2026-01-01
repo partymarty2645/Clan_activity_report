@@ -1,9 +1,12 @@
 :root {
     --obsidian: #050505;
     --dark-metal: #0a0a0a;
-    --card-bg: rgba(5, 5, 5, 0.65);
-    --glass-border: 1px solid rgba(255, 255, 255, 0.08);
-    --glass-blur: blur(12px);
+    --card-bg: rgba(5, 5, 5, 0.90);
+    /* Deep Obsidian: 90% Opacity */
+    --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+    /* Tech Border: Crisp 1px */
+    --glass-blur: blur(0px);
+    /* Clean Plate: No performance-heavy blur needed for opaque bg */
 
     --neon-gold: #FFD700;
     --neon-red: #FF3333;
@@ -14,9 +17,11 @@
     --text-mute: #888888;
 
     --text-glow: 0 0 10px rgba(255, 255, 255, 0.1);
-    --box-glow: 0 0 15px rgba(0, 0, 0, 0.5);
+    /* Removed box-glow to stop 'glowing borders' */
+    --box-glow: none;
 
-    --font-headings: 'Cinzel', serif;
+    --font-headings: 'Outfit', sans-serif;
+    /* Unified Typography */
     --font-body: 'Outfit', sans-serif;
 }
 
@@ -54,26 +59,23 @@ th,
 }
 
 /* Glassmorphism Classes */
+/* Glassmorphism Classes - Tech Update */
 .glass-card {
     background: var(--card-bg);
-    backdrop-filter: var(--glass-blur);
-    -webkit-backdrop-filter: var(--glass-blur);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    /* Refined Border */
-    border-top: 1px solid rgba(255, 255, 255, 0.15);
-    /* Top Highlight */
-    border-left: 1px solid rgba(255, 255, 255, 0.1);
-    /* Left Highlight */
-    border-radius: 16px;
-    /* Increased Radius */
-    box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.2);
-    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    /* backdrop-filter removed via var(--glass-blur) = 0px */
+    border: var(--glass-border);
+    /* Refined Tech Border: Single hairline */
+    border-radius: 8px;
+    /* Tighter radius for tech feel */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    /* Subtle shadow only */
+    transition: box-shadow 0.3s ease;
 }
 
 .glass-card:hover {
-    border-color: rgba(255, 255, 255, 0.15);
-    transform: translateY(-3px);
-    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.6);
+    border-color: rgba(255, 255, 255, 0.25);
+    /* transform removed - Static Feel */
+    /* box-shadow glow removed */
 }
 
 .neon-border-gold {
@@ -178,29 +180,28 @@ th,
 }
 
 /* PREMIUM CARD STYLING (Boss Card Style) */
+/* PREMIUM CARD STYLING (Boss Card Style) - Tech Update */
 .premium-card {
     position: relative;
     overflow: hidden;
     background: var(--card-bg);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-    border-radius: 12px;
-    /* Smooth corners */
-    transition: transform 0.3s, box-shadow 0.3s;
-    min-height: 180px;
-    /* Consistent height */
+    border: var(--glass-border);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    transition: border-color 0.3s;
+    min-height: 200px;
+    /* Spacious */
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    /* Text at bottom */
-    padding: 20px;
+    padding: 30px;
+    /* Spacious Padding */
     text-align: center;
 }
 
 .premium-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8);
-    border-color: rgba(255, 255, 255, 0.25);
+    /* transform removed */
+    border-color: rgba(255, 255, 255, 0.4);
 }
 
 .premium-card-bg {
