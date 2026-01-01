@@ -10,26 +10,55 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.config import Config
 from data.queries import Queries
+from database.connector import SessionLocal
+from services.user_access_service import UserAccessService
 
 # Setup Logging
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 logger = logging.getLogger(__name__)
 
 def export_csv_report():
-    """Generates a CSV report of clan member activity."""
+    """Generates a CSV report of clan member activity using UserAccessService."""
     conn = None
+    session = None
     try:
-        print("Starting CSV Data Export...")
+        logger.info("Starting CSV Data Export with UserAccessService...")
         db_path = Config.DB_FILE
         if not os.path.exists(db_path):
-            print(f"Error: Database not found at {db_path}")
+            logger.error(f"Database not found at {db_path}")
             return False
 
-        conn = sqlite3.connect(db_path)
-
-        # 1. Fetch Membership Data
-        # We'll key everything by username for easy merging
-        df_members = pd.read_sql_query("SELECT username, role, joined_at FROM clan_members", conn)
+        # Use UserAccessService for optimized member data retrieval
+        session = SessionLocal()
+        user_service = UserAccessService(session)
+        
+        # Get all active members with comprehensive stats
+        active_members = user_service.get_all_active_members(days_back=30)
+        logger.info(f"Retrieved {len(active_members)} active members via UserAccessService")
+        
+        # Convert to pandas DataFrame for CSV export
+        member_data = []
+        for member_stats in active_members:
+            # Get additional profile data
+            profile = user_service.get_user_profile(member_stats.user_id)
+            
+            member_data.append({
+                'username': member_stats.username,
+                'role': profile.role if profile else 'Member',
+                'joined_at': profile.joined_at.isoformat() if profile and profile.joined_at else None,
+                'total_xp': member_stats.total_xp,
+                'total_boss_kills': member_stats.total_boss_kills,
+                'xp_7d': member_stats.xp_7d,
+                'xp_30d': member_stats.xp_30d,
+                'boss_7d': member_stats.boss_7d,
+                'boss_30d': member_stats.boss_30d,
+                'msgs_7d': member_stats.msgs_7d,
+                'msgs_30d': member_stats.msgs_30d
+            })
+        
+        # Create DataFrame from UserAccessService data
+        df_members = pd.DataFrame(member_data)
+        logger.info(f"Created DataFrame with {len(df_members)} member records")
         
         # 2. Fetch Latest Activity Snapshot (XP, Bosses via JSON potentially?)
         # Or re-use the logic from export_sqlite.py/report_sqlite.py to get "Gains"

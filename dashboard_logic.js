@@ -15,7 +15,7 @@ let CONFIG = {
     PURGE_MIN_BOSS: 0,
     PURGE_MIN_MSGS: 0,
     LEADERBOARD_SIZE: 10,
-    TOP_BOSS_CARDS: 4
+    TOP_BOSS_CARDS: 5
 };
 
 // Global Error Handler
@@ -170,7 +170,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         safelyRun(() => renderAlertCards(dashboardData.allMembers), "renderAlertCards");
         // safelyRun(() => renderBingoGrid(), "renderBingoGrid"); // REMOVED
         safelyRun(() => renderRecentActivity(dashboardData.allMembers), "renderRecentActivity");
-        safelyRun(() => renderRecentActivity(dashboardData.allMembers), "renderRecentActivity");
         safelyRun(() => renderInactiveWatchlist(dashboardData.allMembers), "renderInactiveWatchlist");
 
         // New Render Functions
@@ -199,79 +198,100 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // Table Sorting Logic
+// ---------------------------------------------------------
+// OPTIMIZED TABLE SORTING (Async with Spinner)
+// ---------------------------------------------------------
 window.sortTable = function (n) {
     const table = document.getElementById("roster-table");
     if (!table) return;
 
-    // Toggle Sort Direction
-    if (!table.dataset.sortDir) table.dataset.sortDir = "asc";
-    let dir = table.dataset.sortDir === "asc" ? "desc" : "asc";
+    // Determine Sort Direction
+    const prevCol = table.dataset.sortCol ? parseInt(table.dataset.sortCol, 10) : null;
+    const prevDir = table.dataset.sortDir || 'asc';
+    let dir = 'asc';
+    if (prevCol === n && prevDir === 'asc') dir = 'desc';
+
+    table.dataset.sortCol = n;
     table.dataset.sortDir = dir;
 
-    let switching = true;
-    let shouldSwitch;
-    let i;
+    // Update Header Icons
+    updateSortIcons(table, n, dir);
 
-    while (switching) {
-        switching = false;
-        const rows = table.rows;
-
-        // Loop through all table rows (except the first, which contains table headers)
-        for (i = 1; i < (rows.length - 1); i++) {
-            shouldSwitch = false;
-
-            const x = rows[i].getElementsByTagName("TD")[n];
-            const y = rows[i + 1].getElementsByTagName("TD")[n];
-
-            let xVal = x.textContent || x.innerText;
-            let yVal = y.textContent || y.innerText;
-
-            // Clean numbers (remove k, M, commas)
-            // If column is Ratio (idx 7) or Days (idx 8), treat as number
-            // XP (1,2), Boss (3,4), Msgs (5,6) are also numbers
-            // Name (0) is string
-
-            const isNumeric = n !== 0;
-
-            let xNum = parseFloat(xVal.replace(/[+,kM\s]/g, ''));
-            let yNum = parseFloat(yVal.replace(/[+,kM\s]/g, ''));
-
-            // Handle multipliers if needed (k=1000, M=1000000) - simplified here as formatNumber puts them back
-            // Actually, sorting pre-formatted numbers (1.2k vs 900) requires parsing suffixes
-            if (xVal.includes('M')) xNum = parseFloat(xVal) * 1000000;
-            else if (xVal.includes('k')) xNum = parseFloat(xVal) * 1000;
-
-            if (yVal.includes('M')) yNum = parseFloat(yVal) * 1000000;
-            else if (yVal.includes('k')) yNum = parseFloat(yVal) * 1000;
-
-            if (dir == "asc") {
-                if (isNumeric) {
-                    if (xNum > yNum) shouldSwitch = true;
-                } else {
-                    if (xVal.toLowerCase() > yVal.toLowerCase()) shouldSwitch = true;
-                }
-            } else {
-                if (isNumeric) {
-                    if (xNum < yNum) shouldSwitch = true;
-                } else {
-                    if (xVal.toLowerCase() < yVal.toLowerCase()) shouldSwitch = true;
-                }
-            }
-
-            if (shouldSwitch) {
-                rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-                switching = true;
-                break;
-            }
-        }
+    // Show Loading Spinner (Critical for UX on large tables)
+    const tbody = document.getElementById("roster-body");
+    if (tbody) {
+        // height: 500px ensures the table doesn't collapse excessively during sort
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:50px;"><div class="spinner"></div> Sorting Roster...</td></tr>';
     }
 
-    // Update Icons
-    document.querySelectorAll("th i").forEach(i => i.className = "fas fa-sort");
-    const header = table.getElementsByTagName("TH")[n];
-    const icon = header.querySelector("i");
-    if (icon) icon.className = dir === "asc" ? "fas fa-sort-up" : "fas fa-sort-down";
+    // Defer the heavy lifting to allow the browser to paint the spinner
+    setTimeout(() => {
+        performSort(n, dir);
+    }, 10);
 };
+
+function updateSortIcons(table, colIdx, dir) {
+    const headers = table.querySelectorAll('th');
+    headers.forEach((th, i) => {
+        const icon = th.querySelector('i');
+        if (!icon) return;
+        icon.className = 'fas fa-sort'; // Reset
+        icon.style.opacity = '0.3';
+
+        if (i === colIdx) {
+            icon.className = dir === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+            icon.style.opacity = '1';
+            icon.style.color = 'var(--neon-gold)'; // Highlight active sort
+        }
+    });
+}
+
+function performSort(n, dir) {
+    // Column Mapping
+    // 0: Player (string)
+    // 1: XP 7d
+    // 2: XP Total
+    // 3: Boss 7d
+    // 4: Boss Total
+    // 5: Msgs 7d
+    // 6: Msgs Total
+    // 7: Ratio (Total XP / Total Msgs)
+    // 8: Days
+
+    const members = dashboardData.allMembers;
+    if (!members) return;
+
+    // Create a copy to sort
+    const sorted = [...members].sort((a, b) => {
+        let valA, valB;
+
+        switch (n) {
+            case 0: // Username
+                valA = a.username.toLowerCase();
+                valB = b.username.toLowerCase();
+                return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+            case 1: valA = a.xp_7d || 0; valB = b.xp_7d || 0; break;
+            case 2: valA = a.total_xp || 0; valB = b.total_xp || 0; break;
+            case 3: valA = a.boss_7d || 0; valB = b.boss_7d || 0; break;
+            case 4: valA = a.total_boss || 0; valB = b.total_boss || 0; break;
+            case 5: valA = a.msgs_7d || 0; valB = b.msgs_7d || 0; break;
+            case 6: valA = a.msgs_total || 0; valB = b.msgs_total || 0; break;
+            case 7: // Ratio
+                valA = a.msgs_total > 0 ? (a.total_xp / a.msgs_total) : 0;
+                valB = b.msgs_total > 0 ? (b.total_xp / b.msgs_total) : 0;
+                break;
+            case 8: valA = a.days_in_clan || 0; valB = b.days_in_clan || 0; break;
+            default: return 0;
+        }
+
+        // Numeric Sort
+        return dir === 'asc' ? valA - valB : valB - valA;
+    });
+
+    // Re-render
+    renderFullRoster(sorted);
+}
+
 
 function safelyRun(fn, name) {
     try {
@@ -309,9 +329,10 @@ function renderGeneralStats(data) {
     const topXpMember = [...members].sort((a, b) => b[xpKey] - a[xpKey])[0];
     if (topXpMember) {
         setHtml('stat-top-xp', `
-             <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
-                <img src="assets/${topXpMember.rank_img || 'rank_minion.png'}" style="width:30px;height:auto;object-fit:contain;">
-                <span>${topXpMember.username} <span style="color:var(--neon-gold);font-size:0.9em">(${formatNumber(topXpMember[xpKey])})</span></span>
+             <div class="top-stat-container">
+                <img src="assets/${topXpMember.rank_img || 'rank_minion.png'}" class="top-stat-rank-img">
+                <div class="top-stat-username">${topXpMember.username}</div>
+                <div class="top-stat-value">${formatNumber(topXpMember[xpKey])}</div>
             </div>
         `);
     }
@@ -320,9 +341,10 @@ function renderGeneralStats(data) {
     const topMsgMember = [...members].sort((a, b) => b[msgKey] - a[msgKey])[0];
     if (topMsgMember) {
         setHtml('stat-top-msg', `
-            <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
-                <img src="assets/${topMsgMember.rank_img || 'rank_minion.png'}" style="width:30px;height:auto;object-fit:contain;">
-                <span>${topMsgMember.username} <span style="color:var(--neon-green);font-size:0.9em">(${formatNumber(topMsgMember[msgKey])})</span></span>
+             <div class="top-stat-container">
+                <img src="assets/${topMsgMember.rank_img || 'rank_minion.png'}" class="top-stat-rank-img">
+                <div class="top-stat-username">${topMsgMember.username}</div>
+                <div class="top-stat-value" style="color:var(--neon-green)">${formatNumber(topMsgMember[msgKey])}</div>
             </div>
         `);
     }
@@ -336,33 +358,55 @@ function renderGeneralStats(data) {
 
     if (risingStar) {
         setHtml('stat-rising-star', `
-             <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
-                <img src="assets/${risingStar.rank_img || 'rank_minion.png'}" style="width:30px;height:auto;object-fit:contain;">
-                <span>${risingStar.username} <span style="color:var(--neon-blue);font-size:0.9em">(${formatNumber(risingStar.msgs_7d)})</span></span>
+             <div class="top-stat-container">
+                <img src="assets/${risingStar.rank_img || 'rank_minion.png'}" class="top-stat-rank-img">
+                <div class="top-stat-username">${risingStar.username}</div>
+                <div class="top-stat-value" style="color:var(--neon-blue)">${formatNumber(risingStar.msgs_7d)}</div>
             </div>
         `);
     } else {
         setHtml('stat-rising-star', "No Newcomers");
     }
 
+    // 5. Active Members (Active in last 30d via XP or Msgs)
+    const activeCount = members.filter(m => (m.msgs_30d > 0 || m.xp_30d > 0)).length;
+    setHtml('stat-active-members', formatNumber(activeCount));
+
     // Top Boss (Default to static if no dynamic boss data available for 30d, or sort by boss_score if available)
     if (data.topBossKiller) {
         const m = data.topBossKiller;
         // Try to find full member data
         const fullMember = members.find(p => p.username === m.name);
-        const bossImg = fullMember && fullMember.favorite_boss_img ? fullMember.favorite_boss_img : (m.rank_img || 'rank_minion.png');
+
+        let bossImg = 'rank_minion.png';
+
+        if (fullMember) {
+            // Priority: User's actual favorite boss image
+            if (fullMember.favorite_boss_img && fullMember.favorite_boss_img !== 'boss_pet_rock.png') {
+                bossImg = fullMember.favorite_boss_img;
+            }
+            // Fallback to rank image if exists
+            else if (fullMember.rank_img) {
+                bossImg = fullMember.rank_img;
+            }
+        }
+        // Last resort: use leaderboard data if available
+        else if (m.rank_img) {
+            bossImg = m.rank_img;
+        }
 
         setHtml('stat-top-boss', `
-             <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
-                <img src="assets/${bossImg}" style="width:30px;height:auto;object-fit:contain;" onerror="this.src='assets/rank_minion.png';this.onerror=null;">
-                <span>${m.name} <span style="color:var(--neon-red);font-size:0.9em">(${formatNumber(m.kills)})</span></span>
+             <div class="top-stat-container ${fullMember?.context_class || 'context-general'}">
+                <img src="assets/${bossImg}" class="top-stat-rank-img" onerror="this.src='assets/rank_minion.png';this.onerror=null;">
+                <div class="top-stat-username">${m.name}</div>
+                <div class="top-stat-value" style="color:var(--neon-red)">${formatNumber(m.kills)}</div>
             </div>
         `);
     } else {
         setHtml('stat-top-boss', `
-             <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
-                <img src="assets/rank_minion.png" style="width:30px;height:auto;object-fit:contain;">
-                <span>No Data</span>
+             <div class="top-stat-container">
+                <img src="assets/rank_minion.png" class="top-stat-rank-img">
+                <div class="top-stat-value" style="color:#999;font-size:1.1rem">No Data</div>
             </div>
         `);
     }
@@ -373,12 +417,12 @@ function renderNewsTicker(members) {
     if (!tickerContainer) return;
 
     // AI PULSE INTEGRATION
-    if (window.aiData && window.aiData.pulse && window.aiData.pulse.length > 0) {
+    if (dashboardData.ai && dashboardData.ai.pulse && dashboardData.ai.pulse.length > 0) {
         console.log("Using AI Pulse Data");
-        let html = window.aiData.pulse.map(item => `<span style="color:var(--neon-green)">[AI-NET]</span> ${item}`).join(' &nbsp;&bull;&nbsp; ');
+        let html = dashboardData.ai.pulse.map(item => `<span style="color:var(--neon-green)">[AI-NET]</span> ${item}`).join(' &nbsp;&bull;&nbsp; ');
 
         // Loop it for smoothness
-        if (window.aiData.pulse.length < 5) html += ' &nbsp;&bull;&nbsp; ' + html;
+        if (dashboardData.ai.pulse.length < 5) html += ' &nbsp;&bull;&nbsp; ' + html;
         tickerContainer.innerHTML = html;
         return;
     }
@@ -550,6 +594,10 @@ function renderScatterInteraction() {
             role: m.role
         }));
 
+    // Cap the x-axis at the highest observed value (with minimal buffer)
+    const maxMsgs = dataPoints.length ? Math.max(...dataPoints.map(d => d.msgs)) : 0;
+    const xMax = maxMsgs ? Math.ceil(maxMsgs * 1.02) : undefined;
+
     const scatter = new G2Plot.Scatter('container-scatter-interaction', {
         appendPadding: 30,
         data: dataPoints,
@@ -562,12 +610,15 @@ function renderScatterInteraction() {
         xAxis: {
             title: { text: 'Messages (30d)', style: { fill: '#888' } },
             grid: { line: { style: { stroke: '#333', lineDash: [4, 4] } } },
-            label: { style: { fill: '#888' } }
+            label: { style: { fill: '#888' } },
+            max: xMax,
+            minLimit: 0
         },
         yAxis: {
             title: { text: 'XP Gained (30d)', style: { fill: '#888' } },
             grid: { line: { style: { stroke: '#333', lineDash: [4, 4] } } },
-            label: { formatter: (v) => formatNumber(Number(v)), style: { fill: '#888' } }
+            label: { formatter: (v) => formatNumber(Number(v)), style: { fill: '#888' } },
+            min: 0
         },
         tooltip: {
             fields: ['player', 'msgs', 'xp', 'role'],
@@ -599,7 +650,7 @@ function renderBossDiversity() {
             type: label,
             value: data.datasets[0].data[i]
         }))
-        .filter(d => d.value > 0)
+        .filter(d => d.value > 0 && d.type.toLowerCase() !== 'other')
         .sort((a, b) => b.value - a.value);
 
     // NO Grouping small slices (User Request: Show All)
@@ -718,9 +769,22 @@ function renderBossTrend() {
     // Update Name
     const nameEl = document.getElementById('trending-boss-name');
 
-    // Safety Check: hide if no valid chart data
+    // Safety Check: if no trend data, fallback to most killed boss across group (30d assumed)
     if (!data || !data.chart_data || !data.chart_data.datasets || !data.chart_data.datasets[0]) {
-        if (nameEl) nameEl.innerText = "No Trending Data";
+        let fallbackBoss = null;
+        if (dashboardData.allMembers) {
+            const topMember = [...dashboardData.allMembers].sort((a, b) => (b.boss_30d || 0) - (a.boss_30d || 0))[0];
+            if (topMember && topMember.favorite_boss) fallbackBoss = topMember.favorite_boss;
+        }
+        if (!fallbackBoss) {
+            const fallback = dashboardData.chart_boss_diversity;
+            if (fallback && fallback.labels && fallback.datasets && fallback.datasets[0]) {
+                const filtered = fallback.labels.map((label, idx) => ({ label, val: fallback.datasets[0].data[idx] }))
+                    .filter(item => item.label.toLowerCase() !== 'other');
+                if (filtered.length) fallbackBoss = filtered.sort((a, b) => b.val - a.val)[0].label;
+            }
+        }
+        if (nameEl) nameEl.innerText = fallbackBoss || "No data";
         ctx.style.display = 'none';
 
         const container = ctx.parentElement;
@@ -728,7 +792,7 @@ function renderBossTrend() {
         if (!msg) {
             msg = document.createElement('div');
             msg.className = 'no-data-msg-boss';
-            msg.innerText = "No Trending Boss Data Available";
+            msg.innerText = fallbackBoss ? `No trend data. Fallback: ${fallbackBoss}` : "No Trending Boss Data Available";
             msg.style.cssText = "text-align:center; padding: 2rem; color: #666; font-style: italic;";
             container.appendChild(msg);
         }
@@ -786,6 +850,7 @@ function renderAllCharts() {
     Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
     Chart.defaults.font.family = "'Outfit', sans-serif";
 
+<<<<<<< HEAD
     safelyRun(() => renderActivityHealthChart(), "renderActivityHealthChart");
     safelyRun(() => renderTopXPChart(), "renderTopXPChart");
 
@@ -804,6 +869,25 @@ function renderAllCharts() {
 
     // renderPlayerRadar(); // REMOVED per user request
 
+=======
+    renderActivityHealthChart();
+    renderTopXPChart();
+
+    // NEW CHARTS
+    renderScatterInteraction();
+    renderBossDiversity();
+    renderRaidsPerformance();
+    renderSkillMastery();
+    renderBossTrend();
+    renderTenureChart();
+    renderXPWeeklyCorrelation();
+    renderLeaderboardChart();
+
+    // UPDATED VISUALIZATIONS
+    renderActivityHeatmap();     // NEW: Weekly 24h Heatmap
+    renderActivityTrend();       // NEW: Weekly Trend (Replaces Correlation/Area)
+    renderXPContribution();      // NEW: Top 25 Annual XP (Replaces Radar)
+>>>>>>> fix/cleanup
 }
 
 function renderActivityHealthChart() {
@@ -877,19 +961,18 @@ function renderActivityCorrelation() {
     const history = dashboardData.history || [];
     const dualData = [];
 
-    // Transform History: Need flattened array? G2Plot DualAxes often takes one array or array of arrays.
-    // Let's use single array data structure
     history.forEach(d => {
         const dateStr = new Date(d.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
         dualData.push({
             date: dateStr,
-            xp: d.xp,
-            msgs: d.msgs
+            xp: d.xp || 0,
+            msgs: d.msgs || 0
         });
     });
 
     if (dualData.length === 0) {
-        dualData.push({ date: 'Mon', xp: 0, msgs: 0 });
+        container.innerHTML = '<div style="text-align:center;padding:2rem;color:#666;font-style:italic;">No activity history available</div>';
+        return;
     }
 
     const dualAxes = new G2Plot.DualAxes('container-activity-trend', {
@@ -905,6 +988,10 @@ function renderActivityCorrelation() {
             xp: { alias: 'XP Gained', formatter: (v) => formatNumber(Number(v)) },
             msgs: { alias: 'Messages' }
         },
+        yAxis: [
+            { min: 0, label: { formatter: (v) => formatNumber(Number(v)) } }, // Left: XP
+            { min: 0 } // Right: Messages
+        ],
         legend: { position: 'top-left' }
     });
 
@@ -920,51 +1007,41 @@ function renderXPContribution() {
     if (charts.xpContrib) charts.xpContrib.destroy();
 
     const members = dashboardData.allMembers;
-    const sorted = [...members].sort((a, b) => b.xp_7d - a.xp_7d);
+    const sorted = [...members].sort((a, b) => (b.xp_30d || b.xp_7d) - (a.xp_30d || a.xp_7d));
 
-    // Top 25 + Others (Expanded from Top 5 per user request)
-    // Filter 0 XP first
-    const active = sorted.filter(m => m.xp_7d > 0);
-
-    // Show top 25 individually, group rest
+    const active = sorted.filter(m => (m.xp_30d || m.xp_7d) > 0);
     const showCount = 25;
     const topSlice = active.slice(0, showCount);
-    const othersXP = active.slice(showCount).reduce((sum, m) => sum + m.xp_7d, 0);
 
-    const data = topSlice.map(m => ({ type: m.username, value: m.xp_7d }));
-    // Removed 'Others' slice based on user feedback to "dont use others"
-
-
-    const pie = new G2Plot.Pie('xp-contribution-chart', {
-        appendPadding: 10,
-        data: data,
-        angleField: 'value',
-        colorField: 'type',
-        radius: 0.9,
-        innerRadius: 0.6,
-        label: {
-            type: 'inner',
-            offset: '-50%',
-            content: '{value}',
-            style: {
-                textAlign: 'center',
-                fontSize: 14,
-            },
-            autoRotate: false,
-        },
-        interactions: [{ type: 'element-active' }],
-        theme: 'dark',
-        statistic: {
-            title: false,
-            content: {
-                style: { whiteSpace: 'pre-wrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-                content: 'XP\nDistrib',
-            },
-        },
+    // Approximate annual XP using 30d if present else 7d
+    const annualData = topSlice.map(m => {
+        const base = m.xp_30d ? m.xp_30d * 12 : (m.xp_7d || 0) * 52;
+        return { type: m.username, value: base };
     });
 
-    pie.render();
-    charts.xpContrib = pie;
+    const column = new G2Plot.Column('xp-contribution-chart', {
+        data: annualData,
+        xField: 'type',
+        yField: 'value',
+        theme: 'dark',
+        color: '#33FF33',
+        meta: {
+            value: { alias: 'Annualized XP', formatter: (v) => formatNumber(v) }
+        },
+        xAxis: {
+            label: { autoRotate: true, autoHide: true }
+        },
+        yAxis: {
+            min: 0,
+            label: { formatter: (v) => formatNumber(Number(v)) }
+        },
+        tooltip: {
+            formatter: (d) => ({ name: d.type, value: `${formatNumber(d.value)} XP/yr` })
+        }
+    });
+
+    column.render();
+    charts.xpContrib = column;
 }
 
 
@@ -1051,10 +1128,17 @@ function renderMessagesSection(members) {
         heatmap.style.display = 'grid';
         heatmap.style.gridTemplateColumns = 'repeat(24, 1fr)';
         heatmap.style.gap = '2px';
-        heatmap.style.height = '60px';
+        heatmap.style.height = '100%'; // Use container height
+        heatmap.style.minHeight = '120px'; // Ensure visibility
         heatmap.style.alignItems = 'end'; // bars from bottom
+        heatmap.style.justifyItems = 'center';
 
         const maxVal = Math.max(...dashboardData.activity_heatmap);
+        const totalVal = dashboardData.activity_heatmap.reduce((a, b) => a + b, 0);
+        if (totalVal === 0) {
+            heatmap.innerHTML = '<div style="text-align:center;padding:1.5rem;color:#666;font-style:italic;grid-column:1/-1">No hourly activity recorded</div>';
+            return;
+        }
 
         dashboardData.activity_heatmap.forEach((val, hour) => {
             const bar = document.createElement('div');
@@ -1216,18 +1300,22 @@ function renderXpSection(members) {
     const ctxContrib = document.getElementById('xp-contribution-chart');
     if (ctxContrib) {
         if (charts.contrib) charts.contrib.destroy();
-        const top25 = [...members].sort((a, b) => b.xp_7d - a.xp_7d).slice(0, 25);
-        // Use G2Plot for this one since it's a div container
+        // Render annualized XP contribution here too so both entry points stay consistent
+        const top25 = [...members].sort((a, b) => (b.xp_30d || b.xp_7d) - (a.xp_30d || a.xp_7d)).slice(0, 25);
+        const data = top25.map(m => {
+            const base = m.xp_30d ? m.xp_30d * 12 : (m.xp_7d || 0) * 52;
+            return { name: m.username, value: base };
+        });
         try {
             const columnPlot = new G2Plot.Column(ctxContrib, {
-                data: top25.map(m => ({ name: m.username, value: m.xp_7d })),
+                data,
                 xField: 'name',
                 yField: 'value',
                 theme: 'dark',
                 color: '#33FF33',
                 meta: {
                     value: {
-                        alias: 'XP Gained (7d)',
+                        alias: 'Annualized XP',
                         formatter: (v) => formatNumber(v)
                     }
                 },
@@ -1239,7 +1327,7 @@ function renderXpSection(members) {
                 },
                 tooltip: {
                     formatter: (datum) => {
-                        return { name: datum.name, value: formatNumber(datum.value) + ' XP' };
+                        return { name: datum.name, value: formatNumber(datum.value) + ' XP/yr' };
                     }
                 }
             });
@@ -1263,15 +1351,17 @@ function renderBossesSection(members) {
     const cards = document.getElementById('boss-cards');
     if (cards) {
         cards.innerHTML = '';
-        const topKillers = [...members].sort((a, b) => b.boss_7d - a.boss_7d).slice(0, CONFIG.TOP_BOSS_CARDS);
+        const topKillers = [...members].sort((a, b) => (b.boss_7d || 0) - (a.boss_7d || 0)).slice(0, CONFIG.TOP_BOSS_CARDS);
         topKillers.forEach(m => {
+            const bg = m.favorite_boss_img || 'boss_pet_rock.png';
             cards.innerHTML += `
-                <div class="stat-card">
-                    <div class="stat-label">${m.username}</div>
-                    <div class="stat-value" style="color:var(--neon-red)">${formatNumber(m.boss_7d)} Kills</div>
-                    <div style="font-size:0.8em;color:#888;margin-top:5px;display:flex;align-items:center;justify-content:center;gap:5px">
-                        <img src="assets/${m.favorite_boss_img || 'boss_pet_rock.png'}" style="height:30px;width:auto;object-fit:contain;">
-                        <span>${m.favorite_boss || 'None'}</span>
+                <div class="glass-card stat-card" style="position:relative; overflow:hidden; aspect-ratio:2/3; display:flex; flex-direction:column; justify-content:flex-end; padding:15px; text-align:center;">
+                    <div style="position:absolute; inset:0; background-image:url('assets/${bg}'); background-size:cover; background-position:center; opacity:0.3; transition:transform 0.5s;"></div>
+                    <div style="position:relative; z-index:1; text-shadow:0 2px 10px rgba(0,0,0,0.8);">
+                        <div style="font-weight:700; font-size:1.1rem; color:#fff; margin-bottom:5px;">${m.username}</div>
+                        <div style="font-family:'Cinzel'; font-size:1.8rem; color:var(--neon-red); line-height:1;">${formatNumber(m.boss_30d || 0)}</div>
+                        <div style="font-size:0.8rem; color:#aaa; margin-top:5px; text-transform:uppercase; letter-spacing:1px;">Kills (7d)</div>
+                         <div style="font-size:0.75rem; color:var(--neon-gold); margin-top:8px; border-top:1px solid rgba(255,255,255,0.1); padding-top:4px;">${m.favorite_boss || 'Unknown'}</div>
                     </div>
                 </div>
              `;
@@ -1361,6 +1451,182 @@ function getPurgeCandidates(members) {
 // ---------------------------------------------------------
 // ADDED MISSING RENDER FUNCTIONS
 // ---------------------------------------------------------
+
+function renderActivityHeatmap() {
+    // 24h Hourly Activity (Aggregated)
+    const container = 'activity-heatmap';
+    if (!document.getElementById(container)) return;
+    if (charts.heatmap) charts.heatmap.destroy();
+
+    const data = dashboardData.activity_heatmap;
+    if (!data || !Array.isArray(data) || data.length === 0) {
+        document.getElementById(container).innerHTML = '<div class="no-data">No heatmap data</div>';
+        return;
+    }
+
+    // transform [v0, v1...] to [{hour: '00:00', value: v0}, ...]
+    const plotData = data.map((val, idx) => ({
+        hour: `${String(idx).padStart(2, '0')}:00`,
+        value: Number(val) || 0
+    }));
+
+    try {
+        const column = new G2Plot.Column(container, {
+            data: plotData,
+            xField: 'hour',
+            yField: 'value',
+            color: '#00d4ff',
+            columnStyle: {
+                radius: [4, 4, 0, 0],
+            },
+            autoFit: true,
+            theme: 'dark',
+            meta: {
+                value: { alias: 'Messages' }
+            },
+            xAxis: {
+                label: { autoRotate: false, style: { fill: '#666', fontSize: 10 } },
+                grid: null
+            },
+            yAxis: {
+                grid: { line: { style: { stroke: '#333', lineDash: [2, 2] } } }
+            },
+            tooltip: {
+                formatter: (datum) => {
+                    return { name: 'Activity', value: datum.value + ' msgs' };
+                }
+            }
+        });
+
+        column.render();
+        charts.heatmap = column;
+    } catch (e) {
+        console.warn("Failed to render Heatmap:", e);
+    }
+}
+
+function renderActivityTrend() {
+    // Weekly Activity Trend (Line/Area Chart)
+    const container = 'container-activity-trend';
+    const el = document.getElementById(container);
+    if (!el) return;
+
+    // Clear previous if G2Plot attached to div
+    el.innerHTML = '';
+
+    const hist = dashboardData.history; // This is a list of objects: [{date: '...', msgs: ...}, ...]
+    if (!hist || !Array.isArray(hist) || hist.length === 0) {
+        el.innerHTML = '<div class="no-data">No trend data available</div>';
+        return;
+    }
+
+    // Transform to [{date: '...', value: ..., category: 'Messages'}, ...]
+    const data = hist.map(item => ({
+        date: item.date,
+        value: Number(item.msgs) || 0,
+        category: 'Messages'
+    }));
+
+    try {
+        const area = new G2Plot.Area(container, {
+            data: data,
+            xField: 'date',
+            yField: 'value',
+            seriesField: 'category',
+            color: ['#00d4ff'],
+            areaStyle: {
+                fill: 'l(270) 0:#00d4ff 1:rgba(0, 212, 255, 0.1)',
+            },
+            theme: 'dark',
+            xAxis: {
+                range: [0, 1], // optimize time axis range
+                label: { style: { fill: '#666' }, autoRotate: true }
+            },
+            yAxis: {
+                grid: { line: { style: { stroke: '#333' } } },
+                label: { formatter: (v) => formatNumber(Number(v)) }
+            },
+            legend: false,
+            tooltip: {
+                showMarkers: true
+            },
+            smooth: true,
+            animation: {
+                appear: {
+                    animation: 'wave-in',
+                    duration: 1000,
+                },
+            },
+        });
+
+        area.render();
+        charts.activityTrend = area;
+    } catch (e) {
+        console.warn("Failed to render Activity Trend:", e);
+    }
+}
+
+function renderXPContribution() {
+    // Top 25 Annualized XP (Bar Chart)
+    const container = 'xp-contribution-chart';
+    if (!document.getElementById(container)) return;
+
+    document.getElementById(container).innerHTML = '';
+
+    const data = dashboardData.topXPYear || [];
+    if (!Array.isArray(data) || data.length === 0) {
+        document.getElementById(container).innerHTML = '<div class="no-data">No Annual XP Data</div>';
+        return;
+    }
+
+    // Prepare for G2Plot Bar (Horizontal)
+    const plotData = data.slice(0, 25).map(m => {
+        // Safe number extraction
+        let val = m.xp_year;
+        if (!val) val = (m.xp_30d || 0) * 12;
+        if (!val) val = (m.xp_7d || 0) * 52;
+        return {
+            username: m.username,
+            xp: Number(val) || 0
+        };
+    }).sort((a, b) => a.xp - b.xp); // Sort ascending for bar chart (appears descending)
+
+    // Dynamic height based on item count to avoid crowding
+    const chartHeight = Math.max(400, plotData.length * 30);
+
+    try {
+        const bar = new G2Plot.Bar(container, {
+            data: plotData,
+            height: chartHeight,
+            xField: 'xp',
+            yField: 'username',
+            seriesField: 'username', // Color by user
+            color: '#FFD700', // Gold color for Annual XP
+            barStyle: { radius: [0, 2, 2, 0] },
+            theme: 'dark',
+            xAxis: {
+                label: { formatter: (v) => formatNumber(Number(v)) },
+                grid: { line: { style: { stroke: '#333' } } }
+            },
+            yAxis: {
+                label: { style: { fill: '#ccc', fontSize: 11 } }
+            },
+            legend: false,
+            tooltip: {
+                formatter: (d) => ({ name: 'Annual XP', value: formatNumber(d.xp) })
+            },
+            scrollbar: { type: 'vertical' }
+        });
+
+        bar.render();
+        charts.xpContribution = bar;
+    } catch (e) {
+        console.warn("Failed to render XP Contribution:", e);
+    }
+}
+
+
+
 
 function renderPlayerRadar() {
     const container = 'player-radar-chart';
@@ -1533,6 +1799,80 @@ function renderXPvsBossChart(members) {
 
 }
 
+function renderTenureChart() {
+    const ctx = document.getElementById('tenure-distribution-chart');
+    if (!ctx) return;
+    if (charts.tenure) charts.tenure.destroy();
+
+    const members = dashboardData.allMembers || [];
+    const buckets = {
+        '0-30d': 0,
+        '30-90d': 0,
+        '90-180d': 0,
+        '180d+': 0
+    };
+
+    members.forEach(m => {
+        const d = m.days_in_clan || 0;
+        if (d <= 30) buckets['0-30d']++;
+        else if (d <= 90) buckets['30-90d']++;
+        else if (d <= 180) buckets['90-180d']++;
+        else buckets['180d+']++;
+    });
+
+    charts.tenure = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(buckets),
+            datasets: [{
+                data: Object.values(buckets),
+                backgroundColor: ['#00d4ff', '#33FF33', '#FFD700', '#FF3333'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'right', labels: { color: '#ccc' } } }
+        }
+    });
+}
+
+function renderXPWeeklyCorrelation() {
+    const container = document.getElementById('container-xp-scatter');
+    if (!container) return;
+    if (charts.xpMsgsCorr && charts.xpMsgsCorr.destroy) charts.xpMsgsCorr.destroy();
+
+    const members = dashboardData.allMembers || [];
+    const points = members
+        .filter(m => m.xp_7d > 0 && m.msgs_7d > 0)
+        .slice(0, 200)
+        .map(m => ({ name: m.username, xp: m.xp_7d, msgs: m.msgs_7d }));
+
+    if (points.length === 0) {
+        container.innerHTML = '<div style="text-align:center;padding:1.5rem;color:#666;font-style:italic;">No XP/message correlation data available</div>';
+        return;
+    }
+
+    const scatter = new G2Plot.Scatter('container-xp-scatter', {
+        data: points,
+        xField: 'msgs',
+        yField: 'xp',
+        size: 5,
+        shape: 'circle',
+        color: '#00d4ff',
+        theme: 'dark',
+        xAxis: { title: { text: 'Messages (7d)', style: { fill: '#888' } } },
+        yAxis: { title: { text: 'XP (7d)', style: { fill: '#888' } }, label: { formatter: (v) => formatNumber(Number(v)) } },
+        tooltip: {
+            formatter: (d) => ({ name: d.name, value: `${d.msgs} msgs, ${formatNumber(d.xp)} XP` })
+        }
+    });
+
+    scatter.render();
+    charts.xpMsgsCorr = scatter;
+}
+
 function renderLeaderboardChart() {
     const ctx = document.getElementById('leaderboard-chart');
     if (!ctx) return;
@@ -1607,23 +1947,88 @@ function renderAIInsights(members) {
     console.log("renderAIInsights called with", members ? members.length : 0, "members");
     renderTime('updated-time-ai', dashboardData.generated_at);
 
-    const container = document.getElementById('ai-insights-container');
+    const container = document.getElementById('ai-feed-container');
     if (!container) return;
 
     container.innerHTML = '';
 
+    const findAssetForInsight = (insight) => {
+        // Try to map to a member mentioned in the message/title
+        const text = `${insight.title || ''} ${insight.message || ''}`.toLowerCase();
+        const member = (members || []).find(m => text.includes((m.username || '').toLowerCase()));
+        if (member) {
+            if (member.favorite_boss_img && member.favorite_boss_img !== 'boss_pet_rock.png') return member.favorite_boss_img;
+            if (member.rank_img) return member.rank_img;
+        }
+
+        // Try to match boss names in text
+        const bossMap = {
+            'hydra': 'boss_alchemical_hydra.png',
+            'vorkath': 'boss_vorkath.png',
+            'zulrah': 'boss_zulrah.png',
+            'cox': 'boss_chambers_of_xeric.png', 'chamber': 'boss_chambers_of_xeric.png', 'olm': 'boss_great_olm.png',
+            'tob': 'boss_theatre_of_blood.png', 'verzik': 'boss_verzik_vitur.png',
+            'toa': 'boss_tombs_of_amascut.png', 'warden': 'boss_tumeken\'s_warden.png',
+            'nex': 'boss_nex.png',
+            'corp': 'boss_corporeal_beast.png',
+            'jad': 'boss_tztok-jad.png', 'zuk': 'boss_tzkal-zuk.png', 'inferno': 'boss_tzkal-zuk.png',
+            'nightmare': 'boss_the_nightmare.png',
+            'bandos': 'boss_general_graardor.png', 'graardor': 'boss_general_graardor.png',
+            'sara': 'boss_commander_zilyana.png', 'zilyana': 'boss_commander_zilyana.png',
+            'arma': 'boss_kree\'arra.png', 'kree': 'boss_kree\'arra.png',
+            'zammy': 'boss_k\'ril_tsutsaroth.png', 'kril': 'boss_k\'ril_tsutsaroth.png',
+            'muspah': 'boss_phantom_muspah.png',
+            'duke': 'boss_duke_sucellus.png',
+            'vard': 'boss_vardorvis.png',
+            'levi': 'boss_the_leviathan.png',
+            'whisperer': 'boss_the_whisperer.png',
+            'wildy': 'boss_wilderness.png',
+            'slayer': 'skill_slayer.png',
+            'max': 'rank_maxed.png', 'comp': 'rank_completionist.png'
+        };
+
+        // Check for boss matches
+        for (const [key, img] of Object.entries(bossMap)) {
+            if (text.includes(key)) return img;
+        }
+
+        // Generic themed assets pool (Expanded)
+        const pool = [
+            'boss_alchemical_hydra.png',
+            'boss_thermonuclear_smoke_devil.png',
+            'boss_tombs_of_amascut.png',
+            'boss_nightmare.png',
+            'boss_chambers_of_xeric.png',
+            'boss_theatre_of_blood.png',
+            'boss_vorkath.png',
+            'boss_zulrah.png',
+            'boss_corporeal_beast.png',
+            'boss_nex.png',
+            'boss_tztok-jad.png',
+            'boss_general_graardor.png',
+            'skill_slayer.png',
+            'boss_pet_rock.png'
+        ];
+        return pool[Math.floor(Math.random() * pool.length)];
+    };
+
     // AI INSIGHTS INTEGRATION
-    if (window.aiData && window.aiData.insights) {
-        window.aiData.insights.forEach(insight => {
+    if (dashboardData.ai && dashboardData.ai.insights) {
+        container.className = 'vertical-feed'; // Switch to vertical layout
+        dashboardData.ai.insights.forEach(insight => {
             const colorVar = insight.type === 'trend' ? 'var(--neon-gold)' : insight.type === 'analysis' ? 'var(--neon-blue)' : 'var(--neon-green)';
             const icon = insight.type === 'trend' ? 'fa-chart-line' : insight.type === 'analysis' ? 'fa-brain' : 'fa-heartbeat';
+            const asset = findAssetForInsight(insight);
             container.innerHTML += `
-            <div class="alert-card" style="border-left: 3px solid ${colorVar}">
-                <div class="alert-header" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;color:${colorVar}">
-                    <i class="fas ${icon}"></i>
-                    <span style="font-family:'Cinzel'">${insight.title}</span>
+            <div class="alert-card" style="border-left: 4px solid ${colorVar}; min-height:180px; background: radial-gradient(circle at center, rgba(30,30,40,0.8), rgba(0,0,0,0.9)); position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: center;">
+                <div style="position:absolute; inset:0; background-image:url('assets/${asset}'); background-repeat:no-repeat; background-position:center; background-size:cover; opacity:0.4; mix-blend-mode: luminosity;"></div>
+                <div style="position:absolute; inset:0; background: linear-gradient(90deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.8) 100%);"></div>
+                
+                <div class="alert-header" style="display:flex;align-items:center;gap:15px;margin-bottom:12px;color:${colorVar}; position:relative; z-index:2; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">
+                    <i class="fas ${icon}" style="font-size: 1.4em;"></i>
+                    <span style="font-family:'Cinzel'; font-size: 1.4em; font-weight: 700; letter-spacing: 1px;">${insight.title}</span>
                 </div>
-                <div class="alert-metric" style="color:#ccc; font-size: 0.9em;">
+                <div class="alert-metric" style="color:#e0e0e0; font-size: 1.1em; line-height: 1.5; position:relative; z-index:2; text-shadow: 0 1px 3px rgba(0,0,0,1);">
                     ${insight.message}
                 </div>
             </div>

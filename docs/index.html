@@ -14,8 +14,8 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <script src="clan_data.js"></script>
-    <script src="ai_data.js"></script>
+    <script src="clan_data.js?v=3"></script>
+    <script src="ai_data.js?v=3"></script>
     <!-- Removed deferred logic, moved to body end -->
 
     <!-- NEW: Styling Libraries (Production Integration) -->
@@ -31,7 +31,8 @@
         href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Outfit:wght@300;400;600&display=swap"
         rel="stylesheet">
 
-    <link rel="stylesheet" href="assets/styles.css">
+    <link rel="stylesheet" href="assets/styles.css?v=3">
+    <link rel="stylesheet" href="assets/dynamic_styles.css">
 </head>
 
 <body>
@@ -64,14 +65,11 @@
                     </div>
                 </div>
                 <!-- WEEKLY INTELLIGENCE BRIEFING (PULSE TICKER) -->
-                <div class="stat-card"
-                    style="width: 100%; margin-bottom: 20px; padding: 15px; background: linear-gradient(90deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 100, 150, 0.15) 100%); display: flex; align-items: center; gap: 15px;">
-                    <div style="color: var(--neon-blue); font-weight: bold; white-space: nowrap;"><i
-                            class="fas fa-satellite-dish"></i> CLAN PULSE:</div>
-                    <div
-                        style="flex: 1; overflow: hidden; position: relative; mask-image: linear-gradient(90deg, transparent, white 20px, white calc(100% - 20px), transparent);">
-                        <div id="news-ticker"
-                            style="white-space: nowrap; animation: tickerScroll 20s linear infinite; display: inline-block;">
+                <!-- WEEKLY INTELLIGENCE BRIEFING (PULSE TICKER) -->
+                <div class="news-card">
+                    <div class="news-label"><i class="fas fa-satellite-dish"></i> CLAN PULSE:</div>
+                    <div class="news-ticker-wrapper">
+                        <div id="news-ticker" class="news-ticker-content">
                             <span class="loading">Establishing sat-link...</span>
                         </div>
                     </div>
@@ -102,6 +100,10 @@
                     <div class="stat-card" id="card-top-boss">
                         <div class="stat-label">Top Boss Killer</div>
                         <div class="stat-value" id="stat-top-boss">Loading...</div>
+                    </div>
+                    <div class="stat-card" id="card-active-members">
+                        <div class="stat-label">Active Members <span id="lbl-active-period">(30d)</span></div>
+                        <div class="stat-value" id="stat-active-members">Loading...</div>
                     </div>
                 </div>
 
@@ -258,7 +260,7 @@
                 <div class="chart-container">
                     <div class="chart-title"><i class="fas fa-th"></i>Activity Heatmap
                         (Hourly)</div>
-                    <div class="chart-wrapper">
+                    <div class="chart-wrapper" style="min-height: 200px;">
                         <div id="activity-heatmap" style="width:100%; height:100%;"></div>
                     </div>
                 </div>
@@ -299,7 +301,7 @@
                         </div>
                     </div>
                     <div class="chart-item">
-                        <div class="chart-item-title">XP Contribution (Top 25)</div>
+                        <div class="chart-item-title">Top 25 Annualized XP Contribution</div>
                         <div class="chart-wrapper" id="xp-contribution-chart"></div>
                         <!-- Changed from Player Radar Canvas to DIV -->
                     </div>
@@ -442,7 +444,7 @@
                         <div class="header-info">Updated: <span id="updated-time-ai">loading...</span></div>
                     </div>
                 </div>
-                <div id="ai-insights-container" class="alert-grid">
+                <div id="ai-feed-container" class="vertical-feed">
                     <!-- Dynamic AI Insights will be injected here -->
                     <div class="glass-card neon-border-blue" style="padding: 20px; text-align: center;">
                         <div class="stat-label">Analyzing Clan Data...</div>
@@ -536,7 +538,7 @@
         </div>
     </div>
     </div>
-    <script src="dashboard_logic.js?v=1.1"></script>
+    <script src="dashboard_logic.js?v=3"></script>
 </body>
 
 </html>

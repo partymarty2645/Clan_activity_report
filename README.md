@@ -13,7 +13,26 @@
 * *"Who is effectively a ghost?"*
 * *"Who deserves a promotion based on 'Vibes'?"*
 
+<<<<<<< HEAD
 ---
+=======
+- **Integrated Tracking**: Merges game progress (XP/Bosses) with social engagement (Discord messages).
+- **Discord Sync**: Tracks message counts, "questions asked", and "favorite words" via efficient local database caching.
+- **Visual Dashboard**: A deployed HTML/JS Dashboard (via Google Drive) featuring:
+  - **Enhanced Stat Cards**: Enlarged player cards displaying XP, Messages, Boss kills, and Rising Stars with icons
+  - **Boss Highlight Cards**: 5-flag style cards with boss background images, player names, and 30-day kill counts
+  - **Activity Heatmaps**: 24-hour hourly message distribution showing peak activity times
+  - **Performance Analytics**: 
+    - **Chatterbox vs Grinder**: Optimized scatter plot with proper x-axis scaling
+    - **Weekly Activity Trends**: Dual-axis chart tracking messages and XP over 7 days
+    - **Boss Trends**: Dynamic trend lines with fallback to diversity data
+    - **XP Contribution**: Annualized per-player contribution visualization
+  - **Purging Candidates**: Auto-lists inactive members (>30d tenure, 0 messages/XP).
+  - **Live Search & Filtering**
+- **Excel Reporting**: Generates a polished, conditionally formatted Excel report with:
+  - **Custom Columns**: `7d`, `30d`, `Total` periods.
+  - **Auto-Styling**: Color-coded columns (Identity, XP, Messages, Bosses).
+>>>>>>> fix/cleanup
 
 ## 🚀 The Goods
 
@@ -114,11 +133,43 @@ graph TD
         LLM{"Gemini / Groq"}:::ai
     end
 
+<<<<<<< HEAD
     subgraph Out ["Outputs"]
         Dashboard["Web Dashboard HTML/JS"]:::output
         Excel["Excel Report"]:::output
         Drive["Google Drive (Hosting)"]:::cloud
     end
+=======
+### Recent Improvements (Latest Session)
+
+We've made significant enhancements to the dashboard UI and data handling:
+
+#### Dashboard Rendering Fixes
+1. **Enlarged Stat Cards** (`docs/dashboard_logic.js` lines 294-350): Major visual upgrade to player stat cards with larger icons (48px), prominent names (1.3rem), and improved flex column layout for better readability.
+
+2. **Optimized Scatter Plot** (`docs/dashboard_logic.js` lines 557-609): Fixed "Chatterbox vs Grinder" chart x-axis scaling to cap at 102% of max messages (instead of 105%), preventing excessive empty whitespace. Added `min: 0` to ensure proper axis bounds.
+
+3. **Activity Heatmap Rendering** (`docs/dashboard_logic.js` lines 1074-1104): Confirmed proper 24-hour hourly activity bars with smart display of "No hourly activity" message when data is sparse.
+
+4. **Weekly Activity Trends** (`docs/dashboard_logic.js` lines 911-955): Fixed DualAxes chart configuration with explicit `min: 0` for both yAxis metrics, preventing negative space and improving visual alignment.
+
+5. **XP Contribution Scaling** (`docs/dashboard_logic.js` lines 957-1000): Updated column chart with proper annualized values and consistent scaling across all player columns.
+
+6. **Boss Trend Fallback** (`core/analytics.py` lines 862+): Enhanced `get_trending_boss()` function to return top boss from diversity data as fallback when no 30-day gains are found, ensuring the chart always has data to display.
+
+#### File Synchronization
+- **Root/Docs Bidirectional Sync** (`scripts/export_sqlite.py`): Enhanced `sync_dashboard_files()` to keep both `clan_dashboard.html` and `dashboard_logic.js` synchronized between root and `/docs` folder, preventing overwrite issues and ensuring production consistency.
+
+#### Data Pipeline Fixes
+- **Activity Heatmap Call Fix** (`scripts/export_sqlite.py` line 148): Corrected method name from `get_activity_heatmap()` to `get_activity_heatmap_simple()` to match analytics service implementation.
+
+For complete details on all changes, see [CHANGELOG.md](CHANGELOG.md).
+
+---
+
+- **Comprehensive Proof:** See [archive/PROOF_OF_DATA_LINKAGE.md](archive/PROOF_OF_DATA_LINKAGE.md) for cold hard proof of data linkage (303 active members tracked, 99.4% WOM linkage, boss data verified).
+- **Regenerate Dashboard:**
+>>>>>>> fix/cleanup
 
     %% Data Ingestion
     WOM -.->|JSON| Harvest

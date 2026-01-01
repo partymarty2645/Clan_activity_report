@@ -5,6 +5,9 @@ import os
 import random
 from datetime import datetime, timedelta
 import logging
+from core.config import Config
+from database.connector import SessionLocal
+from services.user_access_service import UserAccessService
 
 # Setup Logging
 logging.basicConfig(
@@ -17,17 +20,22 @@ logging.basicConfig(
 )
 logger = logging.getLogger("AI_Analyst")
 
-DB_PATH = "clan_data.db"
 OUTPUT_FILE = "docs/ai_data.js" # Generating a JS file for easy import in docs folder
 
 def get_db_connection():
+    """Get database connection with UserAccessService integration available."""
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(Config.DB_FILE)
         conn.row_factory = sqlite3.Row
         return conn
     except sqlite3.Error as e:
         logger.error(f"Database connection error: {e}")
         return None
+
+def get_user_service():
+    """Get UserAccessService instance for unified database access."""
+    session = SessionLocal()
+    return UserAccessService(session), session
 
 def generate_pulse_headlines(conn):
     headlines = []
@@ -265,19 +273,28 @@ def generate_ai_insights(conn):
         # Insight 1: Boss Diversity (moved up, renamed from Insight 2)
         try:
             cursor = conn.execute("""
-                SELECT COUNT(DISTINCT boss_name) as unique_bosses
-                FROM boss_snapshots
-                LIMIT 1
+                SELECT 
+                    bs.boss_name,
+                    SUM(bs.kills) as total_kills,
+                    COUNT(DISTINCT ws.username) as active_raiders
+                FROM boss_snapshots bs
+                JOIN wom_snapshots ws ON bs.snapshot_id = ws.id
+                WHERE ws.timestamp >= datetime('now', '-7 days')
+                AND bs.kills > 0
+                GROUP BY bs.boss_name
+                ORDER BY total_kills DESC
+                LIMIT 3
             """)
-            diversity = cursor.fetchone()
-            bosses = diversity['unique_bosses'] if diversity else 0
-            if bosses > 0:
+            top_bosses = cursor.fetchall()
+            
+            if top_bosses:
+                boss_list = ", ".join([f"{b['boss_name']} ({b['total_kills']} kills)" for b in top_bosses])
                 insights.append({
                     "type": "analysis",
                     "title": "Bossing Diversity",
-                    "message": f"Clan has tackled {bosses} different bosses. Well-rounded bossing team!"
+                    "message": f"Top targets this week: {boss_list}. The clan is actively hunting varied threats!"
                 })
-                logger.info(f"✓ Insight 1 (Boss Diversity): {bosses} bosses")
+                logger.info(f"✓ Insight 1 (Boss Diversity): {boss_list}")
             else:
                 logger.warning("✗ Insight 1: No boss diversity data")
         except Exception as e:

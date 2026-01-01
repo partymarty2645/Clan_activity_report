@@ -105,10 +105,10 @@ def _wom_headers() -> Dict[str, str]:
 def _fetch_wom_name_changes_by_username(username: str) -> Optional[List[Dict]]:
     """
     Try fetching name changes from WOM by username.
-    Query: GET /players/username/{username}/names
+    Query: GET /players/{username}/names (WOM API v2)
     """
-    # Direct endpoint for v2
-    url = f"{Config.WOM_BASE_URL}/players/username/{username}/names"
+    # WOM v2 endpoint - simplified from v1's /players/username/{username}/names
+    url = f"{Config.WOM_BASE_URL}/players/{username}/names"
     
     try:
         response = requests.get(url, headers=_wom_headers(), timeout=20)

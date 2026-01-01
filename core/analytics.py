@@ -5,9 +5,9 @@ Centralized logic for calculating Clan Statistics, Time-Deltas, and Outliers.
 Replaces duplicate logic in `report.py` and `dashboard_export.py`.
 Uses SQLAlchemy models for strict typing and connection pooling.
 
-Note: This service supports both username-based and ID-based queries.
-Username-based queries work with current schema.
-ID-based queries (get_*_by_id methods) are available once user_id FK populated (Phase 2.2.2).
+**MIGRATION TO UNIFIED ACCESS**: This service now uses UserAccessService
+for consistent database access patterns. Legacy methods maintained for
+backward compatibility during transition period.
 
 Timestamps: All methods use UTC internally. Use TimestampHelper for creating cutoff dates.
 """
@@ -23,12 +23,22 @@ from database.models import WOMSnapshot, DiscordMessage, ClanMember, BossSnapsho
 from core.usernames import UsernameNormalizer
 from core.timestamps import TimestampHelper
 from core.config import Config
+from services.user_access_service import UserAccessService
 
 logger = logging.getLogger("Analytics")
 
 class AnalyticsService:
     def __init__(self, db_session: Session):
         self.db = db_session
+        # Initialize unified access service
+        self.user_access = UserAccessService(db_session)
+
+    @staticmethod
+    def _as_int(value: Any) -> Optional[int]:
+        try:
+            return int(value)  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            return None
 
     def _latest_snapshots_windowed(self, cutoff_date: Optional[datetime] = None) -> List[WOMSnapshot]:
         """Return the latest snapshot per username with deterministic ordering."""
@@ -55,7 +65,7 @@ class AnalyticsService:
             .where(subq.c.rn == 1)
         )
 
-        return self.db.execute(stmt).scalars().all()
+        return list(self.db.execute(stmt).scalars().all())
 
     def get_latest_snapshots(self) -> Dict[str, WOMSnapshot]:
         """
@@ -63,7 +73,7 @@ class AnalyticsService:
         Returns: {normalized_username: WOMSnapshot}
         """
         results = self._latest_snapshots_windowed()
-        return {UsernameNormalizer.normalize(r.username): r for r in results}
+        return {UsernameNormalizer.normalize(str(r.username)): r for r in results}
 
     def get_active_members(self) -> List[ClanMember]:
         """
@@ -71,7 +81,7 @@ class AnalyticsService:
         Returns list of ClanMember ORM objects.
         """
         stmt = select(ClanMember)
-        return self.db.execute(stmt).scalars().all()
+        return list(self.db.execute(stmt).scalars().all())
 
 
     def get_min_timestamps(self) -> Dict[str, WOMSnapshot]:
@@ -95,23 +105,31 @@ class AnalyticsService:
             ))
         )
         
-        results = self.db.execute(stmt).scalars().all()
-        return {UsernameNormalizer.normalize(r.username): r for r in results}
+        results = list(self.db.execute(stmt).scalars().all())
+        return {UsernameNormalizer.normalize(str(r.username)): r for r in results}
 
     def get_clan_records(self) -> List[Dict[str, Any]]:
         """
         MCP-Enabled Feature: Fetch global max kills for each boss.
         """
         query = """
-        SELECT 
-            b.boss_name, 
-            w.username, 
-            MAX(b.kills) as record_kills
-        FROM boss_snapshots b
-        JOIN wom_snapshots w ON w.id = b.snapshot_id
-        WHERE b.kills > 0
-        GROUP BY b.boss_name
-        ORDER BY record_kills DESC
+        WITH ranked AS (
+            SELECT 
+                b.boss_name,
+                w.username,
+                b.kills,
+                ROW_NUMBER() OVER (
+                    PARTITION BY b.boss_name 
+                    ORDER BY b.kills DESC, b.snapshot_id DESC
+                ) AS rn
+            FROM boss_snapshots b
+            JOIN wom_snapshots w ON w.id = b.snapshot_id
+            WHERE b.kills > 0
+        )
+        SELECT boss_name, username, kills
+        FROM ranked
+        WHERE rn = 1
+        ORDER BY kills DESC
         """
         try:
             results = self.db.execute(text(query)).fetchall()
@@ -130,7 +148,7 @@ class AnalyticsService:
         Used for calculating gains (Current - Old).
         """
         results = self._latest_snapshots_windowed(cutoff_date)
-        return {UsernameNormalizer.normalize(r.username): r for r in results}
+        return {UsernameNormalizer.normalize(str(r.username)): r for r in results}
 
     def get_message_counts(self, start_date: datetime) -> Dict[str, int]:
         """
@@ -140,7 +158,7 @@ class AnalyticsService:
         stmt = (
             select(
                 func.lower(DiscordMessage.author_name).label("name"), 
-                func.count(DiscordMessage.id).label("count")
+                func.count(DiscordMessage.id).label("msg_count")
             )
             .where(DiscordMessage.created_at >= start_date)
             .group_by(func.lower(DiscordMessage.author_name))
@@ -152,7 +170,7 @@ class AnalyticsService:
         counts = {}
         for row in results:
             norm = UsernameNormalizer.normalize(row.name)
-            counts[norm] = counts.get(norm, 0) + row.count
+            counts[norm] = counts.get(norm, 0) + int(row.msg_count)
             
         return counts
 
@@ -189,7 +207,7 @@ class AnalyticsService:
 
                 if staleness_limit_days is not None:
                     # If old snapshot is too old, skip this user (don't count gains)
-                    age_days = (curr.timestamp - old.timestamp).days if curr.timestamp and old.timestamp else 0
+                    age_days = (curr.timestamp - old.timestamp).days if (curr.timestamp is not None and old.timestamp is not None) else 0
                     if age_days > staleness_limit_days:
                         continue  # Skip this user, don't include in gains
                 
@@ -230,8 +248,8 @@ class AnalyticsService:
         Calculates specific boss kills gained using a single bulk fetch across snapshots.
         Returns: {'Kraken': 500, 'Zulrah': 200, ...}
         """
-        curr_ids = [s.id for s in current_map.values() if s.id]
-        old_ids = [s.id for s in old_map.values() if s.id]
+        curr_ids = [sid for sid in (self._as_int(s.id) for s in current_map.values()) if sid is not None]
+        old_ids = [sid for sid in (self._as_int(s.id) for s in old_map.values()) if sid is not None]
 
         if not curr_ids:
             return {}
@@ -265,8 +283,8 @@ class AnalyticsService:
         Example: {'party_marty': ('vorkath', 50)}
         """
         # 1. Collect all IDs
-        curr_ids = [s.id for s in current_map.values() if s.id]
-        old_ids = [s.id for s in old_map.values() if s.id]
+        curr_ids = [sid for sid in (self._as_int(s.id) for s in current_map.values()) if sid is not None]
+        old_ids = [sid for sid in (self._as_int(s.id) for s in old_map.values()) if sid is not None]
 
         if not curr_ids:
             return {}
@@ -281,9 +299,11 @@ class AnalyticsService:
             best_boss = "None"
             max_delta = -1
             
-            curr_bosses = curr_data.get(curr_snap.id, {})
+            curr_sid = self._as_int(curr_snap.id)
+            curr_bosses = curr_data.get(curr_sid, {}) if curr_sid is not None else {}
             old_snap = old_map.get(user)
-            old_bosses = old_data.get(old_snap.id, {}) if old_snap else {}
+            old_sid = self._as_int(old_snap.id) if old_snap is not None else None
+            old_bosses = old_data.get(old_sid, {}) if old_sid is not None else {}
             
             for boss, kills in curr_bosses.items():
                 prev = old_bosses.get(boss, 0)
@@ -416,8 +436,13 @@ class AnalyticsService:
             ))
         )
         
-        results = self.db.execute(stmt).scalars().all()
-        return {r.user_id: r for r in results if r.user_id}
+        results = list(self.db.execute(stmt).scalars().all())
+        latest_by_id: Dict[int, WOMSnapshot] = {}
+        for snap in results:
+            uid = self._as_int(snap.user_id)
+            if uid is not None:
+                latest_by_id[uid] = snap
+        return latest_by_id
     
     def get_snapshots_at_cutoff_by_id(self, cutoff_date: datetime) -> Dict[int, WOMSnapshot]:
         """
@@ -446,7 +471,7 @@ class AnalyticsService:
         )
         
         results = self.db.execute(stmt).scalars().all()
-        return {r.user_id: r for r in results if r.user_id}
+        return {uid: r for uid, r in ((self._as_int(r.user_id), r) for r in results) if uid is not None}
     
     def get_message_counts_by_id(self, start_date: datetime) -> Dict[int, int]:
         """
@@ -469,7 +494,12 @@ class AnalyticsService:
         )
         
         results = self.db.execute(stmt).all()
-        return {row.user_id: row.count for row in results}
+        return {
+            uid: int(row._mapping["count"])
+            for row in results
+            for uid in (self._as_int(row.user_id),)
+            if uid is not None
+        }
     
     def get_gains_by_id(self, current_map: Dict[int, WOMSnapshot],
                        old_map: Dict[int, WOMSnapshot]) -> Dict[int, Dict[str, int]]:
@@ -548,7 +578,12 @@ class AnalyticsService:
         )
         
         results = self.db.execute(stmt).scalars().all()
-        return {r.user_id: r for r in results if r.user_id}
+        snapshots: Dict[int, WOMSnapshot] = {}
+        for r in results:
+            uid = self._as_int(r.user_id)
+            if uid is not None:
+                snapshots[uid] = r
+        return snapshots
 
     def get_discord_message_counts_bulk(self, author_names: List[str], 
                                         start_date: datetime) -> Dict[str, int]:
@@ -562,42 +597,12 @@ class AnalyticsService:
         if not author_names:
             return {}
         
-        # Normalize author names for case-insensitive comparison
-        # Normalize inputs
-        normalized_names = [UsernameNormalizer.normalize(name) for name in author_names]
-        
-        # Build query
-        # Since we store 'author_name' which might be raw discord name, we might need alias lookup?
-        # Actually, Discord messages usually store the author_name from the event.
-        # But we are querying.
-        
-        # If we have normalized names, we need to match against normalized column or lower(column)
-        # But DiscordMessage.author_name is just string.
-        # The most robust way is to fetch matches where lower(author_name) in normalized_names
-        # BUT normalized_names might have spaces vs underscores.
-        
-        # Let's rely on the fact that identity_service likely links user_id correctly.
-        # If we have user_ids, use those.
-        # But this function takes 'author_names'.
-        
-        # For strict correctness, we should resolve names to user_ids first?
-        # analytics.py shouldn't depend on too many things.
-        
-        # Let's stick to the requested change: use normalize() where we used .lower()
-        pass 
-        # Actually, line 536 corresponds to `get_discord_activity`.
-        # The query probably filters by author_name.
-        
-        # Let's assume the DB stores `author_name` as it appeared on Discord.
-        # If we are searching by a list of names, we should try to match loosely.
-        # But replacing .lower() with normalize() is safer for dictionary keys.
-        
-        normalized_names = [UsernameNormalizer.normalize(name) for name in author_names]
+        normalized_names = [UsernameNormalizer.normalize(name, for_comparison=True) for name in author_names]
         
         stmt = (
             select(
                 func.lower(DiscordMessage.author_name).label("name"),
-                func.count(DiscordMessage.id).label("count")
+                func.count(DiscordMessage.id).label("msg_count")
             )
             .where(and_(
                 func.lower(DiscordMessage.author_name).in_(normalized_names),
@@ -608,12 +613,10 @@ class AnalyticsService:
         
         results = self.db.execute(stmt).all()
         
-        # Return with normalized keys
-        from core.usernames import UsernameNormalizer
         counts = {}
         for row in results:
-            norm = UsernameNormalizer.normalize(row.name, for_comparison=True)
-            counts[norm] = row.count
+            norm = UsernameNormalizer.normalize(str(row.name), for_comparison=True)
+            counts[norm] = int(row.msg_count)
         
         return counts
 
@@ -656,6 +659,109 @@ class AnalyticsService:
         values = [x[1] for x in sorted_data]
         
         return {"labels": labels, "datasets": [{"data": values}]}
+
+    def get_boss_diversity_7d(self) -> Dict[str, Any]:
+        """
+        Calculates Boss Diversity based on GAINS in the last 7 days.
+        Used for the 'Bossing Diversity' pie chart to show what's currently active.
+        """
+        # 1. Get Snapshots
+        latest_snaps = self.get_latest_snapshots()
+        old_snaps = self.get_snapshots_at_cutoff(datetime.now(timezone.utc) - timedelta(days=7))
+        
+        # 2. Bulk Fetch Boss Kills for both sets
+        latest_ids = [sid for sid in (self._as_int(s.id) for s in latest_snaps.values()) if sid is not None]
+        old_ids = [sid for sid in (self._as_int(s.id) for s in old_snaps.values()) if sid is not None]
+        
+        if not latest_ids:
+             return {"labels": [], "datasets": [{"data": []}]}
+        
+        ids_to_fetch = list(set(latest_ids + old_ids))
+        boss_data_map = self.get_boss_data(ids_to_fetch)
+        
+        # 3. Calculate Gains Aggregated by Boss
+        boss_gains = defaultdict(int)
+        
+        for username, latest in latest_snaps.items():
+            latest_sid = self._as_int(latest.id)
+            if latest_sid is None or latest_sid not in boss_data_map:
+                continue
+            
+            latest_bosses = boss_data_map[latest_sid]
+            old_bosses = {}
+            
+            if username in old_snaps:
+                old = old_snaps[username]
+                old_sid = self._as_int(old.id)
+                if old_sid is not None and old_sid in boss_data_map:
+                    old_bosses = boss_data_map[old_sid]
+            
+            for boss_name, kills in latest_bosses.items():
+                old_kills = old_bosses.get(boss_name, 0)
+                gain = kills - old_kills
+                if gain > 0:
+                    boss_gains[boss_name] += gain
+                    
+        # 4. Sort and Format
+        # Filter small gains to avoid clutter? (Optional)
+        sorted_bosses = sorted(boss_gains.items(), key=lambda x: x[1], reverse=True)
+        
+        # Limit to Top 15 for readability + "Other"
+        top_n = 15
+        labels = []
+        values = []
+        
+        other_sum = 0
+        for i, (boss, gain) in enumerate(sorted_bosses):
+            if i < top_n:
+                labels.append(boss.replace('_', ' ').title())
+                values.append(gain)
+            else:
+                other_sum += gain
+        
+        if other_sum > 0:
+            labels.append("Other")
+            values.append(other_sum)
+            
+        return {"labels": labels, "datasets": [{"data": values}]}
+
+    def get_correlation_data(self, days: int = 7) -> List[Dict[str, Any]]:
+        """
+        Returns data for XP vs Messages scatter plot.
+        {x: msg_count, y: xp_gain, r: 5, user: name}
+        """
+        # 1. Get XP Gains
+        latest_snaps = self.get_latest_snapshots()
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+        old_snaps = self.get_snapshots_at_cutoff(cutoff)
+        
+        xp_gains = self.calculate_gains(latest_snaps, old_snaps, staleness_limit_days=21)
+        
+        # 2. Get Message Counts
+        msg_counts = self.get_message_counts(cutoff)
+        
+        # 3. Merge
+        data = []
+        for user in latest_snaps.keys():
+            # Use normalized user
+            xp = xp_gains.get(user, {}).get('xp', 0)
+            msgs = msg_counts.get(user, 0)
+            
+            # Filter out true zeroes (inactive)
+            if xp == 0 and msgs == 0:
+                continue
+                
+            # Cap slightly to prevent massive outliers ruining scale? 
+            # JS chart handles log/linear, but let's send raw.
+            
+            data.append({
+                "x": msgs,
+                "y": xp,
+                "r": 5, # Radius
+                "user": user
+            })
+            
+        return data
 
     def get_raids_performance(self, snapshot_ids: List[int]) -> Dict[str, Any]:
         """Calculates average raids KC for CoX, ToB, ToA."""
@@ -712,7 +818,7 @@ class AnalyticsService:
             rows = conn.exec_driver_sql(Queries.GET_DISCORD_MSG_COUNTS_TOTAL).fetchall()
         return {row[0]: row[1] for row in rows}
 
-    def get_activity_heatmap(self, days: int = 30) -> List[int]:
+    def get_activity_heatmap_simple(self, days: int = 30) -> List[int]:
         """Returns 24-hour activity distribution for the last N days."""
         from data.queries import Queries
         cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
@@ -769,7 +875,8 @@ class AnalyticsService:
         
         for i in range(0, len(ids), chunk_size):
             chunk = ids[i:i + chunk_size]
-            rows = self.db.query(BossSnapshot).filter(BossSnapshot.snapshot_id.in_(chunk)).all()
+            stmt = select(BossSnapshot).where(BossSnapshot.snapshot_id.in_(chunk))
+            rows = self.db.execute(stmt).scalars().all()
             
             for row in rows:
                 if row.snapshot_id not in result:
@@ -786,8 +893,8 @@ class AnalyticsService:
         cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         past_snaps = self.get_snapshots_at_cutoff(cutoff)
         
-        latest_ids = [s.id for s in latest_snaps.values()]
-        past_ids = [s.id for s in past_snaps.values()]
+        latest_ids = [sid for sid in (self._as_int(s.id) for s in latest_snaps.values()) if sid is not None]
+        past_ids = [sid for sid in (self._as_int(s.id) for s in past_snaps.values()) if sid is not None]
         if not latest_ids: return None
 
         from data.queries import Queries
@@ -797,12 +904,18 @@ class AnalyticsService:
             return {r[0]: r[1] for r in conn.exec_driver_sql(Queries.GET_BOSS_SUMS_FOR_IDS.format(','.join('?' * len(ids))), tuple(ids)).fetchall()}
             
         now_sums = get_sums(latest_ids)
-        old_sums = get_sums(past_ids)
+        old_sums = get_sums(past_ids) if past_ids else {}
         
         deltas = {boss: kills - old_sums.get(boss, 0) for boss, kills in now_sums.items() if kills - old_sums.get(boss, 0) > 0}
-        if not deltas: return None
+        if not deltas: 
+            # No deltas in past 30d, use highest kill count as fallback
+            if now_sums:
+                top_boss = max(now_sums.keys(), key=lambda k: now_sums[k])
+                deltas = {top_boss: now_sums[top_boss]}
+            else:
+                return None
         
-        top_boss = max(deltas, key=deltas.get)
+        top_boss = max(deltas.keys(), key=lambda k: deltas[k])
         
         # Daily Data
         daily_raw = {r[0]: r[1] for r in conn.exec_driver_sql(Queries.GET_DAILY_BOSS_KILLS, (cutoff.isoformat(), top_boss)).fetchall()}
@@ -822,3 +935,44 @@ class AnalyticsService:
             "total_gain": deltas[top_boss],
             "chart_data": {"labels": labels, "datasets": [{"data": values, "label": "Daily Kills"}]}
         }
+
+    # ========================================
+    # UNIFIED ACCESS MIGRATION METHODS
+    # ========================================
+    
+    def get_all_active_members_unified(self, days_back: int = 30) -> List[Dict[str, Any]]:
+        """
+        MIGRATION METHOD: Use UserAccessService for consistent, optimized data access.
+        
+        This replaces inconsistent member data gathering across multiple analytics methods.
+        Gradually migrate other methods to use this approach.
+        
+        Returns data in legacy format for backward compatibility.
+        """
+        return self.user_access.get_all_members_legacy_format()
+    
+    def get_member_stats_unified(self, username: str) -> Optional[Dict[str, Any]]:
+        """
+        MIGRATION METHOD: Get member stats using unified access layer.
+        
+        Replaces direct database queries with consistent username resolution
+        and statistics calculation.
+        """
+        return self.user_access.get_member_with_latest_stats(username)
+    
+    def resolve_usernames_bulk(self, usernames: List[str]) -> Dict[str, Optional[int]]:
+        """
+        MIGRATION METHOD: Bulk username resolution for performance.
+        
+        Use this to replace individual username lookups in loops.
+        Returns mapping of username -> user_id for further queries.
+        """
+        return self.user_access.resolve_multiple_users(usernames)
+    
+    def clear_unified_cache(self) -> None:
+        """
+        Clear unified access service cache.
+        
+        Call after database updates that might affect user data.
+        """
+        self.user_access.clear_cache()

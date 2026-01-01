@@ -12,7 +12,10 @@ from services.wom import WOMClient
 from services.discord import DiscordFetcher
 from services.factory import ServiceFactory
 from services.identity_service import resolve_member_by_name
+from database.connector import SessionLocal
+from services.user_access_service import UserAccessService
 from core.config import Config
+from core.performance import timed_operation
 from core.usernames import UsernameNormalizer
 from core.timestamps import TimestampHelper
 from data.queries import Queries
@@ -33,10 +36,16 @@ logger = logging.getLogger("harvest_sqlite")
 
 console = Console()
 
-DB_PATH = "clan_data.db"
+from database.connector import SessionLocal
 
+# DEPRECATED: Use get_db_session() instead
 def get_db_connection():
-    return sqlite3.connect(DB_PATH)
+    """Legacy function - use get_db_session() for new code"""
+    return sqlite3.connect(Config.DB_FILE)
+
+def get_db_session():
+    """Get a SQLAlchemy session with proper context management"""
+    return SessionLocal()
 
 def _extract_joined_at(member: dict) -> Optional[str]:
     """
@@ -60,14 +69,27 @@ def _extract_joined_at(member: dict) -> Optional[str]:
 
 def resolve_member_id_sqlite(cursor: sqlite3.Cursor, normalized_name: str) -> Optional[int]:
     """
-    Resolve a member_id using the same sqlite connection to avoid ORM locking.
+    Resolve a member_id using UserAccessService with fallback to direct sqlite queries.
 
-    Prefers alias lookup (player_name_aliases.normalized_name) and falls back to
-    clan_members.username if no alias exists.
+    Prefers UserAccessService for consistent resolution across the application,
+    then falls back to alias lookup (player_name_aliases.normalized_name) and 
+    clan_members.username if needed.
     """
     if not normalized_name:
         return None
 
+    # Try UserAccessService first for consistent resolution
+    try:
+        session = SessionLocal()
+        user_service = UserAccessService(session)
+        user_id = user_service.resolve_user_id(normalized_name)
+        session.close()
+        if user_id:
+            return user_id
+    except Exception as e:
+        logger.debug(f"UserAccessService resolution failed for {normalized_name}: {e}")
+
+    # Fallback to direct database queries
     try:
         cursor.execute("SELECT member_id FROM player_name_aliases WHERE normalized_name = ?", (normalized_name,))
         row = cursor.fetchone()
@@ -149,7 +171,10 @@ async def run_sqlite_harvest(wom_client_inject: Optional[WOMClient] = None, disc
     wom = wom_client_inject if wom_client_inject is not None else await ServiceFactory.get_wom_client()
     discord = discord_service_inject if discord_service_inject is not None else await ServiceFactory.get_discord_service()
     
-    print(f"Connecting to {DB_PATH} via sqlite3...")
+    print(f"Connecting to {Config.DB_FILE} via SQLAlchemy...")
+    db_session = get_db_session()
+    
+    # Keep legacy sqlite3 connection for compatibility during transition
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -240,9 +265,18 @@ async def run_sqlite_harvest(wom_client_inject: Optional[WOMClient] = None, disc
     try:
         await asyncio.gather(task_wom_harvest(), task_discord_harvest())
         print("✅ Parallel Harvest Finished.")
+    except asyncio.CancelledError:
+        print("Harvest tasks cancelled by user.")
+        raise
+    except Exception as e:
+        print(f"Harvest tasks failed: {e}")
+        logger.exception("Harvest execution error")
+        raise
     finally:
-        # Clean up resources properly
+        # Clean up resources properly (services cleanup MUST happen after tasks complete)
         print("Cleaning up resources...")
+        
+        # Note: db_session is managed inside process_wom_harvest(), not here
         
         if conn:
             try:
@@ -251,7 +285,7 @@ async def run_sqlite_harvest(wom_client_inject: Optional[WOMClient] = None, disc
             except Exception as e:
                 logger.error(f"Error closing database connection: {e}")
 
-        # Ensure service cleanup even on interruption
+        # Ensure service cleanup (close aiohttp sessions)
         if wom_client_inject is None or discord_service_inject is None:
             try:
                 await ServiceFactory.cleanup()
@@ -262,73 +296,85 @@ async def run_sqlite_harvest(wom_client_inject: Optional[WOMClient] = None, disc
     
 
 async def process_wom_harvest(wom, conn, cursor):
-    # 1. Get Members
-    print("Downloading latest member roster from WOM...")
-    members = await wom.get_group_members(Config.WOM_GROUP_ID)
-    print(f"Roster downloaded: {len(members)} active members found.")
+    """
+    REFACTORED: Now uses pure SQLAlchemy ORM instead of raw sqlite3.
+    conn/cursor parameters kept for compatibility but not used.
+    """
+    from database.connector import SessionLocal
+    from database.models import ClanMember, WOMSnapshot, BossSnapshot
+    from sqlalchemy import select, func, delete
     
-    # Limit for testing if needed
-    # members = members[:10] 
+    # Get ORM session
+    db_session = SessionLocal()
     
-    # --- MEMBER SYNC (Source of Truth) ---
-    print(f"Synchronizing local database with remote roster...")
-    active_usernames = []
-    rows_to_upsert = []
-    
-    ts_now_dt = TimestampHelper.now_utc()
-    ts_now_iso = ts_now_dt.isoformat()
-
-    for m in members:
-        # WOM API returns keys like 'username', 'role', 'joinedAt'
-        raw_name = m.get('username', '')
-        if not raw_name: continue
-        
-        u_clean = UsernameNormalizer.normalize(raw_name)
-        active_usernames.append(u_clean)
-        
-        role = m.get('role', 'member')
-        # Supports either 'joinedAt' (camelCase) or 'joined_at' (snake_case)
-        joined_iso = _extract_joined_at(m)
-        rows_to_upsert.append((u_clean, role, joined_iso, ts_now_iso))
-
     try:
-        # 1. UPSERT (Insert or Replace)
-        # Using INSERT OR REPLACE requires a UNIQUE/PRIMARY KEY on username, which we have.
-        cursor.executemany(Queries.UPSERT_MEMBER, rows_to_upsert)
+        # 1. Get Members
+        print("Downloading latest member roster from WOM...")
+        members = await wom.get_group_members(Config.WOM_GROUP_ID)
+        print(f"Roster downloaded: {len(members)} active members found.")
+        
+        # --- MEMBER SYNC (Source of Truth) ---
+        print(f"Synchronizing local database with remote roster...")
+        active_usernames = []
+        ts_now_dt = TimestampHelper.now_utc()
+        ts_now_iso = ts_now_dt.isoformat()
+
+        for m in members:
+            raw_name = m.get('username', '')
+            if not raw_name: continue
+            
+            u_clean = UsernameNormalizer.normalize(raw_name)
+            active_usernames.append(u_clean)
+            
+            role = m.get('role', 'member')
+            joined_iso = _extract_joined_at(m)
+            
+            # UPSERT via SQLAlchemy
+            existing = db_session.execute(
+                select(ClanMember).where(ClanMember.username == u_clean)
+            ).scalar_one_or_none()
+            
+            if existing:
+                existing.role = role
+                # existing.last_updated is NOT updated here, only on successful snapshot fetch
+                if joined_iso and not existing.joined_at:
+                    existing.joined_at = datetime.datetime.fromisoformat(joined_iso.replace('Z', '+00:00'))
+            else:
+                new_member = ClanMember(
+                    username=u_clean,
+                    role=role,
+                    joined_at=datetime.datetime.fromisoformat(joined_iso.replace('Z', '+00:00')) if joined_iso else None,
+                    last_updated=None # Will be set upon first successful snapshot fetch
+                )
+                db_session.add(new_member)
         
         # 2. DELETE Stale Members (With Safe-Fail Threshold)
-        # Remove anyone in DB who is NOT in the active_usernames list
         if active_usernames:
-            placeholders = ','.join('?' * len(active_usernames))
-            
-            # Safe-Fail Check
-            cursor.execute(Queries.SELECT_MEMBER_COUNT)
-            total_db_members = cursor.fetchone()[0]
+            total_db_members = db_session.execute(
+                select(func.count()).select_from(ClanMember)
+            ).scalar()
             
             if total_db_members > 0:
-                potential_deletes = total_db_members - len(active_usernames) # Rough estimate or check distinct
-                # Better: Check how many WOULD be deleted
-                cursor.execute(Queries.SELECT_MEMBERS_TO_DELETE.format(placeholders), active_usernames)
-                would_delete = cursor.fetchone()[0]
+                would_delete = db_session.execute(
+                    select(func.count()).select_from(ClanMember).where(
+                        ClanMember.username.notin_(active_usernames)
+                    )
+                ).scalar()
                 
                 delete_ratio = would_delete / total_db_members
                 
                 if delete_ratio > Config.HARVEST_SAFE_DELETE_RATIO:
                     print(f"CRITICAL WARNING: Harvest would delete {would_delete} members ({delete_ratio:.1%}). Aborting deletion for safety.")
-                    # We continue without deleting
                 else:
-                     sql_del = Queries.DELETE_STALE_MEMBERS.format(placeholders)
-                     cursor.execute(sql_del, active_usernames)
-                     deleted_count = cursor.rowcount
-                     print(f"Synced Members: Updated {len(rows_to_upsert)}, Deleted {deleted_count} stale/banned members.")
-            else:
-                 # Initial population
-                 pass
+                    deleted = db_session.execute(
+                        delete(ClanMember).where(ClanMember.username.notin_(active_usernames))
+                    )
+                    deleted_count = deleted.rowcount
+                    print(f"Synced Members: Updated {len(active_usernames)}, Deleted {deleted_count} stale/banned members.")
         
-        conn.commit()
-    except Exception as e:
-        print(f"Error syncing members: {e}")
+        db_session.commit()
         
+<<<<<<< HEAD
     # --- LOAD HARVEST STATE ---
     STATE_FILE = "data/harvest_state.json"
     harvest_state = {}
@@ -401,10 +447,76 @@ async def process_wom_harvest(wom, conn, cursor):
         print(f"Downloading player snapshots ({len(tasks)} in queue)...")
     
     try:
+=======
+        # OPTIMIZATION: Check Staleness via ClanMember.last_updated
+        tasks = []
+        now_utc = datetime.datetime.now(timezone.utc)
+        skipped_count = 0
+        
+        use_staleness_optimization = Config.WOM_STALENESS_SKIP_HOURS > 0
+        staleness_threshold_seconds = Config.WOM_STALENESS_SKIP_HOURS * 3600 if use_staleness_optimization else 0
+        
+        for m in members:
+            username = m['username']  # Use raw username for WOM API (case-sensitive)
+            username_normalized = UsernameNormalizer.normalize(username)  # Normalize for DB lookups
+            
+            # Check Member's last_updated
+            member = db_session.execute(
+                select(ClanMember).where(ClanMember.username == username_normalized)
+            ).scalar_one_or_none()
+            
+            should_fetch = True
+            latest_ts = None
+            
+            # Get latest snapshot timestamp for start_date optimization
+            # (We still need this to incremental fetch, but NOT for staleness check)
+            latest_snap = db_session.execute(
+                select(WOMSnapshot)
+                .where(WOMSnapshot.username == username_normalized)
+                .order_by(WOMSnapshot.timestamp.desc())
+                .limit(1)
+            ).scalar_one_or_none()
+            latest_ts = latest_snap.timestamp.isoformat() if latest_snap else None
+
+            if use_staleness_optimization and member and member.last_updated:
+                try:
+                    # Check if our own scan is recent
+                    last_scan_dt = member.last_updated
+                    if last_scan_dt.tzinfo is None:
+                        last_scan_dt = last_scan_dt.replace(tzinfo=timezone.utc)
+                        
+                    age_seconds = (now_utc - last_scan_dt).total_seconds()
+                    
+                    if age_seconds < staleness_threshold_seconds:
+                        skipped_count += 1
+                        should_fetch = False
+                except Exception as e:
+                    logger.debug(f"Error Checking staleness for {username}: {e}")
+                    pass
+            
+            if should_fetch:
+                tasks.append(fetch_member_data(username, wom=wom, start_date=latest_ts))
+
+        
+        # Determine if we are running in an interactive terminal
+        # is_interactive = sys.stdout.isatty() and not os.environ.get("NO_RICH")
+        is_interactive = False
+        
+        # Initialize results list to store member data
+        results = []
+        
+        # Log optimization impact
+        if skipped_count > 0:
+            hours_threshold = Config.WOM_STALENESS_SKIP_HOURS
+            print(f"Skipped {skipped_count} players with recent data (< {hours_threshold}h old). Fetching {len(tasks)} players...")
+        else:
+            print(f"Downloading player snapshots ({len(tasks)} in queue)...")
+        
+>>>>>>> fix/cleanup
         if is_interactive:
             # Removed Progress Bar for Parallel safety (console conflict likely)
-             print(f"Downloading player snapshots ({len(tasks)} in queue)...")
-             for f in asyncio.as_completed(tasks):
+            print(f"Downloading player snapshots ({len(tasks)} in queue)...")
+            for f in asyncio.as_completed(tasks):
                 res = await f
                 results.append(res)
         else:
@@ -417,11 +529,8 @@ async def process_wom_harvest(wom, conn, cursor):
                 if completed_count % 10 == 0:
                     print(f"  Processed {completed_count}/{len(tasks)} players...")
                     sys.stdout.flush() # Force flush to ensure main.py sees it immediately
-                
-        print("Saving to Database...")
         
-        # Prepare data for bulk insert
-        snapshot_inserts = [] 
+        print("Saving to Database...")
         
         count_snaps = 0
         count_bosses = 0
@@ -441,65 +550,108 @@ async def process_wom_harvest(wom, conn, cursor):
             print(f"Failed to save harvest state: {e}")
 
         
-        # Note: Member ID resolution skipped due to dual database access pattern
+        # Process results using ORM
         for username, data in results:
-                if not data: continue
+            if not data: continue
+            
+            u_clean = UsernameNormalizer.normalize(username)
+            
+            # Get member_id via ORM
+            member = db_session.execute(
+                select(ClanMember).where(ClanMember.username == u_clean)
+            ).scalar_one_or_none()
+            
+            member_id = member.id if member else None
+            
+            for snap in data:
+                snap_data = snap.get('data', {})
+                created_at = snap.get('createdAt')
+                if not created_at: continue
                 
-                u_clean = UsernameNormalizer.normalize(username)
-                
-                for snap in data:
-                    snap_data = snap.get('data', {})
-                    created_at = snap.get('createdAt')
-                    if not created_at: continue
-                    
-                    try:
-                        ts_dt = datetime.datetime.fromisoformat(created_at.replace('Z', '+00:00'))
-                        ts_dt = TimestampHelper.to_utc(ts_dt)
-                        if ts_dt is None:
-                            continue
-                        ts_now_iso = ts_dt.isoformat()
-                    except:
+                try:
+                    ts_dt = datetime.datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                    ts_dt = TimestampHelper.to_utc(ts_dt)
+                    if ts_dt is None:
                         continue
+                except:
+                    continue
+                
+                skills = snap_data.get('skills', {})
+                bosses = snap_data.get('bosses', {})
+                
+                xp = skills.get('overall', {}).get('experience', 0)
+                total_boss = sum(b.get('kills', 0) for b in bosses.values() if b.get('kills', 0) > 0)
+                
+                raw_json = json.dumps(snap)
+                
+                # Check if snapshot already exists (UNIQUE constraint)
+                existing_snap = db_session.execute(
+                    select(WOMSnapshot).where(
+                        WOMSnapshot.username == u_clean,
+                        WOMSnapshot.timestamp == ts_dt
+                    )
+                ).scalar_one_or_none()
+                
+                if existing_snap:
+                    continue  # Skip duplicates
+                
+                try:
+                    new_snap = WOMSnapshot(
+                        username=u_clean,
+                        timestamp=ts_dt,
+                        total_xp=xp,
+                        total_boss_kills=total_boss,
+                        ehp=0,
+                        ehb=0,
+                        raw_data=raw_json,
+                        user_id=member_id
+                    )
+                    db_session.add(new_snap)
+                    db_session.flush()  # Get the ID
                     
-                    skills = snap_data.get('skills', {})
-                    bosses = snap_data.get('bosses', {})
+                    count_snaps += 1
                     
-                    xp = skills.get('overall', {}).get('experience', 0)
-                    total_boss = sum(b.get('kills', 0) for b in bosses.values() if b.get('kills', 0) > 0)
+                    # Insert boss snapshots
+                    for b_name, b_val in bosses.items():
+                        kills = b_val.get('kills', -1)
+                        rank = b_val.get('rank', 0)
+                        if kills > -1:
+                            boss_snap = BossSnapshot(
+                                snapshot_id=new_snap.id,
+                                boss_name=b_name,
+                                kills=kills,
+                                rank=rank
+                            )
+                            db_session.add(boss_snap)
+                            count_bosses += 1
+            
+                    # Update member's last_updated timestamp to mark successful scan
+                    if member:
+                        member.last_updated = datetime.datetime.now(timezone.utc)
                     
-                    raw_json = json.dumps(snap)
-                    
-                    member_id = resolve_member_id_sqlite(cursor, u_clean)
-                    
-                    try:
-                        cursor.execute(Queries.INSERT_SNAPSHOT, (u_clean, ts_now_iso, xp, total_boss, 0, 0, raw_json, member_id))
-                        
-                        snap_id = cursor.lastrowid
-                        count_snaps += 1
-                        
-                        boss_rows = []
-                        for b_name, b_val in bosses.items():
-                            kills = b_val.get('kills', -1)
-                            rank = b_val.get('rank', 0)
-                            if kills > -1:
-                                boss_rows.append((snap_id, b_name, kills, rank))
-                        
-                        if boss_rows:
-                            cursor.executemany(Queries.INSERT_BOSS_SNAPSHOT, boss_rows)
-                            count_bosses += len(boss_rows)
-                            
-                    except Exception as e:
-                        if "UNIQUE constraint failed" in str(e):
-                            pass
-                        else:
-                            print(f"Error saving {u_clean}: {e}")
-
-        conn.commit()
+                except Exception as e:
+                    logger.error(f"Error inserting snapshot for {u_clean}: {e}")
+                    db_session.rollback()
+                    continue
+        
+        db_session.commit()
         print(f"Done. Saved {count_snaps} snapshots and {count_bosses} boss records.")
 
+    except asyncio.CancelledError:
+        print("WOM harvest cancelled.")
+        db_session.rollback()
+        raise
     except Exception as e:
         print(f"Error during WOM Snapshot Processing: {e}")
         logger.exception("WOM Snapshot Error")
+        db_session.rollback()
+        raise
+    finally:
+        try:
+            db_session.close()
+            print("WOM database session closed")
+        except Exception as e:
+            logger.error(f"Error closing WOM session: {e}")
 
 
 
