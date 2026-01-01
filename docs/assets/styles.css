@@ -152,7 +152,7 @@ th,
 }
 
 .alert-name {
-    font-family: 'Cinzel', serif;
+    font-family: 'Outfit', sans-serif;
     font-size: 1.4rem;
     /* Larger Title */
     color: #fff;
@@ -262,7 +262,7 @@ th,
 }
 
 .premium-stat-val {
-    font-family: 'Cinzel', serif;
+    font-family: 'Outfit', sans-serif;
     font-size: 1.8rem;
     /* Big Numbers */
     color: #fff;
@@ -353,7 +353,7 @@ th,
 }
 
 .section-title {
-    font-family: 'Cinzel', serif;
+    font-family: 'Outfit', sans-serif;
     font-size: 1.5rem;
     color: var(--neon-gold);
     margin-bottom: 25px;
@@ -408,7 +408,7 @@ th,
 }
 
 .alert-name {
-    font-family: 'Cinzel', serif;
+    font-family: 'Outfit', sans-serif;
     font-size: 1.2rem;
     color: #fff;
     margin-bottom: 5px;
@@ -444,7 +444,7 @@ th,
 }
 
 .bingo-boss-name {
-    font-family: 'Cinzel', serif;
+    font-family: 'Outfit', sans-serif;
     font-size: 0.9rem;
     color: var(--text-mute);
     margin-top: 15px;
@@ -625,7 +625,7 @@ th,
 
 .chart-item-title,
 .chart-title {
-    font-family: 'Cinzel', serif;
+    font-family: 'Outfit', sans-serif;
     color: var(--text-main);
     margin-bottom: 20px;
     border-bottom: 1px solid #333;
@@ -653,7 +653,7 @@ th {
     background: rgba(0, 0, 0, 0.4);
     padding: 16px;
     text-align: left;
-    font-family: 'Cinzel', serif;
+    font-family: 'Outfit', sans-serif;
     color: var(--neon-gold);
     font-weight: 500;
     border-bottom: 1px solid #333;
@@ -678,7 +678,7 @@ tr:hover td {
 
 .alert-title {
     color: var(--neon-red);
-    font-family: 'Cinzel', serif;
+    font-family: 'Outfit', sans-serif;
     margin-bottom: 15px;
 }
 

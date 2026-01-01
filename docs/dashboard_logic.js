@@ -456,7 +456,7 @@ function renderAlertCards(members) {
             <div class="alert-card" style="border-left: 3px solid ${colorVar}">
                 <div class="alert-header" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;color:${colorVar}">
                     <i class="fas ${alert.icon}"></i>
-                    <span style="font-family:'Cinzel'">${alert.title}</span>
+                    <span style="font-family:'Outfit'">${alert.title}</span>
                 </div>
                 <div class="alert-metric" style="color:#ccc; font-size: 0.9em;">
                     ${alert.message}
@@ -476,7 +476,7 @@ function renderAlertCards(members) {
         <div class="alert-card">
             <div class="alert-header" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;color:var(--neon-red)">
                 <i class="fas fa-exclamation-triangle"></i>
-                <span style="font-family:'Cinzel'">Inactivity Risk</span>
+                <span style="font-family:'Outfit'">Inactivity Risk</span>
             </div>
             <div class="player-info" style="display:flex;align-items:center;gap:15px">
                 <img src="assets/${m.rank_img || 'rank_minion.png'}" style="width:40px;height:auto;" onerror="this.src='assets/rank_minion.png'">
@@ -1308,7 +1308,7 @@ function renderBossesSection(members) {
                     <div style="position:absolute; inset:0; background-image:url('assets/${bg}'); background-size:cover; background-position:center; opacity:0.3; transition:transform 0.5s;"></div>
                     <div style="position:relative; z-index:1; text-shadow:0 2px 10px rgba(0,0,0,0.8);">
                         <div style="font-weight:700; font-size:1.1rem; color:#fff; margin-bottom:5px;">${m.username}</div>
-                        <div style="font-family:'Cinzel'; font-size:1.8rem; color:var(--neon-red); line-height:1;">${formatNumber(m.boss_30d || 0)}</div>
+                        <div style="font-family:'Outfit'; font-size:1.8rem; color:var(--neon-red); line-height:1;">${formatNumber(m.boss_30d || 0)}</div>
                         <div style="font-size:0.8rem; color:#aaa; margin-top:5px; text-transform:uppercase; letter-spacing:1px;">Kills (7d)</div>
                          <div style="font-size:0.75rem; color:var(--neon-gold); margin-top:8px; border-top:1px solid rgba(255,255,255,0.1); padding-top:4px;">${m.favorite_boss || 'Unknown'}</div>
                     </div>
