@@ -60,6 +60,6 @@ clan_data.js
 # Documentation (Disabled per user request)
 # !docs/clan_data.json
 # !docs/clan_data.js
-docs/
+# docs/
 
 .env
