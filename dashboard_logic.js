@@ -310,106 +310,70 @@ function renderLastUpdated(isoDate) {
 }
 
 function renderGeneralStats(data) {
-    // Helper to generic card specific HTML
-    const setHtml = (id, html) => {
-        const el = document.getElementById(id);
-        if (el) el.innerHTML = html;
-    };
+    const container = document.getElementById('general-stats');
+    if (!container) return;
 
-    // Determine Property Keys based on Current Period
+    container.innerHTML = '';
+    const members = data.allMembers || [];
     const xpKey = currentPeriod === '30d' ? 'xp_30d' : 'xp_7d';
     const msgKey = currentPeriod === '30d' ? 'msgs_30d' : 'msgs_7d';
-    // Boss data might not be distinctly split in basic summary object, but let's see if we can derive top killer dynamically if needed.
-    // For now, "Top Boss Killer" in root JSON is likely 7d default. If we want dynamic, we need to sort allMembers.
+    const periodLabel = currentPeriod === '30d' ? '(30d)' : '(7d)';
 
-    // 1. Dynamic Sorting for Top Stats
-    const members = data.allMembers;
-
-    // Top XP
-    const topXpMember = [...members].sort((a, b) => b[xpKey] - a[xpKey])[0];
-    if (topXpMember) {
-        setHtml('stat-top-xp', `
-             <div class="top-stat-container">
-                <img src="assets/${topXpMember.rank_img || 'rank_minion.png'}" class="top-stat-rank-img">
-                <div class="top-stat-username">${topXpMember.username}</div>
-                <div class="top-stat-value">${formatNumber(topXpMember[xpKey])}</div>
-            </div>
-        `);
-    }
-
-    // Top Messenger
-    const topMsgMember = [...members].sort((a, b) => b[msgKey] - a[msgKey])[0];
-    if (topMsgMember) {
-        setHtml('stat-top-msg', `
-             <div class="top-stat-container">
-                <img src="assets/${topMsgMember.rank_img || 'rank_minion.png'}" class="top-stat-rank-img">
-                <div class="top-stat-username">${topMsgMember.username}</div>
-                <div class="top-stat-value" style="color:var(--neon-green)">${formatNumber(topMsgMember[msgKey])}</div>
-            </div>
-        `);
-    }
-
-    // Rising Star: Joined < 14 weeks (98 days) AND Highest Messages
-    // Filter by days_in_clan < 98
-    const newcomers = members.filter(m => m.days_in_clan < 98);
-    // Sort by messages (total or 7d? "sent the most messages" implies recent activity usually, but let's stick to 7d or total if user meant historical. Given context "rising", 7d makes sense to show WHO IS POPPING OFF, but "joined within last 14 weeks" implies finding the best new recruit. NEW RECRUIT = TOTAL MESSAGES usually better metric for 'best integration'. Let's use 7d as it shows CURRENT activity which is usually what rising star means).
-    // Let's use msgs_7d for "Rising" momentum.
-    const risingStar = newcomers.sort((a, b) => b.msgs_7d - a.msgs_7d)[0];
-
-    if (risingStar) {
-        setHtml('stat-rising-star', `
-             <div class="top-stat-container">
-                <img src="assets/${risingStar.rank_img || 'rank_minion.png'}" class="top-stat-rank-img">
-                <div class="top-stat-username">${risingStar.username}</div>
-                <div class="top-stat-value" style="color:var(--neon-blue)">${formatNumber(risingStar.msgs_7d)}</div>
-            </div>
-        `);
-    } else {
-        setHtml('stat-rising-star', "No Newcomers");
-    }
-
-    // 5. Active Members (Active in last 30d via XP or Msgs)
-    const activeCount = members.filter(m => (m.msgs_30d > 0 || m.xp_30d > 0)).length;
-    setHtml('stat-active-members', formatNumber(activeCount));
-
-    // Top Boss (Default to static if no dynamic boss data available for 30d, or sort by boss_score if available)
-    if (data.topBossKiller) {
-        const m = data.topBossKiller;
-        // Try to find full member data
-        const fullMember = members.find(p => p.username === m.name);
-
-        let bossImg = 'rank_minion.png';
-
-        if (fullMember) {
-            // Priority: User's actual favorite boss image
-            if (fullMember.favorite_boss_img && fullMember.favorite_boss_img !== 'boss_pet_rock.png') {
-                bossImg = fullMember.favorite_boss_img;
-            }
-            // Fallback to rank image if exists
-            else if (fullMember.rank_img) {
-                bossImg = fullMember.rank_img;
-            }
-        }
-        // Last resort: use leaderboard data if available
-        else if (m.rank_img) {
-            bossImg = m.rank_img;
+    // Helper to build cards
+    const createCard = (title, value, subtext, member, styleClass = 'blue') => {
+        let bg = 'rank_minion.png';
+        if (member) {
+            if (member.favorite_boss_img && member.favorite_boss_img !== 'boss_pet_rock.png') bg = member.favorite_boss_img;
+            else if (member.rank_img) bg = member.rank_img;
+        } else if (title.includes("Active")) {
+            bg = 'skill_slayer.png'; // Generic
         }
 
-        setHtml('stat-top-boss', `
-             <div class="top-stat-container ${fullMember?.context_class || 'context-general'}">
-                <img src="assets/${bossImg}" class="top-stat-rank-img" onerror="this.src='assets/rank_minion.png';this.onerror=null;">
-                <div class="top-stat-username">${m.name}</div>
-                <div class="top-stat-value" style="color:var(--neon-red)">${formatNumber(m.kills)}</div>
+        return `
+            <div class="premium-card ${styleClass}">
+                <div class="premium-card-bg" style="background-image: url('assets/${bg}')"></div>
+                <div class="premium-card-content">
+                    <div class="premium-stat-label">${title}</div>
+                    <div class="premium-stat-val">${value}</div>
+                    <div class="premium-sub-text">${subtext}</div>
+                </div>
             </div>
-        `);
-    } else {
-        setHtml('stat-top-boss', `
-             <div class="top-stat-container">
-                <img src="assets/rank_minion.png" class="top-stat-rank-img">
-                <div class="top-stat-value" style="color:#999;font-size:1.1rem">No Data</div>
-            </div>
-        `);
+        `;
+    };
+
+    let html = '';
+
+    // 1. Top Messenger
+    const topMsg = [...members].sort((a, b) => b[msgKey] - a[msgKey])[0];
+    if (topMsg) {
+        html += createCard('Top Messenger', formatNumber(topMsg[msgKey]), topMsg.username, topMsg, 'green');
     }
+
+    // 2. Top XP
+    const topXp = [...members].sort((a, b) => b[xpKey] - a[xpKey])[0];
+    if (topXp) {
+        html += createCard(`Top XP ${periodLabel}`, formatNumber(topXp[xpKey]), topXp.username, topXp, 'gold');
+    }
+
+    // 3. Rising Star (New + Active)
+    const rising = members.filter(m => m.days_in_clan < 98).sort((a, b) => b.msgs_7d - a.msgs_7d)[0];
+    if (rising) {
+        html += createCard('Rising Star', formatNumber(rising.msgs_7d) + ' msgs', rising.username, rising, 'blue');
+    } else {
+        html += createCard('Rising Star', 'N/A', 'No recent recruits', null, 'blue');
+    }
+
+    // 4. Top Boss Killer
+    const topBoss = [...members].sort((a, b) => b.boss_7d - a.boss_7d)[0];
+    if (topBoss) {
+        html += createCard('Top Boss Killer @ 7d', formatNumber(topBoss.boss_7d), topBoss.username, topBoss, 'red');
+    }
+
+    // 5. Active Members
+    const activeCount = members.filter(m => m[msgKey] > 0 || m[xpKey] > 0).length;
+    html += createCard(`Active Members ${periodLabel}`, activeCount, `${((activeCount / members.length) * 100).toFixed(1)}% of Roster`, null, 'blue');
+
+    container.innerHTML = html;
 }
 
 function renderNewsTicker(members) {
@@ -2020,17 +1984,17 @@ function renderAIInsights(members) {
             const icon = insight.type === 'trend' ? 'fa-chart-line' : insight.type === 'analysis' ? 'fa-brain' : 'fa-heartbeat';
             const asset = findAssetForInsight(insight);
             container.innerHTML += `
-            <div class="alert-card" style="border-left: 4px solid ${colorVar}; min-height:180px; background: radial-gradient(circle at center, rgba(30,30,40,0.8), rgba(0,0,0,0.9)); position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: center;">
-                <div style="position:absolute; inset:0; background-image:url('assets/${asset}'); background-repeat:no-repeat; background-position:center; background-size:cover; opacity:0.4; mix-blend-mode: luminosity;"></div>
-                <div style="position:absolute; inset:0; background: linear-gradient(90deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.8) 100%);"></div>
-                
-                <div class="alert-header" style="display:flex;align-items:center;gap:15px;margin-bottom:12px;color:${colorVar}; position:relative; z-index:2; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">
-                    <i class="fas ${icon}" style="font-size: 1.4em;"></i>
-                    <span style="font-family:'Cinzel'; font-size: 1.4em; font-weight: 700; letter-spacing: 1px;">${insight.title}</span>
-                </div>
-                <div class="alert-metric" style="color:#e0e0e0; font-size: 1.1em; line-height: 1.5; position:relative; z-index:2; text-shadow: 0 1px 3px rgba(0,0,0,1);">
-                    ${insight.message}
-                </div>
+            <div class="premium-card ${insight.type === 'trend' ? 'gold' : insight.type === 'analysis' ? 'blue' : 'green'}">
+                 <div class="premium-card-bg" style="background-image: url('assets/${asset}');"></div>
+                 <div class="premium-card-content">
+                    <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px;color:${colorVar}">
+                         <i class="fas ${icon}" style="font-size: 1.2em;"></i>
+                         <span style="font-family:'Cinzel'; font-weight:700;">${insight.title}</span>
+                    </div>
+                    <div style="font-size: 1.1em; line-height: 1.5; color:#e0e0e0;">
+                        ${insight.message}
+                    </div>
+                 </div>
             </div>
             `;
         });

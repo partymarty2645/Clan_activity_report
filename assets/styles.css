@@ -93,14 +93,16 @@ th,
 
 /* ALERT CARDS (AI INSIGHTS) */
 .alert-card {
-    padding: 30px; /* Increased padding */
+    padding: 30px;
+    /* Increased padding */
     position: relative;
     background: rgba(30, 30, 35, 0.6);
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     border-radius: 12px;
     transition: 0.3s;
-    min-height: 140px; /* Taller cards */
+    min-height: 140px;
+    /* Taller cards */
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -133,7 +135,8 @@ th,
     background: linear-gradient(135deg, rgba(51, 255, 51, 0.05) 0%, rgba(10, 10, 10, 0.8) 100%);
 }
 
-.alert-card.dying { /* Special negative trend */
+.alert-card.dying {
+    /* Special negative trend */
     border: 1px solid #ff0000;
     box-shadow: inset 0 0 20px rgba(255, 0, 0, 0.2);
 }
@@ -148,23 +151,130 @@ th,
 
 .alert-name {
     font-family: 'Cinzel', serif;
-    font-size: 1.4rem; /* Larger Title */
+    font-size: 1.4rem;
+    /* Larger Title */
     color: #fff;
     margin-bottom: 10px;
-    text-shadow: 0 0 10px rgba(0,0,0,0.5);
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
-.alert-card.leadership .alert-name { color: var(--neon-gold); }
-.alert-card.roast .alert-name { color: var(--neon-red); }
-.alert-card.spoon .alert-name { color: var(--neon-green); }
+.alert-card.leadership .alert-name {
+    color: var(--neon-gold);
+}
+
+.alert-card.roast .alert-name {
+    color: var(--neon-red);
+}
+
+.alert-card.spoon .alert-name {
+    color: var(--neon-green);
+}
 
 .alert-reason {
     color: var(--text-main);
-    font-size: 1.1rem; /* Larger Text */
+    font-size: 1.1rem;
+    /* Larger Text */
     line-height: 1.4;
 }
 
-/* Container & Layout Optimization for Desktop */
+/* PREMIUM CARD STYLING (Boss Card Style) */
+.premium-card {
+    position: relative;
+    overflow: hidden;
+    background: var(--card-bg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    border-radius: 12px;
+    /* Smooth corners */
+    transition: transform 0.3s, box-shadow 0.3s;
+    min-height: 180px;
+    /* Consistent height */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    /* Text at bottom */
+    padding: 20px;
+    text-align: center;
+}
+
+.premium-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.premium-card-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    opacity: 0.35;
+    /* Visible but not overwhelming */
+    mix-blend-mode: luminosity;
+    /* Blend nicely */
+    transition: transform 0.5s;
+    z-index: 0;
+}
+
+.premium-card:hover .premium-card-bg {
+    transform: scale(1.05);
+    /* Subtle zoom */
+    opacity: 0.5;
+    /* Brighten on hover */
+}
+
+.premium-card-content {
+    position: relative;
+    z-index: 2;
+    /* Above bg */
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 1);
+    /* readable on images */
+}
+
+/* Gradients for different contexts */
+.premium-card.gold {
+    border-bottom: 3px solid var(--neon-gold);
+    background: linear-gradient(to top, rgba(255, 215, 0, 0.15), rgba(10, 10, 10, 0.8));
+}
+
+.premium-card.red {
+    border-bottom: 3px solid var(--neon-red);
+    background: linear-gradient(to top, rgba(255, 51, 51, 0.15), rgba(10, 10, 10, 0.8));
+}
+
+.premium-card.blue {
+    border-bottom: 3px solid var(--neon-blue);
+    background: linear-gradient(to top, rgba(0, 212, 255, 0.15), rgba(10, 10, 10, 0.8));
+}
+
+.premium-card.green {
+    border-bottom: 3px solid var(--neon-green);
+    background: linear-gradient(to top, rgba(51, 255, 51, 0.15), rgba(10, 10, 10, 0.8));
+}
+
+.premium-stat-label {
+    font-size: 0.85rem;
+    color: #ccc;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+}
+
+.premium-stat-val {
+    font-family: 'Cinzel', serif;
+    font-size: 1.8rem;
+    /* Big Numbers */
+    color: #fff;
+    line-height: 1.1;
+    margin-bottom: 5px;
+}
+
+.premium-sub-text {
+    font-size: 0.8rem;
+    color: var(--neon-gold);
+    font-style: italic;
+}
+
 .container {
     display: flex;
     max-width: 100vw;
