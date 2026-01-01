@@ -202,6 +202,16 @@ th,
     gap: 20px;
 }
 
+/* Vertical Feed Layout for AI Insights */
+.vertical-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    max-width: 800px;
+    margin: 0 auto;
+    /* Center the feed */
+}
+
 .alert-card {
     padding: 25px;
     position: relative;
