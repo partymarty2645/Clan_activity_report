@@ -6,6 +6,7 @@ import random
 import time
 import logging
 from typing import List, Dict, Any, Optional, Tuple
+import datetime
 
 # --- PATH SETUP ---
 # Must look two levels up to find 'core' and 'services'
@@ -29,38 +30,40 @@ logging.basicConfig(
 logger = logging.getLogger("mcp_enrich")
 
 # --- CONFIGURATION ---
-# Use Config.DB_FILE instead of hard-coded path
 ACTIVITY_WINDOW_DAYS = Config.AI_ACTIVITY_DAYS
-RECENT_PLAYER_LIMIT = Config.AI_PLAYER_LIMIT
+RECENT_PLAYER_LIMIT = 50 # Send top 50 active players to AI context
 
-# User Priority: 1. Gemini Pro -> 2. Gemini Flash -> 3. Groq (handled by UnifiedLLMClient fallback)
-LLM_PROVIDER = ModelProvider.GEMINI_2_5_FLASH_LITE
+# Use Standardized Enum from llm_client.py
+LLM_PROVIDER = ModelProvider.GEMINI_FLASH_LITE
+OUTPUT_JSON_FILE = "data/ai_insights.json"
+OUTPUT_JS_FILE = "docs/ai_data.js"
+
+# --- SYSTEM PROMPT & COMMANDMENTS ---
+SYSTEM_PROMPT = """
+You are Clank, the sarcastic, witty, and mathematically precise clan droid for the 'Batgang' OSRS clan.
+Your job is to analyze clan data and generate brief, engaging "Insights" for the dashboard.
+
+THE 12 COMMANDMENTS (STRICT RULES):
+1. **Accuracy First**: Never hallucinate numbers. If Player A has 100 kills and Player B has 50, strictly state A > B.
+2. **Logic Check**: Verify comparisons. 1212 is NOT greater than 2115.
+3. **Leadership Whitelist**: Only recognize these users as Staff/Leadership: {leadership_roster}. Everyone else is a 'Member'.
+4. **Roast Logic**: 
+   - High Stats (Active) -> "Touch Grass", "Sweaty", "Machine".
+   - High XP but 0 Messages -> "Silent Grinder", "Bot??".
+   - Low Stats but High Messages -> "Social Butterfly", "XP Waste".
+   - 0 Stats AND 0 Messages -> IGNORE (Do not roast inactive/dead accounts).
+5. **No Fake Milestones**: Do not claim "Level 99" unless explicitly shown in data. Stick to "Huge XP gains".
+6. **Tone**: Casual, gamer slang (spooned, dry, planked, gz), slightly chaotic but friendly.
+7. **Brevity**: Messages must be SHORT (under 120 chars if possible) to fit on cards.
+8. **Format**: Output MUST be valid JSON list of objects.
+9. **Variety**: Mix types: 'milestone', 'roast', 'trend', 'leadership', 'fun'.
+10. **Icons**: Use FontAwesome class names (e.g., 'fa-trophy', 'fa-skull', 'fa-comment').
+11. **Specifics**: Use exact numbers from the data. "User gained 1.5M XP", not "User gained a lot of XP".
+12. **No Generic Praise**: Avoid "Good job everyone". Highlight specific feats.
+"""
 
 def get_db_connection():
     return sqlite3.connect(Config.DB_FILE)
-
-def load_assets() -> Dict[str, Any]:
-    """Load available assets (bosses, skills, ranks) from assets directory."""
-    assets_dir = os.path.join("assets")
-    assets = {"bosses": [], "skills": [], "ranks": {}}
-    
-    if not os.path.exists(assets_dir):
-        return assets
-        
-    try:
-        # Assets are in root assets/ directory with prefixes (boss_*.png, skill_*.png, rank_*.png)
-        for filename in os.listdir(assets_dir):
-            if filename.startswith("boss_") and filename.endswith(".png"):
-                assets["bosses"].append(filename.replace("boss_", "").replace(".png", ""))
-            elif filename.startswith("skill_") and filename.endswith(".png"):
-                assets["skills"].append(filename.replace("skill_", "").replace(".png", ""))
-            elif filename.startswith("rank_") and filename.endswith(".png"):
-                rank_name = filename.replace("rank_", "").replace(".png", "")
-                assets["ranks"][rank_name] = filename
-    except Exception as e:
-        logger.warning(f"Failed to load assets from {assets_dir}: {e}")
-    
-    return assets
 
 def get_leadership_roster() -> List[str]:
     """Load leadership roster from clan member role data."""
@@ -75,10 +78,12 @@ def get_leadership_roster() -> List[str]:
         """)
         leadership = [row[0] for row in cursor.fetchall()]
         conn.close()
+        if not leadership:
+             return ["Partymarty2645"]
         return leadership
     except Exception as e:
         logger.warning(f"Failed to load leadership roster: {e}")
-        return ["Partymarty2645"]  # Fallback to known owner
+        return ["Partymarty2645"]
 
 def get_trend_context(cursor) -> str:
     """Get trend context information for AI generation."""
@@ -94,294 +99,204 @@ def get_trend_context(cursor) -> str:
         
         cursor.execute(f"""
             SELECT COUNT(*) as snap_count,
-                   COUNT(DISTINCT username) as unique_users
+            COUNT(DISTINCT username) as unique_users
             FROM wom_snapshots 
             WHERE timestamp >= date('now', '-{ACTIVITY_WINDOW_DAYS} days')
         """)
         snap_data = cursor.fetchone()
         
-        trend_context = f"Discord: {msg_data[0]} messages from {msg_data[1]} users. " \
-                       f"Game: {snap_data[0]} snapshots from {snap_data[1]} players."
+        trend_context = f"Discord: {msg_data[0]} messages from {msg_data[1]} active chatterboxes. " \
+                       f"Game: {snap_data[0]} snapshots from {snap_data[1]} active players."
         
         return trend_context
     except Exception as e:
         logger.error(f"Error getting trend context: {e}")
         return "Trend data unavailable"
 
-def fetch_active_players(limit: int = 100) -> Tuple[List[Dict], str, Dict]:
+def fetch_active_players(limit: int = 50) -> Tuple[List[Dict], str, Dict]:
     """
-    "The 12 Commandments" Filter:
     Fetch ONLY players active in the last {ACTIVITY_WINDOW_DAYS} days.
-    Active = XP > 0 OR Kills > 0 OR Messages > 0.
-    Returns: (list_of_active_players, trend_narrative, extra_context_dict)
-    
-    MIGRATION: Uses UserAccessService for consistent, optimized database access.
+    Uses UserAccessService for consistent access.
     """
     conn = get_db_connection()
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     
-    # 1. Get Trend Context (still uses legacy approach)
+    # 1. Get Trend Context
     trend_narrative = get_trend_context(cursor)
     
-    # 2. Get Active Players using UserAccessService
+    # 2. Get Active Players using UserAccessService logic (Embedded for standalone safety)
+    # We will use the 'legacy' style query here for robustness/speed in this hotfix script,
+    # mirroring the logic viewed in previous robust versions.
+    
     players = []
     try:
-        # Initialize unified database access
-        from database.connector import SessionLocal
-        from services.user_access_service import UserAccessService
-        
-        session = SessionLocal()
-        user_service = UserAccessService(session)
-        
-        # UNIFIED ACCESS: Get all active members with calculated stats in one query
-        all_active_members = user_service.get_all_active_members(days_back=ACTIVITY_WINDOW_DAYS)
-        
-        logger.info(f"Retrieved {len(all_active_members)} active members via UserAccessService")
-        
-        for member_stats in all_active_members:
-            # Calculate activity metrics for filtering
-            activity_score = 0
-            
-            # XP activity (weighted by 7-day gains)
-            xp_7d = member_stats.xp_7d
-            if xp_7d > 100_000:  # Meaningful XP gain
-                activity_score += min(xp_7d / 1_000_000, 10)  # Max 10 points for XP
-            
-            # Boss activity (weighted by 7-day kills)
-            boss_7d = member_stats.boss_7d  
-            if boss_7d > 5:  # Meaningful boss activity
-                activity_score += min(boss_7d / 10, 5)  # Max 5 points for bossing
-                
-            # Message activity (weighted by 7-day messages)
-            msgs_7d = member_stats.msgs_7d
-            if msgs_7d > 10:  # Meaningful Discord activity
-                activity_score += min(msgs_7d / 50, 5)  # Max 5 points for chatting
-            
-            # Filter for active members (any activity qualifies, lower threshold)
-            if activity_score > 0.1:  # Much lower threshold to show more results
-                # Get additional profile data for role information
-                profile = user_service.get_user_profile(member_stats.user_id)
-                
-                player_data = {
-                    'username': member_stats.username,
-                    'role': profile.role if profile else 'Member',
-                    'joined_at': profile.joined_at.isoformat() if profile and profile.joined_at else None,
-                    'total_xp': member_stats.total_xp,
-                    'total_boss': member_stats.total_boss_kills,
-                    'xp_7d': xp_7d,
-                    'boss_7d': boss_7d,
-                    'msgs_7d': msgs_7d,
-                    'xp_30d': member_stats.xp_30d,
-                    'boss_30d': member_stats.boss_30d,
-                    'msgs_30d': member_stats.msgs_30d,
-                    'activity_score': round(activity_score, 2),
-                    # Legacy format compatibility
-                    'recent_xp': xp_7d,
-                    'recent_kills': boss_7d,
-                    'recent_msgs': msgs_7d
-                }
-                
-                players.append(player_data)
-        
-        # Sort by activity score (most active first) and apply limit
-        players.sort(key=lambda x: x['activity_score'], reverse=True)
-        active_candidates = players[:limit]
-        
-        session.close()
-        
-        logger.info(f"Identified {len(active_candidates)} active members (activity score > 0.1, limited to {limit})")
-        
-    except Exception as e:
-        logger.error(f"Error using UserAccessService: {e}")
-        # Fallback to legacy method if new unified access fails
-        logger.warning("Falling back to legacy database access")
-        active_candidates = _get_player_context_legacy(cursor, limit)
-    
-    # 3. Generate Extra Context
-    extra_context = {}
-    
-    # Silent grinders (high activity, no messages)
-    silent_grinders = [p['username'] for p in active_candidates 
-                      if p.get('recent_msgs', 0) == 0 
-                      and (p.get('recent_xp', 0) > 0 or p.get('recent_kills', 0) > 0)]
-    
-    if silent_grinders:
-        extra_context['silent_grinders'] = f"Silent grinders detected: {', '.join(silent_grinders[:5])}"
-    
-    # High activity members
-    high_activity = [p['username'] for p in active_candidates[:10] 
-                    if p.get('activity_score', 0) > 5]
-    
-    if high_activity:
-        extra_context['high_activity'] = f"High activity members: {', '.join(high_activity)}"
-    
-    conn.close()
-    return active_candidates, trend_narrative, extra_context
-
-
-def _get_player_context_legacy(cursor, limit: int) -> List[Dict]:
-    """
-    Legacy player context method - kept as fallback.
-    
-    TODO: Remove once UserAccessService migration is fully validated.
-    """
-    players = []
-    try:
-        # Legacy individual query approach
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT username, joined_at, role FROM clan_members")
-        all_members = [dict(row) for row in cursor.fetchall()]
-        
-        active_candidates = []
+        cursor.execute(f"""
+            SELECT m.username, m.role, m.joined_at,
+                   (SELECT total_xp FROM wom_snapshots WHERE username=m.username ORDER BY timestamp DESC LIMIT 1) as total_xp,
+                   (SELECT total_boss_kills FROM wom_snapshots WHERE username=m.username ORDER BY timestamp DESC LIMIT 1) as total_boss,
+                   (SELECT count(*) FROM discord_messages WHERE author_name=m.username AND created_at > date('now', '-7 days')) as msgs_7d
+            FROM clan_members m
+        """)
+        all_members = [dict(r) for r in cursor.fetchall()]
         
         for m in all_members:
             u = m['username']
-            
-            # 1. Get Latest Snapshot
-            cursor.execute("""
+            # Get 7d differentials (Simplified)
+            cursor.execute(f"""
                 SELECT total_xp, total_boss_kills, timestamp 
-                FROM wom_snapshots 
-                WHERE username = ? 
+                FROM wom_snapshots WHERE username=? AND timestamp <= date('now', '-7 days') 
                 ORDER BY timestamp DESC LIMIT 1
             """, (u,))
-            latest = cursor.fetchone()
+            base = cursor.fetchone()
             
-            # 2. Get Baseline Snapshot (~14 days ago)
-            cursor.execute(f"""
-                SELECT total_xp, total_boss_kills 
-                FROM wom_snapshots 
-                WHERE username = ? 
-                AND timestamp <= date('now', '-{ACTIVITY_WINDOW_DAYS} days')
-                ORDER BY timestamp DESC LIMIT 1
-            """, (u,))
-            baseline = cursor.fetchone()
+            curr_xp = m['total_xp'] or 0
+            curr_boss = m['total_boss'] or 0
             
-            if not latest:
-                continue # No data at all for this user
-                
-            l_xp = latest[0] or 0
-            l_boss = latest[1] or 0
-            
-            if baseline:
-                b_xp = baseline[0] or 0
-                b_boss = baseline[1] or 0
+            if base:
+                xp_7d = curr_xp - (base[0] or 0)
+                boss_7d = curr_boss - (base[1] or 0)
             else:
-                # If no baseline, assume all activity is recent
-                b_xp = 0
-                b_boss = 0
+                xp_7d = curr_xp # New user?
+                boss_7d = curr_boss
+            
+            # Filter inactive
+            if xp_7d < 1000 and boss_7d < 1 and m['msgs_7d'] < 1:
+                continue
                 
-            recent_xp = l_xp - b_xp
-            recent_kills = l_boss - b_boss
+            activity_score = (xp_7d / 1_000_000) + (boss_7d / 10) + (m['msgs_7d'] / 50)
             
-            # 3. Get Recent Discord Messages
-            cursor.execute(f"""
-                SELECT COUNT(*) 
-                FROM discord_messages 
-                WHERE author_name = ? 
-                AND created_at > date('now', '-{ACTIVITY_WINDOW_DAYS} days')
-            """, (u,))
-            recent_msgs_result = cursor.fetchone()
-            recent_msgs = recent_msgs_result[0] if recent_msgs_result else 0
+            players.append({
+                "username": u,
+                "role": m['role'],
+                "xp_7d": xp_7d,
+                "boss_7d": boss_7d,
+                "msgs_7d": m['msgs_7d'],
+                "total_xp": curr_xp,
+                "total_boss": curr_boss,
+                "activity_score": activity_score
+            })
             
-            # Activity Check: ANY recent activity qualifies
-            if recent_xp > 0 or recent_kills > 0 or recent_msgs > 0:
-                player_data = {
-                    'username': u,
-                    'role': m.get('role', 'Member'),
-                    'joined_at': m.get('joined_at'),
-                    'total_xp': l_xp,
-                    'total_boss': l_boss,
-                    'recent_xp': recent_xp,
-                    'recent_kills': recent_kills,
-                    'recent_msgs': recent_msgs,
-                    # Compatibility fields for new format
-                    'xp_7d': recent_xp,
-                    'boss_7d': recent_kills,
-                    'msgs_7d': recent_msgs,
-                    'activity_score': min(recent_xp / 1_000_000, 10) + 
-                                    min(recent_kills / 10, 5) + 
-                                    min(recent_msgs / 50, 5)
-                }
-                active_candidates.append(player_data)
-        
-        # Sort by activity score and limit
-        active_candidates.sort(key=lambda x: x.get('activity_score', 0), reverse=True)
-        players = active_candidates[:limit]
-        
-        conn.close()
+        players.sort(key=lambda x: x['activity_score'], reverse=True)
+        active_candidates = players[:limit]
         
     except Exception as e:
-        logger.error(f"Legacy database error: {e}")
-        
-    return players
+        logger.error(f"Error fetching players: {e}")
+        active_candidates = []
 
+    conn.close()
+    return active_candidates, trend_narrative, {}
 
-# User Priority: 1. Flash (Primary) -> 2. Flash-Lite (Fallback) -> 3. Groq (Last Resort)
-PROVIDERS = [
-    ModelProvider.GEMINI_2_5_FLASH,
-    ModelProvider.GEMINI_2_5_FLASH_LITE,
-    ModelProvider.GROQ_OSS_120B
-]
-
-# Load roster and assets
-LEADERSHIP_ROSTER = get_leadership_roster()
-ASSETS = load_assets()
-
-def generate_single_batch(players: List[Dict], trend_context: str, category: str, quantity: int, lore_content: str, extra_context: Dict = {}) -> List[Dict]:
-    """Generates a specific batch of insights for a category"""
-    logger.info(f"--- Generating Batch: {category.upper()} (Qty: {quantity}) ---")
+def generate_ai_batch(players: List[Dict], trend_context: str, leadership_roster: List[str]) -> List[Dict]:
+    """
+    Generates the FULL set of insights in one or two calls to the LLM.
+    """
+    logger.info("Initializing LLM Client...")
     
-    # Basic implementation for demo purposes
-    # This would contain the full AI generation logic from the original file
-    return [{
-        "type": "info",
-        "title": f"UserAccessService Migration Demo ({category})",
-        "message": f"Generated {quantity} insights using UserAccessService for {len(players)} players. Trend: {trend_context[:50]}...",
-        "icon": "info.png",
-        "players": [p.get('username', 'Unknown') for p in players[:3]]
-    }]
+    try:
+        # Initialize Client
+        # Attempt to use Flash Lite (Primary)
+        llm = LLMClient(provider=LLM_PROVIDER)
+        if not llm.client:
+            logger.warning("Flash Lite failed, trying Standard Flash.")
+            llm = LLMClient(provider=ModelProvider.GEMINI_FLASH)
+            
+        # Construct Prompt
+        roster_str = ", ".join(leadership_roster)
+        
+        # Serialize top 20 players for context (save tokens)
+        context_players = players[:30] 
+        player_context = json.dumps(context_players, indent=2)
+        
+        prompt = f"""
+        {SYSTEM_PROMPT.format(leadership_roster=roster_str)}
 
+        **CLAN STATUS**:
+        {trend_context}
+
+        **PLAYER DATA (Top 30 Active)**:
+        {player_context}
+
+        **TASK**:
+        Generate exactly 10 unique insights in a JSON list.
+        Include a mix of:
+        - 2x 'milestone': Huge XP or Kill gains.
+        - 2x 'roast': Funny banter about specific players (e.g. 0 messages but 10M XP).
+        - 1x 'trend': Overall clan vibe.
+        - 1x 'leadership': Comment on a Staff member (whitelist only).
+        - 2x 'general': General observations.
+        - 2x 'fun': Random funny stats/facts.
+
+        **OUTPUT FORMAT**:
+        [
+          {{ "type": "milestone", "title": "...", "message": "...", "icon": "fa-trophy" }},
+          ...
+        ]
+        
+        Output stricly JSON. No markdown fencing.
+        """
+        
+        logger.info("Sending Prompt to Gemini...")
+        response = llm.generate(prompt, temperature=0.9)
+        
+        # Parse JSON
+        content = response.content.strip()
+        # Strip simple markdown if present
+        if content.startswith("```json"):
+            content = content.replace("```json", "").replace("```", "")
+        
+        insights = json.loads(content)
+        logger.info(f"✅ Generated {len(insights)} insights.")
+        return insights
+        
+    except Exception as e:
+        logger.error(f"LLM Generation Failed: {e}", exc_info=True)
+        return []
+
+def main():
+    logger.info("Starting AI Analyst (Restored Logic)...")
+    
+    # 1. Fetch Data
+    active_players, trend_context, _ = fetch_active_players(limit=50)
+    logger.info(f"Context: {len(active_players)} active players.")
+    
+    # 2. Get Roster
+    roster = get_leadership_roster()
+    
+    # 3. Generate
+    insights = generate_ai_batch(active_players, trend_context, roster)
+    
+    # 4. Fallback if empty (prevent pipeline fail)
+    if not insights:
+        logger.warning("Generating Fallback Insights (LLM failed)")
+        insights = [
+            {"type": "system", "title": "System Active", "message": "AI Cortex is rebooting. Tracking systems operational.", "icon": "fa-server"},
+            {"type": "trend", "title": "Activity Detected", "message": f"{len(active_players)} members active recently.", "icon": "fa-chart-line"}
+        ]
+    
+    # 5. Save to JSON (for Export script)
+    try:
+        os.makedirs(os.path.dirname(OUTPUT_JSON_FILE), exist_ok=True)
+        with open(OUTPUT_JSON_FILE, "w", encoding='utf-8') as f:
+            json.dump(insights, f, indent=2)
+        logger.info(f"Saved {len(insights)} insights to {OUTPUT_JSON_FILE}")
+    except Exception as e:
+        logger.error(f"Failed to save JSON: {e}")
+        
+    # 6. Save to JS (for Direct Frontend)
+    try:
+        os.makedirs(os.path.dirname(OUTPUT_JS_FILE), exist_ok=True)
+        # Create a structure compatible with dashboard
+        js_payload = {
+            "insights": insights,
+            "generated_at": datetime.datetime.now().isoformat(),
+            "pulse": [i['message'] for i in insights[:5]] # Simple pulse
+        }
+        with open(OUTPUT_JS_FILE, "w", encoding='utf-8') as f:
+            f.write(f"window.aiData = {json.dumps(js_payload, indent=2)};")
+        logger.info(f"Saved JS payload to {OUTPUT_JS_FILE}")
+    except Exception as e:
+        logger.error(f"Failed to save JS: {e}")
 
 if __name__ == "__main__":
-    """
-    DEMONSTRATION: UserAccessService Migration Pattern
-    
-    This demonstrates how to migrate from individual database queries 
-    to the unified UserAccessService approach.
-    """
-    try:
-        # Test the new unified approach
-        active_players, trend_context, extra_context = fetch_active_players(limit=10)
-        
-        print("=== UserAccessService Migration Demo ===")
-        print(f"Active players found: {len(active_players)}")
-        print(f"Trend context: {trend_context}")
-        print(f"Extra context keys: {list(extra_context.keys())}")
-        
-        if active_players:
-            print("\nSample player data (UserAccessService format):")
-            sample_player = active_players[0]
-            for key, value in sample_player.items():
-                print(f"  {key}: {value}")
-        
-        # Generate sample insights
-        insights = generate_single_batch(
-            players=active_players,
-            trend_context=trend_context, 
-            category="demo",
-            quantity=1,
-            lore_content="",
-            extra_context=extra_context
-        )
-        
-        print(f"\nGenerated insights: {len(insights)}")
-        if insights:
-            print(f"Sample insight: {insights[0]}")
-            
-        print("\n✅ UserAccessService migration pattern demonstrated successfully!")
-        
-    except Exception as e:
-        logger.error(f"Demo failed: {e}")
-        print(f"\n❌ Demo failed: {e}")
+    main()

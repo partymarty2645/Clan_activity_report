@@ -345,36 +345,37 @@ function renderGeneralStats(data) {
 
     // 1. Top Messenger
     const topMsg = [...members].sort((a, b) => b[msgKey] - a[msgKey])[0];
-    if (topMsg) {
+    if (topMsg && topMsg[msgKey] > 0) { // Spec: Hide if 0
         html += createCard('Top Messenger', formatNumber(topMsg[msgKey]), topMsg.username, topMsg, 'green');
     }
 
     // 2. Top XP
     const topXp = [...members].sort((a, b) => b[xpKey] - a[xpKey])[0];
-    if (topXp) {
+    if (topXp && topXp[xpKey] > 0) { // Spec: Hide if 0
         html += createCard(`Top XP ${periodLabel}`, formatNumber(topXp[xpKey]), topXp.username, topXp, 'gold');
     }
 
     // 3. Rising Star (New + Active)
     const rising = members.filter(m => m.days_in_clan < 98).sort((a, b) => b.msgs_7d - a.msgs_7d)[0];
-    if (rising) {
+    if (rising && rising.msgs_7d > 0) {
         html += createCard('Rising Star', formatNumber(rising.msgs_7d) + ' msgs', rising.username, rising, 'blue');
-    } else {
-        html += createCard('Rising Star', 'N/A', 'No recent recruits', null, 'blue');
     }
+    // Spec: Else block removed - "Hidden" logic means we simply don't show the card if no one fits
 
     // 4. Top Boss Killer
     const topBoss = [...members].sort((a, b) => b.boss_7d - a.boss_7d)[0];
-    if (topBoss) {
+    if (topBoss && topBoss.boss_7d > 0) {
         html += createCard('Top Boss Killer @ 7d', formatNumber(topBoss.boss_7d), topBoss.username, topBoss, 'red');
     }
 
     // 5. Active Members
     const activeCount = members.filter(m => m[msgKey] > 0 || m[xpKey] > 0).length;
+    // For Active Count, 0 is a valid (albeit sad) state, but let's show it as it's a dashboard metric, not a player attribute.
     html += createCard(`Active Members ${periodLabel}`, activeCount, `${((activeCount / members.length) * 100).toFixed(1)}% of Roster`, null, 'blue');
 
     container.innerHTML = html;
 }
+
 
 function renderNewsTicker(members) {
     const tickerContainer = document.getElementById('news-ticker');
@@ -455,7 +456,7 @@ function renderAlertCards(members) {
             <div class="alert-card" style="border-left: 3px solid ${colorVar}">
                 <div class="alert-header" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;color:${colorVar}">
                     <i class="fas ${alert.icon}"></i>
-                    <span style="font-family:'Cinzel'">${alert.title}</span>
+                    <span style="font-family:'Outfit'">${alert.title}</span>
                 </div>
                 <div class="alert-metric" style="color:#ccc; font-size: 0.9em;">
                     ${alert.message}
@@ -475,7 +476,7 @@ function renderAlertCards(members) {
         <div class="alert-card">
             <div class="alert-header" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;color:var(--neon-red)">
                 <i class="fas fa-exclamation-triangle"></i>
-                <span style="font-family:'Cinzel'">Inactivity Risk</span>
+                <span style="font-family:'Outfit'">Inactivity Risk</span>
             </div>
             <div class="player-info" style="display:flex;align-items:center;gap:15px">
                 <img src="assets/${m.rank_img || 'rank_minion.png'}" style="width:40px;height:auto;" onerror="this.src='assets/rank_minion.png'">
@@ -813,8 +814,12 @@ function renderAllCharts() {
     Chart.defaults.color = '#888';
     Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
     Chart.defaults.font.family = "'Outfit', sans-serif";
+    Chart.defaults.scale.grid.color = 'rgba(255, 255, 255, 0.05)';
 
-<<<<<<< HEAD
+    // Area Gradients Defaults (Chart.js doesn't do this globally easily, needs per dataset)
+
+    Chart.defaults.font.family = "'Outfit', sans-serif";
+
     safelyRun(() => renderActivityHealthChart(), "renderActivityHealthChart");
     safelyRun(() => renderTopXPChart(), "renderTopXPChart");
 
@@ -824,34 +829,14 @@ function renderAllCharts() {
     safelyRun(() => renderRaidsPerformance(), "renderRaidsPerformance");
     safelyRun(() => renderSkillMastery(), "renderSkillMastery");
     safelyRun(() => renderBossTrend(), "renderBossTrend");
-
-    // UPDATED VISUALIZATIONS
-    safelyRun(() => renderActivityCorrelation(), "renderActivityCorrelation"); // Weekly Activity Trend
-    safelyRun(() => renderXPContribution(), "renderXPContribution");
+    safelyRun(() => renderTenureChart(), "renderTenureChart");
+    safelyRun(() => renderXPWeeklyCorrelation(), "renderXPWeeklyCorrelation");
     safelyRun(() => renderLeaderboardChart(), "renderLeaderboardChart");
-    safelyRun(() => renderTenureDistribution(), "renderTenureDistribution");
-
-    // renderPlayerRadar(); // REMOVED per user request
-
-=======
-    renderActivityHealthChart();
-    renderTopXPChart();
-
-    // NEW CHARTS
-    renderScatterInteraction();
-    renderBossDiversity();
-    renderRaidsPerformance();
-    renderSkillMastery();
-    renderBossTrend();
-    renderTenureChart();
-    renderXPWeeklyCorrelation();
-    renderLeaderboardChart();
 
     // UPDATED VISUALIZATIONS
-    renderActivityHeatmap();     // NEW: Weekly 24h Heatmap
-    renderActivityTrend();       // NEW: Weekly Trend (Replaces Correlation/Area)
-    renderXPContribution();      // NEW: Top 25 Annual XP (Replaces Radar)
->>>>>>> fix/cleanup
+    safelyRun(() => renderActivityHeatmap(), "renderActivityHeatmap");     // NEW: Weekly 24h Heatmap
+    safelyRun(() => renderActivityTrend(), "renderActivityTrend");       // NEW: Weekly Trend (Replaces Correlation/Area)
+    safelyRun(() => renderXPContribution(), "renderXPContribution");      // NEW: Top 25 Annual XP (Replaces Radar)
 }
 
 function renderActivityHealthChart() {
@@ -1307,6 +1292,19 @@ function renderXpSection(members) {
     // renderXPvsBossChart(members);
 }
 
+const SHADOW_DECORATORS = `
+    <div class="necrotic-border"></div>
+    <div class="scanlines"></div>
+    <div class="corner-accent top-left"></div>
+    <div class="corner-accent top-right"></div>
+    <div class="corner-accent bottom-left"></div>
+    <div class="corner-accent bottom-right"></div>
+    <div class="void-particles">
+        <div class="void-particle"></div><div class="void-particle"></div><div class="void-particle"></div>
+        <div class="void-particle"></div><div class="void-particle"></div>
+    </div>
+`;
+
 function renderBossesSection(members) {
     console.log("renderBossesSection called with", members ? members.length : 0, "members");
     renderTime('updated-time-boss', dashboardData.generated_at);
@@ -1317,13 +1315,15 @@ function renderBossesSection(members) {
         cards.innerHTML = '';
         const topKillers = [...members].sort((a, b) => (b.boss_7d || 0) - (a.boss_7d || 0)).slice(0, CONFIG.TOP_BOSS_CARDS);
         topKillers.forEach(m => {
+            // Shadow Tech Update: Use premium-card structure instead of ad-hoc glass-card
             const bg = m.favorite_boss_img || 'boss_pet_rock.png';
             cards.innerHTML += `
-                <div class="glass-card stat-card" style="position:relative; overflow:hidden; aspect-ratio:2/3; display:flex; flex-direction:column; justify-content:flex-end; padding:15px; text-align:center;">
-                    <div style="position:absolute; inset:0; background-image:url('assets/${bg}'); background-size:cover; background-position:center; opacity:0.3; transition:transform 0.5s;"></div>
-                    <div style="position:relative; z-index:1; text-shadow:0 2px 10px rgba(0,0,0,0.8);">
+                <div class="premium-card">
+                    ${SHADOW_DECORATORS}
+                    <div class="premium-card-bg" style="background-image:url('assets/${bg}');"></div>
+                    <div class="premium-card-content">
                         <div style="font-weight:700; font-size:1.1rem; color:#fff; margin-bottom:5px;">${m.username}</div>
-                        <div style="font-family:'Cinzel'; font-size:1.8rem; color:var(--neon-red); line-height:1;">${formatNumber(m.boss_30d || 0)}</div>
+                        <div style="font-family:'Outfit'; font-size:1.8rem; color:var(--neon-red); line-height:1;">${formatNumber(m.boss_30d || 0)}</div>
                         <div style="font-size:0.8rem; color:#aaa; margin-top:5px; text-transform:uppercase; letter-spacing:1px;">Kills (7d)</div>
                          <div style="font-size:0.75rem; color:var(--neon-gold); margin-top:8px; border-top:1px solid rgba(255,255,255,0.1); padding-top:4px;">${m.favorite_boss || 'Unknown'}</div>
                     </div>
@@ -1985,11 +1985,12 @@ function renderAIInsights(members) {
             const asset = findAssetForInsight(insight);
             container.innerHTML += `
             <div class="premium-card ${insight.type === 'trend' ? 'gold' : insight.type === 'analysis' ? 'blue' : 'green'}">
+                 ${SHADOW_DECORATORS}
                  <div class="premium-card-bg" style="background-image: url('assets/${asset}');"></div>
                  <div class="premium-card-content">
                     <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px;color:${colorVar}">
                          <i class="fas ${icon}" style="font-size: 1.2em;"></i>
-                         <span style="font-family:'Cinzel'; font-weight:700;">${insight.title}</span>
+                         <span style="font-family:'Outfit'; font-weight:700;">${insight.title}</span>
                     </div>
                     <div style="font-size: 1.1em; line-height: 1.5; color:#e0e0e0;">
                         ${insight.message}
@@ -2026,16 +2027,34 @@ window.openPlayerProfile = function (username) {
             header.style.background = 'linear-gradient(180deg, rgba(255, 215, 0, 0.1) 0%, transparent 100%)';
         }
     }
-    document.getElementById('pp-total-xp').innerText = formatNumber(m.total_xp);
-    document.getElementById('pp-total-boss').innerText = formatNumber(m.total_boss);
-    document.getElementById('pp-total-msg').innerText = formatNumber(m.msgs_total);
+    // Helper to toggle visibility based on value
+    const setStat = (id, val, suffix = '') => {
+        const el = document.getElementById(id);
+        const parent = el.parentElement; // The .p-stat container
+        if (!el || !parent) return;
+
+        // Convert to number for checking
+        const numVal = Number(val.toString().replace(/,/g, ''));
+
+        if (numVal > 0) {
+            el.innerText = formatNumber(numVal) + suffix;
+            parent.style.display = 'flex';
+        } else {
+            parent.style.display = 'none'; // Spec: Hide if 0
+        }
+    };
+
+    setStat('pp-total-xp', m.total_xp);
+    setStat('pp-total-boss', m.total_boss);
+    setStat('pp-total-msg', m.msgs_total);
+    // Days always shown if present
     if (m.days_in_clan !== undefined) {
-        // document.getElementById('pp-days').innerText = m.days_in_clan + ' Days';
-        // If there is an element for Joined Date or Days
+        document.getElementById('pp-days').innerText = m.days_in_clan;
     }
 
-    document.getElementById('pp-xp-7d').innerText = formatNumber(m.xp_7d);
-    document.getElementById('pp-boss-7d').innerText = m.boss_7d;
+    setStat('pp-xp-7d', m.xp_7d);
+    setStat('pp-boss-7d', m.boss_7d); // Handled by setStat for 0 check
+
 
     // Images
     const rankImg = document.getElementById('pp-rank-img');

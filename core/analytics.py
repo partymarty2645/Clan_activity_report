@@ -207,7 +207,16 @@ class AnalyticsService:
 
                 if staleness_limit_days is not None:
                     # If old snapshot is too old, skip this user (don't count gains)
-                    age_days = (curr.timestamp - old.timestamp).days if (curr.timestamp is not None and old.timestamp is not None) else 0
+                    if curr.timestamp is not None and old.timestamp is not None:
+                        c_ts = curr.timestamp
+                        o_ts = old.timestamp
+                        # Ensure both are offset-aware or both naive (assume UTC)
+                        if c_ts.tzinfo is None: c_ts = c_ts.replace(tzinfo=timezone.utc)
+                        if o_ts.tzinfo is None: o_ts = o_ts.replace(tzinfo=timezone.utc)
+                        
+                        age_days = (c_ts - o_ts).days
+                    else:
+                        age_days = 0
                     if age_days > staleness_limit_days:
                         continue  # Skip this user, don't include in gains
                 

@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSRS Clan Dashboard - Ethereal Mist</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(180deg, #0d0d1a 0%, #1a1a2e 50%, #0d0d1a 100%);
+            font-family: 'Rajdhani', sans-serif;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .sample-title {
+            font-family: 'Cinzel', serif;
+            font-size: 2.5rem;
+            color: #c4b5fd;
+            text-shadow: 0 0 30px rgba(196, 181, 253, 0.5), 0 0 60px rgba(196, 181, 253, 0.3);
+            margin-bottom: 40px;
+            letter-spacing: 4px;
+            text-align: center;
+            animation: title-float 4s ease-in-out infinite;
+        }
+
+        @keyframes title-float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .highlight-container {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            max-width: 360px;
+            width: 100%;
+        }
+
+        .player-highlight {
+            position: relative;
+            width: 100%;
+            height: 170px;
+            border-radius: 20px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.4s ease;
+        }
+
+        .player-highlight:hover {
+            transform: translateY(-8px) scale(1.02);
+        }
+
+        /* Ghostly background */
+        .player-highlight::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(180deg, 
+                rgba(20, 20, 35, 0.85) 0%, 
+                rgba(25, 25, 40, 0.9) 100%);
+            border-radius: 20px;
+            z-index: 1;
+        }
+
+        /* Boss image with blur */
+        .boss-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.2;
+            z-index: 0;
+            filter: blur(3px);
+            transition: filter 0.3s ease;
+        }
+
+        .player-highlight:hover .boss-image {
+            filter: blur(1px);
+        }
+
+        /* Spectral glow border */
+        .spectral-border {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 10;
+            border-radius: 20px;
+            padding: 2px;
+            background: linear-gradient(135deg, 
+                transparent 0%, 
+                currentColor 20%, 
+                currentColor 80%, 
+                transparent 100%);
+            animation: spectral-border 3s ease-in-out infinite;
+        }
+
+        .spectral-border::before {
+            content: '';
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            right: 4px;
+            bottom: 4px;
+            border-radius: 18px;
+            border: 1px solid currentColor;
+            opacity: 0.3;
+        }
+
+        @keyframes spectral-border {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        /* Outer glow */
+        .outer-glow {
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            background: radial-gradient(ellipse at center, 
+                currentColor 0%, 
+                transparent 70%);
+            opacity: 0.3;
+            z-index: -1;
+            filter: blur(20px);
+            animation: outer-glow 4s ease-in-out infinite;
+        }
+
+        @keyframes outer-glow {
+            0%, 100% { opacity: 0.2; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(1.05); }
+        }
+
+        /* Mist particles */
+        .mist-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 3;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .mist {
+            position: absolute;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(255,255,255,0.05) 50%, 
+                transparent 100%);
+            height: 100%;
+            width: 200%;
+            animation: mist-flow 15s linear infinite;
+            opacity: 0.5;
+        }
+
+        .mist:nth-child(1) { top: 0; animation-delay: 0s; }
+        .mist:nth-child(2) { top: 20%; animation-delay: -5s; opacity: 0.3; }
+        .mist:nth-child(3) { top: 40%; animation-delay: -10s; opacity: 0.4; }
+
+        @keyframes mist-flow {
+            0% { transform: translateX(-50%); }
+            100% { transform: translateX(0%); }
+        }
+
+        /* Floating particles */
+        .spirit-particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 4;
+            pointer-events: none;
+        }
+
+        .spirit {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: currentColor;
+            border-radius: 50%;
+            opacity: 0;
+            animation: spirit-float 6s ease-in-out infinite;
+            box-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
+        }
+
+        .spirit:nth-child(1) { left: 10%; top: 20%; animation-delay: 0s; }
+        .spirit:nth-child(2) { left: 25%; top: 60%; animation-delay: 1s; }
+        .spirit:nth-child(3) { left: 40%; top: 30%; animation-delay: 2s; }
+        .spirit:nth-child(4) { left: 55%; top: 70%; animation-delay: 3s; }
+        .spirit:nth-child(5) { left: 70%; top: 40%; animation-delay: 4s; }
+        .spirit:nth-child(6) { left: 85%; top: 50%; animation-delay: 5s; }
+        .spirit:nth-child(7) { left: 15%; top: 80%; animation-delay: 1.5s; }
+        .spirit:nth-child(8) { left: 90%; top: 25%; animation-delay: 2.5s; }
+
+        @keyframes spirit-float {
+            0% { 
+                opacity: 0; 
+                transform: translateY(0) scale(0.5);
+            }
+            20% {
+                opacity: 1;
+                transform: translateY(-20px) scale(1);
+            }
+            80% {
+                opacity: 1;
+                transform: translateY(-60px) scale(0.8);
+            }
+            100% { 
+                opacity: 0; 
+                transform: translateY(-80px) scale(0);
+            }
+        }
+
+        /* Content wrapper */
+        .highlight-content {
+            position: relative;
+            z-index: 6;
+            height: 100%;
+            padding: 15px 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Halo effect behind player */
+        .halo {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 80px;
+            height: 80px;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(ellipse at center, 
+                currentColor 0%, 
+                transparent 70%);
+            opacity: 0.15;
+            z-index: 2;
+            animation: halo-pulse 3s ease-in-out infinite;
+        }
+
+        @keyframes halo-pulse {
+            0%, 100% { opacity: 0.1; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 0.2; transform: translate(-50%, -50%) scale(1.2); }
+        }
+
+        /* Rank with ethereal circle */
+        .rank-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 8px;
+        }
+
+        .rank-circle {
+            width: 40px;
+            height: 40px;
+            border: 2px solid currentColor;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Cinzel', serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #fff;
+            position: relative;
+            box-shadow: 0 0 20px currentColor, inset 0 0 20px currentColor;
+        }
+
+        .rank-circle::before {
+            content: '';
+            position: absolute;
+            top: -4px;
+            left: -4px;
+            right: -4px;
+            bottom: -4px;
+            border: 1px solid currentColor;
+            border-radius: 50%;
+            animation: orbit 4s linear infinite;
+        }
+
+        .rank-circle::after {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            width: 4px;
+            height: 4px;
+            background: currentColor;
+            border-radius: 50%;
+            box-shadow: 0 0 10px currentColor;
+        }
+
+        @keyframes orbit {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .rank-label {
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.7);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* Player info */
+        .player-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: auto;
+        }
+
+        .player-avatar {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.2);
+            overflow: hidden;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 5;
+        }
+
+        .player-avatar::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            right: -3px;
+            bottom: -3px;
+            border: 1px solid currentColor;
+            border-radius: 50%;
+            opacity: 0.5;
+            animation: avatar-orbit 6s linear infinite;
+        }
+
+        @keyframes avatar-orbit {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .player-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .player-details {
+            flex: 1;
+        }
+
+        .player-name {
+            font-family: 'Cinzel', serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 20px currentColor;
+        }
+
+        .player-title {
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.5);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Stats section */
+        .stats-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .stat-group {
+            display: flex;
+            gap: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.6rem;
+            color: rgba(255,255,255,0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #fff;
+            text-shadow: 0 0 15px currentColor;
+        }
+
+        .featured-boss {
+            text-align: right;
+        }
+
+        .boss-name {
+            font-family: 'Cinzel', serif;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: currentColor;
+            text-shadow: 0 0 10px currentColor;
+        }
+
+        /* Wisp trail effect */
+        .wisp-trail {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 30%;
+            z-index: 3;
+            background: linear-gradient(180deg, 
+                transparent 0%, 
+                rgba(255,255,255,0.02) 50%, 
+                rgba(255,255,255,0.05) 100%);
+            clip-path: polygon(
+                0% 100%,
+                0% 60%,
+                20% 80%,
+                40% 50%,
+                60% 70%,
+                80% 40%,
+                100% 60%,
+                100% 100%
+            );
+        }
+
+        /* Individual card themes */
+        .highlight-1 {
+            color: #a78bfa;
+        }
+        .highlight-1 .boss-image {
+            content: url('user_input_files/boss_crystalline_hunllef - Copy.png');
+        }
+
+        .highlight-2 {
+            color: #818cf8;
+        }
+        .highlight-2 .boss-image {
+            content: url('user_input_files/boss_artio - Copy.png');
+        }
+
+        .highlight-3 {
+            color: #c4b5fd;
+        }
+        .highlight-3 .boss-image {
+            content: url('user_input_files/boss_dagannoth_prime - Copy.png');
+        }
+
+        .highlight-4 {
+            color: #a5b4fc;
+        }
+        .highlight-4 .boss-image {
+            content: url('user_input_files/boss_commander_zilyana.png');
+        }
+
+        .highlight-5 {
+            color: #c7d2fe;
+        }
+        .highlight-5 .boss-image {
+            content: url('user_input_files/boss_akkha - Copy.png');
+        }
+
+        /* Fade edge effect */
+        .fade-edge {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 7;
+            background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.3) 100%);
+            pointer-events: none;
+        }
+
+        /* Entrance animation */
+        .player-highlight {
+            animation: fade-in-up 0.6s ease-out backwards;
+        }
+
+        .player-highlight:nth-child(1) { animation-delay: 0.1s; }
+        .player-highlight:nth-child(2) { animation-delay: 0.2s; }
+        .player-highlight:nth-child(3) { animation-delay: 0.3s; }
+        .player-highlight:nth-child(4) { animation-delay: 0.4s; }
+        .player-highlight:nth-child(5) { animation-delay: 0.5s; }
+
+        @keyframes fade-in-up {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1 class="sample-title">✦ Ethereal Mist ✦</h1>
+    
+    <div class="highlight-container">
+        <!-- Player Highlight 1 -->
+        <div class="player-highlight highlight-1">
+            <img class="boss-image" alt="Boss">
+            <div class="outer-glow"></div>
+            <div class="spectral-border"></div>
+            <div class="mist-container">
+                <div class="mist"></div>
+                <div class="mist"></div>
+                <div class="mist"></div>
+            </div>
+            <div class="spirit-particles">
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+            </div>
+            <div class="wisp-trail"></div>
+            <div class="halo"></div>
+            <div class="fade-edge"></div>
+            <div class="highlight-content">
+                <div class="rank-section">
+                    <div class="rank-circle">1</div>
+                    <span class="rank-label">Spirit Ascendant</span>
+                </div>
+                <div class="player-info">
+                    <div class="player-avatar">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='55' height='55'%3E%3Crect fill='%231a1a2e' width='55' height='55'/%3E%3Ctext x='50%25' y='50%25' fill='%23fff' font-size='18' text-anchor='middle' dominant-baseline='middle'%3E%F0%9F%98%80%3C/text%3E%3C/svg%3E" alt="Avatar">
+                    </div>
+                    <div class="player-details">
+                        <div class="player-name">LunarWisp</div>
+                        <div class="player-title">Dream Walker</div>
+                    </div>
+                </div>
+                <div class="stats-section">
+                    <div class="stat-group">
+                        <div class="stat-item">
+                            <div class="stat-label">XP Gained</div>
+                            <div class="stat-value">2.4M</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Skill</div>
+                            <div class="stat-value">99</div>
+                        </div>
+                    </div>
+                    <div class="featured-boss">
+                        <div class="stat-label">Channeling</div>
+                        <div class="boss-name">Hunllef</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Player Highlight 2 -->
+        <div class="player-highlight highlight-2">
+            <img class="boss-image" alt="Boss">
+            <div class="outer-glow"></div>
+            <div class="spectral-border"></div>
+            <div class="mist-container">
+                <div class="mist"></div>
+                <div class="mist"></div>
+                <div class="mist"></div>
+            </div>
+            <div class="spirit-particles">
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+            </div>
+            <div class="wisp-trail"></div>
+            <div class="halo"></div>
+            <div class="fade-edge"></div>
+            <div class="highlight-content">
+                <div class="rank-section">
+                    <div class="rank-circle">2</div>
+                    <span class="rank-label">Ethereal Form</span>
+                </div>
+                <div class="player-info">
+                    <div class="player-avatar">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='55' height='55'%3E%3Crect fill='%231a1a2e' width='55' height='55'/%3E%3Ctext x='50%25' y='50%25' fill='%23fff' font-size='18' text-anchor='middle' dominant-baseline='middle'%3E%F0%9F%98%80%3C/text%3E%3C/svg%3E" alt="Avatar">
+                    </div>
+                    <div class="player-details">
+                        <div class="player-name">SpiritWalker</div>
+                        <div class="player-title">Mist Caller</div>
+                    </div>
+                </div>
+                <div class="stats-section">
+                    <div class="stat-group">
+                        <div class="stat-item">
+                            <div class="stat-label">XP Gained</div>
+                            <div class="stat-value">1.9M</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Skill</div>
+                            <div class="stat-value">98</div>
+                        </div>
+                    </div>
+                    <div class="featured-boss">
+                        <div class="stat-label">Channeling</div>
+                        <div class="boss-name">Artio</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Player Highlight 3 -->
+        <div class="player-highlight highlight-3">
+            <img class="boss-image" alt="Boss">
+            <div class="outer-glow"></div>
+            <div class="spectral-border"></div>
+            <div class="mist-container">
+                <div class="mist"></div>
+                <div class="mist"></div>
+                <div class="mist"></div>
+            </div>
+            <div class="spirit-particles">
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+            </div>
+            <div class="wisp-trail"></div>
+            <div class="halo"></div>
+            <div class="fade-edge"></div>
+            <div class="highlight-content">
+                <div class="rank-section">
+                    <div class="rank-circle">3</div>
+                    <span class="rank-label">Spectral Light</span>
+                </div>
+                <div class="player-info">
+                    <div class="player-avatar">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='55' height='55'%3E%3Crect fill='%231a1a2e' width='55' height='55'/%3E%3Ctext x='50%25' y='50%25' fill='%23fff' font-size='18' text-anchor='middle' dominant-baseline='middle'%3E%F0%9F%98%80%3C/text%3E%3C/svg%3E" alt="Avatar">
+                    </div>
+                    <div class="player-details">
+                        <div class="player-name">MysticEcho</div>
+                        <div class="player-title">Soul Weaver</div>
+                    </div>
+                </div>
+                <div class="stats-section">
+                    <div class="stat-group">
+                        <div class="stat-item">
+                            <div class="stat-label">XP Gained</div>
+                            <div class="stat-value">1.6M</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Skill</div>
+                            <div class="stat-value">97</div>
+                        </div>
+                    </div>
+                    <div class="featured-boss">
+                        <div class="stat-label">Channeling</div>
+                        <div class="boss-name">Dagannoth Prime</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Player Highlight 4 -->
+        <div class="player-highlight highlight-4">
+            <img class="boss-image" alt="Boss">
+            <div class="outer-glow"></div>
+            <div class="spectral-border"></div>
+            <div class="mist-container">
+                <div class="mist"></div>
+                <div class="mist"></div>
+                <div class="mist"></div>
+            </div>
+            <div class="spirit-particles">
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+            </div>
+            <div class="wisp-trail"></div>
+            <div class="halo"></div>
+            <div class="fade-edge"></div>
+            <div class="highlight-content">
+                <div class="rank-section">
+                    <div class="rank-circle">4</div>
+                    <span class="rank-label">Veil Touched</span>
+                </div>
+                <div class="player-info">
+                    <div class="player-avatar">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='55' height='55'%3E%3Crect fill='%231a1a2e' width='55' height='55'/%3E%3Ctext x='50%25' y='50%25' fill='%23fff' font-size='18' text-anchor='middle' dominant-baseline='middle'%3E%F0%9F%98%80%3C/text%3E%3C/svg%3E" alt="Avatar">
+                    </div>
+                    <div class="player-details">
+                        <div class="player-name">DivineForm</div>
+                        <div class="player-title">Celestial Light</div>
+                    </div>
+                </div>
+                <div class="stats-section">
+                    <div class="stat-group">
+                        <div class="stat-item">
+                            <div class="stat-label">XP Gained</div>
+                            <div class="stat-value">1.2M</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Skill</div>
+                            <div class="stat-value">95</div>
+                        </div>
+                    </div>
+                    <div class="featured-boss">
+                        <div class="stat-label">Channeling</div>
+                        <div class="boss-name">Commander Zilyana</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Player Highlight 5 -->
+        <div class="player-highlight highlight-5">
+            <img class="boss-image" alt="Boss">
+            <div class="outer-glow"></div>
+            <div class="spectral-border"></div>
+            <div class="mist-container">
+                <div class="mist"></div>
+                <div class="mist"></div>
+                <div class="mist"></div>
+            </div>
+            <div class="spirit-particles">
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+                <div class="spirit"></div>
+            </div>
+            <div class="wisp-trail"></div>
+            <div class="halo"></div>
+            <div class="fade-edge"></div>
+            <div class="highlight-content">
+                <div class="rank-section">
+                    <div class="rank-circle">5</div>
+                    <span class="rank-label">Ghost Light</span>
+                </div>
+                <div class="player-info">
+                    <div class="player-avatar">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='55' height='55'%3E%3Crect fill='%231a1a2e' width='55' height='55'/%3E%3Ctext x='50%25' y='50%25' fill='%23fff' font-size='18' text-anchor='middle' dominant-baseline='middle'%3E%F0%9F%98%80%3C/text%3E%3C/svg%3E" alt="Avatar">
+                    </div>
+                    <div class="player-details">
+                        <div class="player-name">PhantomGlow</div>
+                        <div class="player-title">Twilight Spirit</div>
+                    </div>
+                </div>
+                <div class="stats-section">
+                    <div class="stat-group">
+                        <div class="stat-item">
+                            <div class="stat-label">XP Gained</div>
+                            <div class="stat-value">980K</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Skill</div>
+                            <div class="stat-value">94</div>
+                        </div>
+                    </div>
+                    <div class="featured-boss">
+                        <div class="stat-label">Channeling</div>
+                        <div class="boss-name">Akkha</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

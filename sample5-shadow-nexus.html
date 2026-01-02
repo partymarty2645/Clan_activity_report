@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSRS Clan Dashboard - Shadow Nexus</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: radial-gradient(ellipse at center, #0a0a0f 0%, #000000 100%);
+            font-family: 'Rajdhani', sans-serif;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .sample-title {
+            font-family: 'Cinzel', serif;
+            font-size: 2.5rem;
+            color: #6b7280;
+            text-shadow: 0 0 30px rgba(107, 114, 128, 0.5), 0 0 60px rgba(107, 114, 128, 0.3);
+            margin-bottom: 40px;
+            letter-spacing: 4px;
+            text-align: center;
+        }
+
+        .highlight-container {
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+            max-width: 390px;
+            width: 100%;
+        }
+
+        .player-highlight {
+            position: relative;
+            width: 100%;
+            height: 185px;
+            border-radius: 4px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            clip-path: polygon(
+                0 0,
+                100% 0,
+                100% 85%,
+                95% 100%,
+                5% 100%,
+                0 85%
+            );
+        }
+
+        .player-highlight:hover {
+            transform: scale(1.03);
+            z-index: 10;
+        }
+
+        /* Void background */
+        .player-highlight::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, 
+                rgba(5, 5, 10, 0.98) 0%, 
+                rgba(10, 8, 15, 0.95) 50%, 
+                rgba(8, 5, 12, 0.98) 100%);
+            z-index: 1;
+        }
+
+        /* Boss image in void */
+        .boss-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.15;
+            z-index: 0;
+            filter: grayscale(50%) contrast(1.2);
+        }
+
+        /* Shadow tendrils */
+        .tendrils {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 4;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .tendril {
+            position: absolute;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                currentColor 50%, 
+                transparent 100%);
+            opacity: 0;
+            animation: tendril-sweep 8s ease-in-out infinite;
+            filter: blur(3px);
+        }
+
+        .tendril:nth-child(1) {
+            top: 10%;
+            left: -20%;
+            width: 200%;
+            height: 3px;
+            animation-delay: 0s;
+        }
+        .tendril:nth-child(2) {
+            top: 30%;
+            left: -30%;
+            width: 250%;
+            height: 2px;
+            animation-delay: 2s;
+            animation-duration: 10s;
+        }
+        .tendril:nth-child(3) {
+            top: 50%;
+            left: -25%;
+            width: 220%;
+            height: 4px;
+            animation-delay: 4s;
+            animation-duration: 12s;
+        }
+        .tendril:nth-child(4) {
+            top: 70%;
+            left: -35%;
+            width: 300%;
+            height: 2px;
+            animation-delay: 6s;
+            animation-duration: 9s;
+        }
+
+        @keyframes tendril-sweep {
+            0% {
+                opacity: 0;
+                transform: translateX(-50%);
+            }
+            30% {
+                opacity: 0.4;
+            }
+            70% {
+                opacity: 0.4;
+            }
+            100% {
+                opacity: 0;
+                transform: translateX(50%);
+            }
+        }
+
+        /* Void portal effect */
+        .void-portal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 150px;
+            height: 150px;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+            border-radius: 50%;
+            background: radial-gradient(ellipse at center, 
+                currentColor 0%, 
+                transparent 70%);
+            opacity: 0.1;
+            animation: void-rotate 20s linear infinite;
+        }
+
+        @keyframes void-rotate {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        /* Dark energy pulses */
+        .dark-pulse {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            height: 100%;
+            transform: translate(-50%, -50%);
+            z-index: 3;
+            border-radius: 50%;
+            border: 1px solid currentColor;
+            opacity: 0.3;
+            animation: void-pulse 3s ease-in-out infinite;
+        }
+
+        @keyframes void-pulse {
+            0%, 100% { 
+                transform: translate(-50%, -50%) scale(0.8);
+                opacity: 0.2;
+            }
+            50% { 
+                transform: translate(-50%, -50%) scale(1.2);
+                opacity: 0.4;
+            }
+        }
+
+        /* Necrotic border */
+        .necrotic-border {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 10;
+            clip-path: polygon(
+                0 0,
+                100% 0,
+                100% 85%,
+                95% 100%,
+                5% 100%,
+                0 85%
+            );
+            padding: 2px;
+            background: linear-gradient(135deg, 
+                transparent 0%, 
+                currentColor 30%, 
+                currentColor 70%, 
+                transparent 100%);
+        }
+
+        .necrotic-border::before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            right: 2px;
+            bottom: 2px;
+            background: linear-gradient(135deg, 
+                rgba(5, 5, 10, 0.98) 0%, 
+                rgba(10, 8, 15, 0.95) 50%, 
+                rgba(8, 5, 12, 0.98) 100%);
+            clip-path: polygon(
+                0 0,
+                100% 0,
+                100% 85%,
+                95% 100%,
+                5% 100%,
+                0 85%
+            );
+            z-index: -1;
+        }
+
+        /* Corner accents */
+        .corner-accent {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            z-index: 11;
+        }
+
+        .corner-accent::before,
+        .corner-accent::after {
+            content: '';
+            position: absolute;
+            background: currentColor;
+        }
+
+        .corner-accent.top-left {
+            top: 5px;
+            left: 5px;
+        }
+        .corner-accent.top-left::before {
+            top: 0;
+            left: 0;
+            width: 15px;
+            height: 2px;
+        }
+        .corner-accent.top-left::after {
+            top: 0;
+            left: 0;
+            width: 2px;
+            height: 15px;
+        }
+
+        .corner-accent.top-right {
+            top: 5px;
+            right: 5px;
+        }
+        .corner-accent.top-right::before {
+            top: 0;
+            right: 0;
+            width: 15px;
+            height: 2px;
+        }
+        .corner-accent.top-right::after {
+            top: 0;
+            right: 0;
+            width: 2px;
+            height: 15px;
+        }
+
+        .corner-accent.bottom-left {
+            bottom: 5px;
+            left: 5px;
+        }
+        .corner-accent.bottom-left::before {
+            bottom: 0;
+            left: 0;
+            width: 15px;
+            height: 2px;
+        }
+        .corner-accent.bottom-left::after {
+            bottom: 0;
+            left: 0;
+            width: 2px;
+            height: 15px;
+        }
+
+        .corner-accent.bottom-right {
+            bottom: 5px;
+            right: 5px;
+        }
+        .corner-accent.bottom-right::before {
+            bottom: 0;
+            right: 0;
+            width: 15px;
+            height: 2px;
+        }
+        .corner-accent.bottom-right::after {
+            bottom: 0;
+            right: 0;
+            width: 2px;
+            height: 15px;
+        }
+
+        /* Content wrapper */
+        .highlight-content {
+            position: relative;
+            z-index: 6;
+            height: 100%;
+            padding: 15px 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Rank with rune symbol */
+        .rank-section {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .rank-display {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .rank-rune {
+            font-size: 1.8rem;
+            color: currentColor;
+            text-shadow: 0 0 20px currentColor;
+            animation: rune-glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes rune-glow {
+            from { filter: drop-shadow(0 0 5px currentColor); }
+            to { filter: drop-shadow(0 0 20px currentColor); }
+        }
+
+        .rank-number {
+            font-family: 'Cinzel', serif;
+            font-size: 2rem;
+            font-weight: 900;
+            color: #fff;
+            opacity: 0.9;
+        }
+
+        .power-level {
+            font-size: 0.75rem;
+            color: currentColor;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .power-bar {
+            width: 40px;
+            height: 4px;
+            background: linear-gradient(90deg, currentColor, transparent);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .power-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: var(--power, 80%);
+            background: currentColor;
+            animation: power-flow 2s linear infinite;
+        }
+
+        @keyframes power-flow {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* Player info */
+        .player-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: auto;
+        }
+
+        .player-avatar {
+            width: 50px;
+            height: 50px;
+            border: 1px solid currentColor;
+            overflow: hidden;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .player-avatar::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(from 0deg, transparent, currentColor, transparent);
+            animation: avatar-spin 4s linear infinite;
+        }
+
+        @keyframes avatar-spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .player-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: relative;
+            z-index: 1;
+            filter: grayscale(30%);
+        }
+
+        .player-details {
+            flex: 1;
+        }
+
+        .player-name {
+            font-family: 'Cinzel', serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #e5e5e5;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+        }
+
+        .player-title {
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Stats section */
+        .stats-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .stat-item {
+            text-align: left;
+        }
+
+        .stat-label {
+            font-size: 0.65rem;
+            color: rgba(255,255,255,0.35);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #d4d4d4;
+            text-shadow: 0 0 10px rgba(255,255,255,0.1);
+        }
+
+        .featured-boss {
+            text-align: right;
+        }
+
+        .boss-name {
+            font-family: 'Cinzel', serif;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: currentColor;
+            text-shadow: 0 0 15px currentColor;
+        }
+
+        /* Void particles */
+        .void-particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 5;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .void-particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: currentColor;
+            opacity: 0;
+            animation: void-drift 10s linear infinite;
+        }
+
+        .void-particle:nth-child(1) { left: 5%; top: 10%; animation-delay: 0s; }
+        .void-particle:nth-child(2) { left: 20%; top: 30%; animation-delay: 1s; }
+        .void-particle:nth-child(3) { left: 35%; top: 50%; animation-delay: 2s; }
+        .void-particle:nth-child(4) { left: 50%; top: 20%; animation-delay: 3s; }
+        .void-particle:nth-child(5) { left: 65%; top: 60%; animation-delay: 4s; }
+        .void-particle:nth-child(6) { left: 80%; top: 40%; animation-delay: 5s; }
+        .void-particle:nth-child(7) { left: 15%; top: 70%; animation-delay: 6s; }
+        .void-particle:nth-child(8) { left: 40%; top: 80%; animation-delay: 7s; }
+        .void-particle:nth-child(9) { left: 60%; top: 90%; animation-delay: 8s; }
+        .void-particle:nth-child(10) { left: 75%; top: 15%; animation-delay: 9s; }
+
+        @keyframes void-drift {
+            0% {
+                opacity: 0;
+                transform: scale(0);
+            }
+            10% {
+                opacity: 0.6;
+                transform: scale(1);
+            }
+            90% {
+                opacity: 0.6;
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0);
+            }
+        }
+
+        /* Individual card themes */
+        .highlight-1 {
+            color: #4b5563;
+        }
+        .highlight-1 .boss-image {
+            content: url('user_input_files/boss_chaos_elemental - Copy.png');
+        }
+
+        .highlight-2 {
+            color: #374151;
+        }
+        .highlight-2 .boss-image {
+            content: url('user_input_files/boss_callisto - Copy.png');
+        }
+
+        .highlight-3 {
+            color: #4b5563;
+        }
+        .highlight-3 .boss-image {
+            content: url('user_input_files/boss_calvarion - Copy.png');
+        }
+
+        .highlight-4 {
+            color: #6b7280;
+        }
+        .highlight-4 .boss-image {
+            content: url('user_input_files/boss_corporeal_beast.png');
+        }
+
+        .highlight-5 {
+            color: #9ca3af;
+        }
+        .highlight-5 .boss-image {
+            content: url('user_input_files/boss_bran - Copy.png');
+        }
+
+        /* Hover enhancement */
+        .player-highlight:hover .necrotic-border {
+            animation: border-pulse 0.5s ease;
+        }
+
+        @keyframes border-pulse {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.3); }
+        }
+
+        /* Scanline effect */
+        .scanlines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 7;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0,0,0,0.1) 2px,
+                rgba(0,0,0,0.1) 4px
+            );
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <h1 class="sample-title">◇ SHADOW NEXUS ◇</h1>
+    
+    <div class="highlight-container">
+        <!-- Player Highlight 1 -->
+        <div class="player-highlight highlight-1">
+            <img class="boss-image" alt="Boss">
+            <div class="void-portal"></div>
+            <div class="dark-pulse"></div>
+            <div class="tendrils">
+                <div class="tendril"></div>
+                <div class="tendril"></div>
+                <div class="tendril"></div>
+                <div class="tendril"></div>
+            </div>
+            <div class="void-particles">
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+            </div>
+            <div class="necrotic-border"></div>
+            <div class="corner-accent top-left"></div>
+            <div class="corner-accent top-right"></div>
+            <div class="corner-accent bottom-left"></div>
+            <div class="corner-accent bottom-right"></div>
+            <div class="scanlines"></div>
+            <div class="highlight-content">
+                <div class="rank-section">
+                    <div class="rank-display">
+                        <span class="rank-rune">☠</span>
+                        <span class="rank-number">01</span>
+                    </div>
+                    <div class="power-level">
+                        <span>Void Power</span>
+                        <div class="power-bar" style="--power: 95%"></div>
+                    </div>
+                </div>
+                <div class="player-info">
+                    <div class="player-avatar">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50'%3E%3Crect fill='%230a0a0f' width='50' height='50'/%3E%3Ctext x='50%25' y='50%25' fill='%23666' font-size='16' text-anchor='middle' dominant-baseline='middle'%3E%F0%9F%98%80%3C/text%3E%3C/svg%3E" alt="Avatar">
+                    </div>
+                    <div class="player-details">
+                        <div class="player-name">VoidWarlock</div>
+                        <div class="player-title">Abyssal Champion</div>
+                    </div>
+                </div>
+                <div class="stats-section">
+                    <div class="stat-item">
+                        <div class="stat-label">Void KC</div>
+                        <div class="stat-value">5,847</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Avg Kill</div>
+                        <div class="stat-value">38s</div>
+                    </div>
+                    <div class="featured-boss">
+                        <div class="stat-label">Void Walker</div>
+                        <div class="boss-name">Chaos Elemental</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Player Highlight 2 -->
+        <div class="player-highlight highlight-2">
+            <img class="boss-image" alt="Boss">
+            <div class="void-portal"></div>
+            <div class="dark-pulse"></div>
+            <div class="tendrils">
+                <div class="tendril"></div>
+                <div class="tendril"></div>
+                <div class="tendril"></div>
+                <div class="tendril"></div>
+            </div>
+            <div class="void-particles">
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+            </div>
+            <div class="necrotic-border"></div>
+            <div class="corner-accent top-left"></div>
+            <div class="corner-accent top-right"></div>
+            <div class="corner-accent bottom-left"></div>
+            <div class="corner-accent bottom-right"></div>
+            <div class="scanlines"></div>
+            <div class="highlight-content">
+                <div class="rank-section">
+                    <div class="rank-display">
+                        <span class="rank-rune">⟁</span>
+                        <span class="rank-number">02</span>
+                    </div>
+                    <div class="power-level">
+                        <span>Void Power</span>
+                        <div class="power-bar" style="--power: 85%"></div>
+                    </div>
+                </div>
+                <div class="player-info">
+                    <div class="player-avatar">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50'%3E%3Crect fill='%230a0a0f' width='50' height='50'/%3E%3Ctext x='50%25' y='50%25' fill='%23666' font-size='16' text-anchor='middle' dominant-baseline='middle'%3E%F0%9F%98%80%3C/text%3E%3C/svg%3E" alt="Avatar">
+                    </div>
+                    <div class="player-details">
+                        <div class="player-name">AbyssalOne</div>
+                        <div class="player-title">Wilderness King</div>
+                    </div>
+                </div>
+                <div class="stats-section">
+                    <div class="stat-item">
+                        <div class="stat-label">Void KC</div>
+                        <div class="stat-value">4,521</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Avg Kill</div>
+                        <div class="stat-value">45s</div>
+                    </div>
+                    <div class="featured-boss">
+                        <div class="stat-label">Void Walker</div>
+                        <div class="boss-name">Callisto</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Player Highlight 3 -->
+        <div class="player-highlight highlight-3">
+            <img class="boss-image" alt="Boss">
+            <div class="void-portal"></div>
+            <div class="dark-pulse"></div>
+            <div class="tendrils">
+                <div class="tendril"></div>
+                <div class="tendril"></div>
+                <div class="tendril"></div>
+                <div class="tendril"></div>
+            </div>
+            <div class="void-particles">
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+            </div>
+            <div class="necrotic-border"></div>
+            <div class="corner-accent top-left"></div>
+            <div class="corner-accent top-right"></div>
+            <div class="corner-accent bottom-left"></div>
+            <div class="corner-accent bottom-right"></div>
+            <div class="scanlines"></div>
+            <div class="highlight-content">
+                <div class="rank-section">
+                    <div class="rank-display">
+                        <span class="rank-rune">⚡</span>
+                        <span class="rank-number">03</span>
+                    </div>
+                    <div class="power-level">
+                        <span>Void Power</span>
+                        <div class="power-bar" style="--power: 72%"></div>
+                    </div>
+                </div>
+                <div class="player-info">
+                    <div class="player-avatar">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50'%3E%3Crect fill='%230a0a0f' width='50' height='50'/%3E%3Ctext x='50%25' y='50%25' fill='%23666' font-size='16' text-anchor='middle' dominant-baseline='middle'%3E%F0%9F%98%80%3C/text%3E%3C/svg%3E" alt="Avatar">
+                    </div>
+                    <div class="player-details">
+                        <div class="player-name">NightBringer</div>
+                        <div class="player-title">Void Reaver</div>
+                    </div>
+                </div>
+                <div class="stats-section">
+                    <div class="stat-item">
+                        <div class="stat-label">Void KC</div>
+                        <div class="stat-value">3,298</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Avg Kill</div>
+                        <div class="stat-value">52s</div>
+                    </div>
+                    <div class="featured-boss">
+                        <div class="stat-label">Void Walker</div>
+                        <div class="boss-name">Calvarion</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Player Highlight 4 -->
+        <div class="player-highlight highlight-4">
+            <img class="boss-image" alt="Boss">
+            <div class="void-portal"></div>
+            <div class="dark-pulse"></div>
+            <div class="tendrils">
+                <div class="tendril"></div>
+                <div class="tendril"></div>
+                <div class="tendril"></div>
+                <div class="tendril"></div>
+            </div>
+            <div class="void-particles">
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+            </div>
+            <div class="necrotic-border"></div>
+            <div class="corner-accent top-left"></div>
+            <div class="corner-accent top-right"></div>
+            <div class="corner-accent bottom-left"></div>
+            <div class="corner-accent bottom-right"></div>
+            <div class="scanlines"></div>
+            <div class="highlight-content">
+                <div class="rank-section">
+                    <div class="rank-display">
+                        <span class="rank-rune">◈</span>
+                        <span class="rank-number">04</span>
+                    </div>
+                    <div class="power-level">
+                        <span>Void Power</span>
+                        <div class="power-bar" style="--power: 60%"></div>
+                    </div>
+                </div>
+                <div class="player-info">
+                    <div class="player-avatar">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50'%3E%3Crect fill='%230a0a0f' width='50' height='50'/%3E%3Ctext x='50%25' y='50%25' fill='%23666' font-size='16' text-anchor='middle' dominant-baseline='middle'%3E%F0%9F%98%80%3C/text%3E%3C/svg%3E" alt="Avatar">
+                    </div>
+                    <div class="player-details">
+                        <div class="player-name">SoulDevourer</div>
+                        <div class="player-title">Dark Essence</div>
+                    </div>
+                </div>
+                <div class="stats-section">
+                    <div class="stat-item">
+                        <div class="stat-label">Void KC</div>
+                        <div class="stat-value">2,654</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Avg Kill</div>
+                        <div class="stat-value">58s</div>
+                    </div>
+                    <div class="featured-boss">
+                        <div class="stat-label">Void Walker</div>
+                        <div class="boss-name">Corporeal Beast</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Player Highlight 5 -->
+        <div class="player-highlight highlight-5">
+            <img class="boss-image" alt="Boss">
+            <div class="void-portal"></div>
+            <div class="dark-pulse"></div>
+            <div class="tendrils">
+                <div class="tendril"></div>
+                <div class="tendril"></div>
+                <div class="tendril"></div>
+                <div class="tendril"></div>
+            </div>
+            <div class="void-particles">
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+            </div>
+            <div class="necrotic-border"></div>
+            <div class="corner-accent top-left"></div>
+            <div class="corner-accent top-right"></div>
+            <div class="corner-accent bottom-left"></div>
+            <div class="corner-accent bottom-right"></div>
+            <div class="scanlines"></div>
+            <div class="highlight-content">
+                <div class="rank-section">
+                    <div class="rank-display">
+                        <span class="rank-rune">⬡</span>
+                        <span class="rank-number">05</span>
+                    </div>
+                    <div class="power-level">
+                        <span>Void Power</span>
+                        <div class="power-bar" style="--power: 48%"></div>
+                    </div>
+                </div>
+                <div class="player-info">
+                    <div class="player-avatar">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50'%3E%3Crect fill='%230a0a0f' width='50' height='50'/%3E%3Ctext x='50%25' y='50%25' fill='%23666' font-size='16' text-anchor='middle' dominant-baseline='middle'%3E%F0%9F%98%80%3C/text%3E%3C/svg%3E" alt="Avatar">
+                    </div>
+                    <div class="player-details">
+                        <div class="player-name">GraveWalker</div>
+                        <div class="player-title">Tomb Keeper</div>
+                    </div>
+                </div>
+                <div class="stats-section">
+                    <div class="stat-item">
+                        <div class="stat-label">Void KC</div>
+                        <div class="stat-value">1,987</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Avg Kill</div>
+                        <div class="stat-value">1:05</div>
+                    </div>
+                    <div class="featured-boss">
+                        <div class="stat-label">Void Walker</div>
+                        <div class="boss-name">Undead Bran</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,23 +1,39 @@
+/* Force Update v11 */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=Rajdhani:wght@400;600;700&display=swap');
+
 :root {
+    /* Base Colors - Deep Obsidian / Shadow Nexus */
     --obsidian: #050505;
     --dark-metal: #0a0a0a;
-    --card-bg: rgba(5, 5, 5, 0.65);
-    --glass-border: 1px solid rgba(255, 255, 255, 0.08);
-    --glass-blur: blur(12px);
+    --void-bg: radial-gradient(ellipse at center, #0a0a0f 0%, #000000 100%);
 
+    /* Card Backgrounds */
+    --card-bg: rgba(5, 5, 5, 0.90);
+    --void-card-bg: linear-gradient(135deg, rgba(5, 5, 10, 0.98) 0%, rgba(10, 8, 15, 0.95) 50%, rgba(8, 5, 12, 0.98) 100%);
+
+    /* Tech Borders */
+    --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+    --tech-border-color: rgba(255, 255, 255, 0.15);
+
+    /* Accents */
     --neon-gold: #FFD700;
     --neon-red: #FF3333;
     --neon-green: #33FF33;
     --neon-blue: #00d4ff;
+    --neon-void: #a78bfa;
+    /* Light Purple for void accents */
 
+    /* Typography */
     --text-main: #E0E0E0;
     --text-mute: #888888;
-
-    --text-glow: 0 0 10px rgba(255, 255, 255, 0.1);
-    --box-glow: 0 0 15px rgba(0, 0, 0, 0.5);
-
-    --font-headings: 'Cinzel', serif;
+    --font-headings: 'Outfit', sans-serif;
+    /* Standardized per user request */
     --font-body: 'Outfit', sans-serif;
+    --font-tech: 'Rajdhani', sans-serif;
+    /* For small tech details */
+
+    /* Effects */
+    --text-glow: 0 0 10px rgba(255, 255, 255, 0.1);
 }
 
 * {
@@ -26,14 +42,210 @@
     box-sizing: border-box;
 }
 
+/* ANIMATIONS (Ported from Shadow Nexus) */
+@keyframes tendril-sweep {
+    0% {
+        opacity: 0;
+        transform: translateX(-50%);
+    }
+
+    30% {
+        opacity: 0.4;
+    }
+
+    70% {
+        opacity: 0.4;
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateX(50%);
+    }
+}
+
+@keyframes void-pulse {
+
+    0%,
+    100% {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 0.2;
+    }
+
+    50% {
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 0.4;
+    }
+}
+
+@keyframes border-pulse {
+
+    0%,
+    100% {
+        filter: brightness(1);
+    }
+
+    50% {
+        filter: brightness(1.3);
+    }
+}
+
+@keyframes rune-glow {
+    from {
+        filter: drop-shadow(0 0 5px currentColor);
+    }
+
+    to {
+        filter: drop-shadow(0 0 20px currentColor);
+    }
+}
+
+@keyframes void-drift {
+    0% {
+        opacity: 0;
+        transform: scale(0);
+    }
+
+    10% {
+        opacity: 0.6;
+        transform: scale(1);
+    }
+
+    90% {
+        opacity: 0.6;
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(0);
+    }
+}
+
+/* SHADOW TECH COMPONENT CLASSES */
+.scanlines {
+    position: absolute;
+    inset: 0;
+    z-index: 7;
+    background: repeating-linear-gradient(0deg,
+            transparent,
+            transparent 2px,
+            rgba(0, 0, 0, 0.1) 2px,
+            rgba(0, 0, 0, 0.1) 4px);
+    pointer-events: none;
+}
+
+.void-particles {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.void-particle {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: currentColor;
+    opacity: 0;
+    animation: void-drift 10s linear infinite;
+}
+
+/* Randomized particle delays */
+.void-particle:nth-child(1) {
+    left: 5%;
+    top: 10%;
+    animation-delay: 0s;
+}
+
+.void-particle:nth-child(2) {
+    left: 20%;
+    top: 30%;
+    animation-delay: 1s;
+}
+
+.void-particle:nth-child(3) {
+    left: 35%;
+    top: 50%;
+    animation-delay: 2s;
+}
+
+.void-particle:nth-child(4) {
+    left: 50%;
+    top: 20%;
+    animation-delay: 3s;
+}
+
+.void-particle:nth-child(5) {
+    left: 65%;
+    top: 60%;
+    animation-delay: 4s;
+}
+
+.corner-accent {
+    position: absolute;
+    width: 15px;
+    height: 15px;
+    z-index: 11;
+    pointer-events: none;
+    border-color: currentColor;
+    opacity: 0.7;
+}
+
+.corner-accent.top-left {
+    top: 5px;
+    left: 5px;
+    border-top: 2px solid;
+    border-left: 2px solid;
+}
+
+.corner-accent.top-right {
+    top: 5px;
+    right: 5px;
+    border-top: 2px solid;
+    border-right: 2px solid;
+}
+
+.corner-accent.bottom-left {
+    bottom: 5px;
+    left: 5px;
+    border-bottom: 2px solid;
+    border-left: 2px solid;
+}
+
+.corner-accent.bottom-right {
+    bottom: 5px;
+    right: 5px;
+    border-bottom: 2px solid;
+    border-right: 2px solid;
+}
+
+.necrotic-border {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    pointer-events: none;
+    padding: 1px;
+    /* The border width */
+    background: linear-gradient(135deg, transparent 0%, currentColor 30%, currentColor 70%, transparent 100%);
+    -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0.5;
+}
+
+/* Global Styles */
 body {
     background-color: var(--obsidian);
+    background-image: var(--void-bg);
+    /* Use the void gradient */
+    background-attachment: fixed;
     color: var(--text-main);
     font-family: var(--font-body);
     margin: 0;
     min-height: 100vh;
     overflow-x: hidden;
-    /* Removed static gradient to let Particles.js shine */
 }
 
 h1,
@@ -54,26 +266,26 @@ th,
 }
 
 /* Glassmorphism Classes */
+/* Glassmorphism Classes - Tech Update */
+/* Glass-Card (Standard Components) - Tech Update */
 .glass-card {
     background: var(--card-bg);
-    backdrop-filter: var(--glass-blur);
-    -webkit-backdrop-filter: var(--glass-blur);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    /* Refined Border */
-    border-top: 1px solid rgba(255, 255, 255, 0.15);
-    /* Top Highlight */
-    border-left: 1px solid rgba(255, 255, 255, 0.1);
-    /* Left Highlight */
-    border-radius: 16px;
-    /* Increased Radius */
-    box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.2);
-    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    /* Very subtle */
+    /* Tech corners: slightly angled */
+    clip-path: polygon(0 0,
+            100% 0,
+            100% calc(100% - 10px),
+            calc(100% - 10px) 100%,
+            0 100%);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: box-shadow 0.3s ease;
 }
 
 .glass-card:hover {
-    border-color: rgba(255, 255, 255, 0.15);
-    transform: translateY(-3px);
-    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.6);
+    border-color: rgba(255, 255, 255, 0.25);
+    /* transform removed - Static Feel */
+    /* box-shadow glow removed */
 }
 
 .neon-border-gold {
@@ -150,7 +362,7 @@ th,
 }
 
 .alert-name {
-    font-family: 'Cinzel', serif;
+    font-family: 'Outfit', sans-serif;
     font-size: 1.4rem;
     /* Larger Title */
     color: #fff;
@@ -178,35 +390,41 @@ th,
 }
 
 /* PREMIUM CARD STYLING (Boss Card Style) */
+/* PREMIUM CARD STYLING (Boss Card Style) - Tech Update */
+/* PREMIUM CARD STYLING (Shadow Tech Update) */
 .premium-card {
     position: relative;
     overflow: hidden;
-    background: var(--card-bg);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-    border-radius: 12px;
-    /* Smooth corners */
-    transition: transform 0.3s, box-shadow 0.3s;
-    min-height: 180px;
-    /* Consistent height */
+    background: var(--void-card-bg);
+    /* No border on main element, necrotic-border handles it */
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    /* Clip Path for Tech Shape */
+    clip-path: polygon(0 0,
+            100% 0,
+            100% 85%,
+            95% 100%,
+            5% 100%,
+            0 85%);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    min-height: 200px;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    /* Text at bottom */
-    padding: 20px;
+    padding: 30px;
     text-align: center;
 }
 
 .premium-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8);
-    border-color: rgba(255, 255, 255, 0.25);
+    transform: scale(1.02);
+    z-index: 10;
 }
 
 .premium-card-bg {
     position: absolute;
     inset: 0;
-    background-size: cover;
+    background-size: contain;
+    background-repeat: no-repeat;
     background-position: center;
     opacity: 0.35;
     /* Visible but not overwhelming */
@@ -261,7 +479,7 @@ th,
 }
 
 .premium-stat-val {
-    font-family: 'Cinzel', serif;
+    font-family: 'Outfit', sans-serif;
     font-size: 1.8rem;
     /* Big Numbers */
     color: #fff;
@@ -352,7 +570,7 @@ th,
 }
 
 .section-title {
-    font-family: 'Cinzel', serif;
+    font-family: 'Outfit', sans-serif;
     font-size: 1.5rem;
     color: var(--neon-gold);
     margin-bottom: 25px;
@@ -407,7 +625,7 @@ th,
 }
 
 .alert-name {
-    font-family: 'Cinzel', serif;
+    font-family: 'Outfit', sans-serif;
     font-size: 1.2rem;
     color: #fff;
     margin-bottom: 5px;
@@ -443,7 +661,7 @@ th,
 }
 
 .bingo-boss-name {
-    font-family: 'Cinzel', serif;
+    font-family: 'Outfit', sans-serif;
     font-size: 0.9rem;
     color: var(--text-mute);
     margin-top: 15px;
@@ -624,7 +842,7 @@ th,
 
 .chart-item-title,
 .chart-title {
-    font-family: 'Cinzel', serif;
+    font-family: 'Outfit', sans-serif;
     color: var(--text-main);
     margin-bottom: 20px;
     border-bottom: 1px solid #333;
@@ -652,7 +870,7 @@ th {
     background: rgba(0, 0, 0, 0.4);
     padding: 16px;
     text-align: left;
-    font-family: 'Cinzel', serif;
+    font-family: 'Outfit', sans-serif;
     color: var(--neon-gold);
     font-weight: 500;
     border-bottom: 1px solid #333;
@@ -677,7 +895,7 @@ tr:hover td {
 
 .alert-title {
     color: var(--neon-red);
-    font-family: 'Cinzel', serif;
+    font-family: 'Outfit', sans-serif;
     margin-bottom: 15px;
 }
 

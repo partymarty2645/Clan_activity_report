@@ -153,12 +153,7 @@ def run_export():
         correlation_data = analytics.get_correlation_data() 
         
         # Charts via Service
-<<<<<<< HEAD
-        # FIX: Pass old_ids (7d) to get 7d diversity instead of lifetime
-        boss_diversity = analytics.get_boss_diversity(latest_ids, old_snapshot_ids=old_ids)
-=======
         boss_diversity = analytics.get_boss_diversity_7d() # FIX: Use 7d gains instead of total
->>>>>>> fix/cleanup
         raids_performance = analytics.get_raids_performance(latest_ids)
         skill_mastery = analytics.get_skill_mastery(latest_ids)
         trending_boss = analytics.get_trending_boss(days=30)
@@ -231,6 +226,9 @@ def run_export():
                     curr_ts_dt = curr.timestamp
                     # Handle inconsistent keys (ts vs timestamp) if legacy
                     old_ts_dt = baseline_snap.timestamp
+                    
+                    if curr_ts_dt.tzinfo is None: curr_ts_dt = curr_ts_dt.replace(tzinfo=timezone.utc)
+                    if old_ts_dt.tzinfo is None: old_ts_dt = old_ts_dt.replace(tzinfo=timezone.utc)
                     
                     delta_days = (curr_ts_dt - old_ts_dt).days
                     
@@ -319,16 +317,27 @@ def run_export():
             elif u_clean in min_timestamps:
                 baseline = min_timestamps[u_clean]
             
-            if baseline and baseline.timestamp < curr.timestamp:
-                xp_30d = curr.total_xp - baseline.total_xp
-                boss_30d = curr.total_boss_kills - baseline.total_boss_kills
+            if baseline:
+                b_ts = baseline.timestamp
+                c_ts = curr.timestamp
+                if b_ts and c_ts:
+                    if b_ts.tzinfo is None: b_ts = b_ts.replace(tzinfo=timezone.utc)
+                    if c_ts.tzinfo is None: c_ts = c_ts.replace(tzinfo=timezone.utc)
+                    if b_ts < c_ts:
+                        xp_30d = curr.total_xp - baseline.total_xp
+                        boss_30d = curr.total_boss_kills - baseline.total_boss_kills
             
             # Year Gains (Annual XP)
             xp_year = 0
             if u_clean in past_year_snaps:
                 y_snap = past_year_snaps[u_clean]
-                if y_snap.timestamp < curr.timestamp:
-                    xp_year = max(0, curr.total_xp - y_snap.total_xp)
+                y_ts = y_snap.timestamp
+                c_ts = curr.timestamp
+                if y_ts and c_ts:
+                    if y_ts.tzinfo is None: y_ts = y_ts.replace(tzinfo=timezone.utc)
+                    if c_ts.tzinfo is None: c_ts = c_ts.replace(tzinfo=timezone.utc)
+                    if y_ts < c_ts:
+                        xp_year = max(0, curr.total_xp - y_snap.total_xp)
                 
             if u_clean in active_users:
                 mem_data = active_users[u_clean] # Might contain other enriched data?
@@ -385,6 +394,9 @@ def run_export():
                     base_dt = baseline.timestamp
                     curr_dt = curr.timestamp
                     
+                    if base_dt.tzinfo is None: base_dt = base_dt.replace(tzinfo=timezone.utc)
+                    if curr_dt.tzinfo is None: curr_dt = curr_dt.replace(tzinfo=timezone.utc)
+                    
                     diff_days = (curr_dt - base_dt).days
                     if diff_days > 60:
                         xp_30d = 0
@@ -412,7 +424,9 @@ def run_export():
             baseline_year = None
             if u_clean in min_timestamps:
                  ms = min_timestamps[u_clean]
-                 if ms.timestamp < cutoff_365:
+                 ms_ts = ms.timestamp
+                 if ms_ts.tzinfo is None: ms_ts = ms_ts.replace(tzinfo=timezone.utc)
+                 if ms_ts < cutoff_365:
                       # User is older than a year. Ideally we find a snapshot AT 365 days.
                       # Since we don't have it loaded, fallback to Min (which effectively makes it "Since Join" if > 1 year... wait.
                       # If started 5 years ago, Min is 5 years ago. XP Year should be Current - (Snapshot 1 year ago).
@@ -476,11 +490,7 @@ def run_export():
 
                 "xp_30d": xp_30d,
                 "boss_30d": boss_30d,
-<<<<<<< HEAD
-                "xp_year": xp_year,
-=======
                 "xp_year": xp_year, # FIX: Include in user object
->>>>>>> fix/cleanup
                 "favorite_boss": fav_boss_name, 
                 "favorite_boss_img": fav_boss_img if fav_boss_img != "boss_pet_rock.png" else context_boss_fallback, 
                 "favorite_boss_all_time": fav_boss_all_time_name,
