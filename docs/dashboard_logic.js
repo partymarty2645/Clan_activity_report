@@ -1313,7 +1313,10 @@ function renderBossesSection(members) {
     const cards = document.getElementById('boss-cards');
     if (cards) {
         cards.innerHTML = '';
-        const topKillers = [...members].sort((a, b) => (b.boss_7d || 0) - (a.boss_7d || 0)).slice(0, CONFIG.TOP_BOSS_CARDS);
+        const topKillers = [...members]
+            .sort((a, b) => (b.boss_7d || 0) - (a.boss_7d || 0))
+            .filter(m => (m.boss_7d || 0) > 0) // Zero-Data Hiding
+            .slice(0, CONFIG.TOP_BOSS_CARDS);
         topKillers.forEach(m => {
             // Shadow Tech Update: Use premium-card structure instead of ad-hoc glass-card
             const bg = m.favorite_boss_img || 'boss_pet_rock.png';
@@ -2028,7 +2031,7 @@ window.openPlayerProfile = function (username) {
         }
     }
     // Helper to toggle visibility based on value
-    const setStat = (id, val, suffix = '') => {
+    const setStat = (id, val, suffix = '', forceShow = false) => {
         const el = document.getElementById(id);
         const parent = el.parentElement; // The .p-stat container
         if (!el || !parent) return;
@@ -2036,7 +2039,7 @@ window.openPlayerProfile = function (username) {
         // Convert to number for checking
         const numVal = Number(val.toString().replace(/,/g, ''));
 
-        if (numVal > 0) {
+        if (numVal > 0 || forceShow) {
             el.innerText = formatNumber(numVal) + suffix;
             parent.style.display = 'flex';
         } else {
@@ -2046,7 +2049,7 @@ window.openPlayerProfile = function (username) {
 
     setStat('pp-total-xp', m.total_xp);
     setStat('pp-total-boss', m.total_boss);
-    setStat('pp-total-msg', m.msgs_total);
+    setStat('pp-total-msg', m.msgs_total, '', true); // Keep Total Messages visible even if 0
     // Days always shown if present
     if (m.days_in_clan !== undefined) {
         document.getElementById('pp-days').innerText = m.days_in_clan;
