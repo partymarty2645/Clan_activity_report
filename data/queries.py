@@ -105,7 +105,7 @@ class Queries:
     '''
     
     GET_BOSS_SUMS_FOR_IDS = '''
-        SELECT boss_name, ROUND(AVG(bs.kills), 1) as avg_kills
+        SELECT boss_name, ROUND(SUM(bs.kills), 1) as total_kills
         FROM boss_snapshots bs
         JOIN wom_snapshots ws ON bs.snapshot_id = ws.id
         WHERE bs.snapshot_id IN ({})

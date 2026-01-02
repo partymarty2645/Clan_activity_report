@@ -30,8 +30,8 @@ logging.basicConfig(
 logger = logging.getLogger("mcp_enrich")
 
 # --- CONFIGURATION ---
-ACTIVITY_WINDOW_DAYS = Config.AI_ACTIVITY_DAYS
-RECENT_PLAYER_LIMIT = 50 # Send top 50 active players to AI context
+ACTIVITY_WINDOW_DAYS = 14  # Expanded to 14 days to catch "weekend warriors"
+RECENT_PLAYER_LIMIT = 50   # Send top 50 active players to AI context
 
 # Use Standardized Enum from llm_client.py
 LLM_PROVIDER = ModelProvider.GEMINI_FLASH_LITE
@@ -56,8 +56,8 @@ THE 12 COMMANDMENTS (STRICT RULES):
 6. **Tone**: Casual, gamer slang (spooned, dry, planked, gz), slightly chaotic but friendly.
 7. **Brevity**: Messages must be SHORT (under 120 chars if possible) to fit on cards.
 8. **Format**: Output MUST be valid JSON list of objects.
-9. **Variety**: Mix types: 'milestone', 'roast', 'trend', 'leadership', 'fun'.
-10. **Icons**: Use FontAwesome class names (e.g., 'fa-trophy', 'fa-skull', 'fa-comment').
+9. **Variety**: Mix types: 'milestone', 'roast', 'trend-positive', 'trend-negative', 'leadership', 'anomaly'.
+10. **Icons**: Use FontAwesome class names (e.g., 'fa-trophy', 'fa-skull', 'fa-comment', 'fa-chart-line').
 11. **Specifics**: Use exact numbers from the data. "User gained 1.5M XP", not "User gained a lot of XP".
 12. **No Generic Praise**: Avoid "Good job everyone". Highlight specific feats.
 """
@@ -88,35 +88,38 @@ def get_leadership_roster() -> List[str]:
 def get_trend_context(cursor) -> str:
     """Get trend context information for AI generation."""
     try:
-        # Get recent activity trends
+        # Get recent activity trends (Current 7d vs Prior 7d)
         cursor.execute(f"""
-            SELECT COUNT(*) as msg_count, 
-                   COUNT(DISTINCT author_name) as unique_authors
+            SELECT COUNT(*) as msg_count
             FROM discord_messages 
-            WHERE created_at >= date('now', '-{ACTIVITY_WINDOW_DAYS} days')
+            WHERE created_at >= date('now', '-7 days')
         """)
-        msg_data = cursor.fetchone()
-        
+        msgs_current = cursor.fetchone()[0]
+
         cursor.execute(f"""
-            SELECT COUNT(*) as snap_count,
-            COUNT(DISTINCT username) as unique_users
-            FROM wom_snapshots 
-            WHERE timestamp >= date('now', '-{ACTIVITY_WINDOW_DAYS} days')
+            SELECT COUNT(*) as msg_count
+            FROM discord_messages 
+            WHERE created_at BETWEEN date('now', '-14 days') AND date('now', '-7 days')
         """)
-        snap_data = cursor.fetchone()
+        msgs_prior = cursor.fetchone()[0]
         
-        trend_context = f"Discord: {msg_data[0]} messages from {msg_data[1]} active chatterboxes. " \
-                       f"Game: {snap_data[0]} snapshots from {snap_data[1]} active players."
+        # Calculate Trend
+        if msgs_prior > 0:
+            delta_pct = ((msgs_current - msgs_prior) / msgs_prior) * 100
+            trend_str = f"{delta_pct:+.1f}%"
+        else:
+            trend_str = "New Activity"
+
+        trend_context = f"Discord Activity: {msgs_current} msgs this week (vs {msgs_prior} last week, Trend: {trend_str})."
         
         return trend_context
     except Exception as e:
         logger.error(f"Error getting trend context: {e}")
         return "Trend data unavailable"
 
-def fetch_active_players(limit: int = 50) -> Tuple[List[Dict], str, Dict]:
+def fetch_active_players(limit: int = 50) -> Tuple[List[Dict], str]:
     """
     Fetch ONLY players active in the last {ACTIVITY_WINDOW_DAYS} days.
-    Uses UserAccessService for consistent access.
     """
     conn = get_db_connection()
     conn.row_factory = sqlite3.Row
@@ -125,27 +128,24 @@ def fetch_active_players(limit: int = 50) -> Tuple[List[Dict], str, Dict]:
     # 1. Get Trend Context
     trend_narrative = get_trend_context(cursor)
     
-    # 2. Get Active Players using UserAccessService logic (Embedded for standalone safety)
-    # We will use the 'legacy' style query here for robustness/speed in this hotfix script,
-    # mirroring the logic viewed in previous robust versions.
-    
     players = []
     try:
+        # Get basic member info + total stats
         cursor.execute(f"""
             SELECT m.username, m.role, m.joined_at,
                    (SELECT total_xp FROM wom_snapshots WHERE username=m.username ORDER BY timestamp DESC LIMIT 1) as total_xp,
                    (SELECT total_boss_kills FROM wom_snapshots WHERE username=m.username ORDER BY timestamp DESC LIMIT 1) as total_boss,
-                   (SELECT count(*) FROM discord_messages WHERE author_name=m.username AND created_at > date('now', '-7 days')) as msgs_7d
+                   (SELECT count(*) FROM discord_messages WHERE author_name=m.username AND created_at > date('now', '-{ACTIVITY_WINDOW_DAYS} days')) as msgs_recent
             FROM clan_members m
         """)
         all_members = [dict(r) for r in cursor.fetchall()]
         
         for m in all_members:
             u = m['username']
-            # Get 7d differentials (Simplified)
+            # Get differential for the activity window
             cursor.execute(f"""
-                SELECT total_xp, total_boss_kills, timestamp 
-                FROM wom_snapshots WHERE username=? AND timestamp <= date('now', '-7 days') 
+                SELECT total_xp, total_boss_kills 
+                FROM wom_snapshots WHERE username=? AND timestamp <= date('now', '-{ACTIVITY_WINDOW_DAYS} days') 
                 ORDER BY timestamp DESC LIMIT 1
             """, (u,))
             base = cursor.fetchone()
@@ -154,24 +154,24 @@ def fetch_active_players(limit: int = 50) -> Tuple[List[Dict], str, Dict]:
             curr_boss = m['total_boss'] or 0
             
             if base:
-                xp_7d = curr_xp - (base[0] or 0)
-                boss_7d = curr_boss - (base[1] or 0)
+                xp_gain = curr_xp - (base[0] or 0)
+                boss_gain = curr_boss - (base[1] or 0)
             else:
-                xp_7d = curr_xp # New user?
-                boss_7d = curr_boss
+                xp_gain = curr_xp # New user or no history?
+                boss_gain = curr_boss
             
-            # Filter inactive
-            if xp_7d < 1000 and boss_7d < 1 and m['msgs_7d'] < 1:
+            # STRICT FILTER: Must have some activity
+            if xp_gain < 5000 and boss_gain < 1 and m['msgs_recent'] < 1:
                 continue
                 
-            activity_score = (xp_7d / 1_000_000) + (boss_7d / 10) + (m['msgs_7d'] / 50)
+            activity_score = (xp_gain / 100_000) + (boss_gain / 5) + (m['msgs_recent'] / 10)
             
             players.append({
                 "username": u,
                 "role": m['role'],
-                "xp_7d": xp_7d,
-                "boss_7d": boss_7d,
-                "msgs_7d": m['msgs_7d'],
+                "xp_gain": xp_gain,
+                "boss_gain": boss_gain,
+                "msgs_recent": m['msgs_recent'],
                 "total_xp": curr_xp,
                 "total_boss": curr_boss,
                 "activity_score": activity_score
@@ -185,17 +185,16 @@ def fetch_active_players(limit: int = 50) -> Tuple[List[Dict], str, Dict]:
         active_candidates = []
 
     conn.close()
-    return active_candidates, trend_narrative, {}
+    return active_candidates, trend_narrative
 
 def generate_ai_batch(players: List[Dict], trend_context: str, leadership_roster: List[str]) -> List[Dict]:
     """
-    Generates the FULL set of insights in one or two calls to the LLM.
+    Generates the FULL set of insights using the 12 Commandments.
     """
     logger.info("Initializing LLM Client...")
     
     try:
         # Initialize Client
-        # Attempt to use Flash Lite (Primary)
         llm = LLMClient(provider=LLM_PROVIDER)
         if not llm.client:
             logger.warning("Flash Lite failed, trying Standard Flash.")
@@ -204,7 +203,7 @@ def generate_ai_batch(players: List[Dict], trend_context: str, leadership_roster
         # Construct Prompt
         roster_str = ", ".join(leadership_roster)
         
-        # Serialize top 20 players for context (save tokens)
+        # Serialize top 30 players for context
         context_players = players[:30] 
         player_context = json.dumps(context_players, indent=2)
         
@@ -218,18 +217,19 @@ def generate_ai_batch(players: List[Dict], trend_context: str, leadership_roster
         {player_context}
 
         **TASK**:
-        Generate exactly 10 unique insights in a JSON list.
+        Generate exactly 10-12 unique insights in a JSON list.
         Include a mix of:
         - 2x 'milestone': Huge XP or Kill gains.
-        - 2x 'roast': Funny banter about specific players (e.g. 0 messages but 10M XP).
-        - 1x 'trend': Overall clan vibe.
+        - 2x 'roast': Funny banter about specific players/stats.
+        - 2x 'trend-positive' OR 'trend-negative': Comment on the Clan Status trend (e.g. "Chat is dying" or "Chat is popping").
         - 1x 'leadership': Comment on a Staff member (whitelist only).
+        - 1x 'anomaly': Use for weird stats (e.g. 500 boss kills but 0 XP).
         - 2x 'general': General observations.
-        - 2x 'fun': Random funny stats/facts.
 
         **OUTPUT FORMAT**:
         [
           {{ "type": "milestone", "title": "...", "message": "...", "icon": "fa-trophy" }},
+          {{ "type": "trend-negative", "title": "Chat Dead?", "message": "...", "icon": "fa-ghost" }},
           ...
         ]
         
@@ -241,11 +241,17 @@ def generate_ai_batch(players: List[Dict], trend_context: str, leadership_roster
         
         # Parse JSON
         content = response.content.strip()
-        # Strip simple markdown if present
         if content.startswith("```json"):
             content = content.replace("```json", "").replace("```", "")
         
         insights = json.loads(content)
+        
+        # Validate Types (Quick Patch)
+        valid_types = ['milestone', 'roast', 'trend-positive', 'trend-negative', 'leadership', 'anomaly', 'general']
+        for i in insights:
+            if i.get('type') not in valid_types:
+                i['type'] = 'general' # Fallback
+                
         logger.info(f"✅ Generated {len(insights)} insights.")
         return insights
         
@@ -254,11 +260,12 @@ def generate_ai_batch(players: List[Dict], trend_context: str, leadership_roster
         return []
 
 def main():
-    logger.info("Starting AI Analyst (Restored Logic)...")
+    logger.info("Starting AI Analyst (12 Commandments Edition)...")
     
     # 1. Fetch Data
-    active_players, trend_context, _ = fetch_active_players(limit=50)
-    logger.info(f"Context: {len(active_players)} active players.")
+    active_players, trend_context = fetch_active_players(limit=RECENT_PLAYER_LIMIT)
+    logger.info(f"Context: {len(active_players)} active players (14d window).")
+    logger.info(f"Trend: {trend_context}")
     
     # 2. Get Roster
     roster = get_leadership_roster()
@@ -266,15 +273,15 @@ def main():
     # 3. Generate
     insights = generate_ai_batch(active_players, trend_context, roster)
     
-    # 4. Fallback if empty (prevent pipeline fail)
+    # 4. Fallback if empty
     if not insights:
         logger.warning("Generating Fallback Insights (LLM failed)")
         insights = [
-            {"type": "system", "title": "System Active", "message": "AI Cortex is rebooting. Tracking systems operational.", "icon": "fa-server"},
-            {"type": "trend", "title": "Activity Detected", "message": f"{len(active_players)} members active recently.", "icon": "fa-chart-line"}
+            {"type": "anomaly", "title": "System Reboot", "message": "AI Cortex is rebooting. Tracking systems operational.", "icon": "fa-server"},
+            {"type": "trend-positive", "title": "Activity Detected", "message": f"{len(active_players)} members active recently.", "icon": "fa-chart-line"}
         ]
     
-    # 5. Save to JSON (for Export script)
+    # 5. Save to JSON
     try:
         os.makedirs(os.path.dirname(OUTPUT_JSON_FILE), exist_ok=True)
         with open(OUTPUT_JSON_FILE, "w", encoding='utf-8') as f:
@@ -283,14 +290,13 @@ def main():
     except Exception as e:
         logger.error(f"Failed to save JSON: {e}")
         
-    # 6. Save to JS (for Direct Frontend)
+    # 6. Save to JS
     try:
         os.makedirs(os.path.dirname(OUTPUT_JS_FILE), exist_ok=True)
-        # Create a structure compatible with dashboard
         js_payload = {
             "insights": insights,
             "generated_at": datetime.datetime.now().isoformat(),
-            "pulse": [i['message'] for i in insights[:5]] # Simple pulse
+            "pulse": [i['message'] for i in insights[:5]]
         }
         with open(OUTPUT_JS_FILE, "w", encoding='utf-8') as f:
             f.write(f"window.aiData = {json.dumps(js_payload, indent=2)};")

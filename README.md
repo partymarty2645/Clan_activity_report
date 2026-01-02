@@ -20,7 +20,7 @@
 - **Discord Sync**: Tracks message counts, "questions asked", and "favorite words" via efficient local database caching.
 - **Visual Dashboard**: A deployed HTML/JS Dashboard (via Google Drive) featuring:
   - **Enhanced Stat Cards**: Enlarged player cards displaying XP, Messages, Boss kills, and Rising Stars with icons
-  - **Boss Highlight Cards**: 5-flag style cards with boss background images, player names, and 30-day kill counts
+  - **Boss Highlight Cards**: 6-flag style cards with boss background images, player names, and 30-day kill counts
   - **Activity Heatmaps**: 24-hour hourly message distribution showing peak activity times
   - **Performance Analytics**: 
     - **Chatterbox vs Grinder**: Optimized scatter plot with proper x-axis scaling

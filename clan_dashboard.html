@@ -261,6 +261,20 @@
                     </table>
                 </div>
             </div>
+            <!-- Bosses Section (V3) -->
+            <div id="bosses" class="section">
+                <div class="header">
+                    <h1>Bosses & Raids</h1>
+                    <div style="text-align: right;">
+                        <div class="header-info">Updated: <span id="updated-time-boss">loading...</span></div>
+                        <input type="text" class="search-box" id="search-bosses" placeholder="Search boss or player...">
+                    </div>
+                </div>
+                <div class="stats-grid" id="bosses-grid">
+                    <div class="loading">Loading Top Boss Slayers...</div>
+                </div>
+            </div>
+
             <!-- XP Gains Section -->
             <div id="xp-gains" class="section">
                 <div class="header">
@@ -369,146 +383,105 @@
                     </table>
                 </div>
             </div>
-            <!-- Bosses Section -->
-            <div id="bosses" class="section">
-                <div class="header">
-                    <h1>Boss Activity</h1>
-                    <div style="text-align: right;">
-                        <div class="header-info">Updated: <span id="updated-time-boss">loading...</span>
-                        </div><input type="text" class="search-box" id="search-bosses" placeholder="Search player...">
-                    </div>
-                </div>
-                <!-- New Boss Cards -->
-                <div class="stats-grid" id="boss-cards">
-                    <div class="loading">Loading boss highlights...
-                    </div>
-                </div>
-                <div class="chart-container">
-                    <div class="chart-title">Boss Killers Leaderboard
-                    </div>
-                    <div class="table-container" style="padding: 0;">
-                        <table id="bosses-table">
-                            <thead>
-                                <tr>
-                                    <th>Rank</th>
-                                    <th>Player</th>
-                                    <th>Role</th>
-                                    <th>Total Kills</th>
-                                    <th>Kills (7d)</th>
-                                    <th>Kills (30d)</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td colspan="6" class="loading">
-                                        <div class="spinner"></div>
-                                        Loading...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-
-            <!-- AI Insights Section -->
-            <div id="ai-insights" class="section">
-                <div class="header">
-                    <h1>AI Insights</h1>
-                    <div style="text-align: right;">
-                        <div class="header-info">Updated: <span id="updated-time-ai">loading...</span></div>
-                    </div>
-                </div>
-                <div id="ai-feed-container" class="vertical-feed">
-                    <!-- Dynamic AI Insights will be injected here -->
-                    <div class="glass-card neon-border-blue" style="padding: 20px; text-align: center;">
-                        <div class="stat-label">Analyzing Clan Data...</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- OMNI-SEARCH MODAL -->
-            <div id="omni-search-overlay" class="omni-overlay" onclick="if(event.target===this) toggleOmni()">
-                <div class="omni-modal">
-                    <div class="omni-header">
-                        <i class="fas fa-search omni-icon"></i>
-                        <input type="text" id="omni-input" placeholder="Jump to player, boss, or section..."
-                            autocomplete="off">
-                        <span class="omni-badge">ESC</span>
-                    </div>
-                    <div class="omni-results" id="omni-results">
-                        <!-- Results injected here -->
-                    </div>
-                    <div class="omni-footer">
-                        <span><i class="fas fa-arrows-alt-v"></i> Navigate</span>
-                        <span><i class="fas fa-level-down-alt"></i> Select</span>
-                    </div>
-                </div>
-            </div>
-
-
-
-            <!-- PLAYER PROFILE MODAL -->
-            <div id="player-profile-modal" class="omni-overlay" onclick="if(event.target===this) closePlayerProfile()">
-                <div class="glass-card profile-card-modal">
-                    <button class="close-btn" onclick="closePlayerProfile()"><i class="fas fa-times"></i></button>
-
-                    <div class="profile-header">
-                        <div class="profile-rank-icon">
-                            <img id="pp-rank-img" src="assets/rank_recruit.png" alt="Rank"
-                                onerror="handleImageError(this)">
-                        </div>
-                        <div class="profile-title">
-                            <h2 id="pp-username">Player Name</h2>
-                            <div id="pp-role" class="profile-role">Role</div>
-                        </div>
-                    </div>
-
-                    <div class="profile-body">
-                        <div class="profile-stats-grid">
-                            <div class="p-stat">
-                                <span class="label">Total XP</span>
-                                <span class="value" id="pp-total-xp">0</span>
-                            </div>
-                            <div class="p-stat">
-                                <span class="label">Total Boss</span>
-                                <span class="value" id="pp-total-boss">0</span>
-                            </div>
-                            <div class="p-stat">
-                                <span class="label">Messages</span>
-                                <span class="value" id="pp-total-msg">0</span>
-                            </div>
-                            <div class="p-stat">
-                                <span class="label">Days in Clan</span>
-                                <span class="value" id="pp-days">0</span>
-                            </div>
-                        </div>
-
-                        <div class="profile-highlight">
-                            <div class="highlight-icon">
-                                <img id="pp-skill-img" src="assets/skill_attack.png" alt="Top Skill"
-                                    onerror="handleImageError(this, 'boss')">
-                            </div>
-                            <div class="highlight-text">
-                                <div class="label">Est. Top Skill</div>
-                                <div class="value" id="pp-top-skill">Unknown</div>
-                            </div>
-                        </div>
-
-                        <div class="profile-recent">
-                            <div class="label">Recent Performance (7d)</div>
-                            <div class="recent-row">
-                                <span><i class="fas fa-chart-line"></i> XP +<span id="pp-xp-7d">0</span></span>
-                                <span><i class="fas fa-skull"></i> Kills +<span id="pp-boss-7d">0</span></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-
         </div>
+    </div>
+
+
+    <!-- AI Insights Section -->
+    <div id="ai-insights" class="section">
+        <div class="header">
+            <h1>AI Insights</h1>
+            <div style="text-align: right;">
+                <div class="header-info">Updated: <span id="updated-time-ai">loading...</span></div>
+            </div>
+        </div>
+        <div id="ai-feed-container" class="vertical-feed">
+            <!-- Dynamic AI Insights will be injected here -->
+            <div class="glass-card neon-border-blue" style="padding: 20px; text-align: center;">
+                <div class="stat-label">Analyzing Clan Data...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- OMNI-SEARCH MODAL -->
+    <div id="omni-search-overlay" class="omni-overlay" onclick="if(event.target===this) toggleOmni()">
+        <div class="omni-modal">
+            <div class="omni-header">
+                <i class="fas fa-search omni-icon"></i>
+                <input type="text" id="omni-input" placeholder="Jump to player, boss, or section..." autocomplete="off">
+                <span class="omni-badge">ESC</span>
+            </div>
+            <div class="omni-results" id="omni-results">
+                <!-- Results injected here -->
+            </div>
+            <div class="omni-footer">
+                <span><i class="fas fa-arrows-alt-v"></i> Navigate</span>
+                <span><i class="fas fa-level-down-alt"></i> Select</span>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- PLAYER PROFILE MODAL -->
+    <div id="player-profile-modal" class="omni-overlay" onclick="if(event.target===this) closePlayerProfile()">
+        <div class="glass-card profile-card-modal">
+            <button class="close-btn" onclick="closePlayerProfile()"><i class="fas fa-times"></i></button>
+
+            <div class="profile-header">
+                <div class="profile-rank-icon">
+                    <img id="pp-rank-img" src="assets/rank_recruit.png" alt="Rank" onerror="handleImageError(this)">
+                </div>
+                <div class="profile-title">
+                    <h2 id="pp-username">Player Name</h2>
+                    <div id="pp-role" class="profile-role">Role</div>
+                </div>
+            </div>
+
+            <div class="profile-body">
+                <div class="profile-stats-grid">
+                    <div class="p-stat">
+                        <span class="label">Total XP</span>
+                        <span class="value" id="pp-total-xp">0</span>
+                    </div>
+                    <div class="p-stat">
+                        <span class="label">Total Boss</span>
+                        <span class="value" id="pp-total-boss">0</span>
+                    </div>
+                    <div class="p-stat">
+                        <span class="label">Messages</span>
+                        <span class="value" id="pp-total-msg">0</span>
+                    </div>
+                    <div class="p-stat">
+                        <span class="label">Days in Clan</span>
+                        <span class="value" id="pp-days">0</span>
+                    </div>
+                </div>
+
+                <div class="profile-highlight">
+                    <div class="highlight-icon">
+                        <img id="pp-skill-img" src="assets/skill_attack.png" alt="Top Skill"
+                            onerror="handleImageError(this, 'boss')">
+                    </div>
+                    <div class="highlight-text">
+                        <div class="label">Est. Top Skill</div>
+                        <div class="value" id="pp-top-skill">Unknown</div>
+                    </div>
+                </div>
+
+                <div class="profile-recent">
+                    <div class="label">Recent Performance (7d)</div>
+                    <div class="recent-row">
+                        <span><i class="fas fa-chart-line"></i> XP +<span id="pp-xp-7d">0</span></span>
+                        <span><i class="fas fa-skull"></i> Kills +<span id="pp-boss-7d">0</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    </div>
     </div>
     </div>
     <script src="dashboard_logic.js?v=5"></script>

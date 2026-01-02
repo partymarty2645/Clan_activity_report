@@ -1,4 +1,313 @@
-/* Force Update v11 */
+/* --- UNIFIED CARD SYSTEM (v3) --- */
+.unified-card {
+    position: relative;
+    background: rgba(10, 10, 15, 0.6);
+    /* DEFAULT STATE: Subtle Theme Border */
+    border: 1px solid var(--theme-glow, rgba(255, 255, 255, 0.1));
+    border-radius: 12px;
+    overflow: hidden;
+
+    /* HEIGHT / RATIO */
+    aspect-ratio: 3/4;
+    min-height: 520px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(10px);
+
+    /* DEFAULT STATE: Subtle Theme Glow */
+    box-shadow: 0 4px 20px -5px var(--theme-glow, rgba(0, 0, 0, 0.5));
+
+    /* DEFAULT THEME (If not overridden) */
+    --theme-color: var(--neon-purple);
+    --theme-glow: rgba(188, 19, 254, 0.3);
+}
+
+.unified-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--theme-color);
+    box-shadow: 0 10px 40px -5px var(--theme-glow);
+}
+
+/* 1. Header Area */
+.card-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    z-index: 2;
+}
+
+.rank-badge {
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-left: 3px solid var(--theme-color);
+    border-radius: 6px;
+    padding: 5px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85em;
+    color: #ccc;
+}
+
+.rank-badge img,
+.rank-badge i {
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.card-type-label {
+    font-size: 0.75em;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--theme-color);
+    font-weight: 700;
+    text-shadow: 0 0 10px var(--theme-glow);
+}
+
+/* 2. Visual Area */
+.card-visual {
+    flex-grow: 1;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+    margin-bottom: 10px;
+}
+
+/* Thematic Backdrop Glow */
+.card-visual::before {
+    content: '';
+    position: absolute;
+    width: 140px;
+    height: 140px;
+    background: radial-gradient(circle, var(--theme-color) 0%, transparent 70%);
+    opacity: 0.25;
+    /* Default visibility */
+    filter: blur(20px);
+    z-index: -1;
+    transition: opacity 0.3s;
+}
+
+.unified-card:hover .card-visual::before {
+    opacity: 0.4;
+}
+
+.card-visual img {
+    max-width: 90%;
+    max-height: 220px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 20px rgba(0, 0, 0, 0.8));
+    transition: transform 0.4s ease;
+}
+
+.unified-card:hover .card-visual img {
+    transform: scale(1.05);
+    filter: drop-shadow(0 0 25px var(--theme-glow));
+}
+
+/* 3. Info Area */
+.card-info {
+    text-align: center;
+    z-index: 2;
+    width: 100%;
+    padding-bottom: 10px;
+}
+
+.primary-text {
+    font-size: 1.6em;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 5px;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 1);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.secondary-text {
+    font-size: 0.9em;
+    color: #bbb;
+    margin-bottom: 8px;
+    line-height: 1.4;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.primary-stat-val {
+    font-size: 2em;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
+    background: linear-gradient(to right, #fff, var(--theme-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* 4. Details Footer (Hover Reveal) */
+.details-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 0;
+    background: linear-gradient(to top, #050505 10%, rgba(10, 10, 15, 0.95), transparent);
+    border-top: 1px solid var(--theme-glow);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 0 20px;
+    overflow: hidden;
+    transition: height 0.3s ease;
+    z-index: 5;
+    border-radius: 0 0 12px 12px;
+}
+
+.unified-card:hover .details-overlay {
+    height: 110px;
+    padding-bottom: 15px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 6px 0;
+    font-size: 0.85em;
+    color: #ddd;
+}
+
+.detail-row span:last-child {
+    color: var(--theme-color);
+    font-weight: 600;
+}
+
+/* Decorators */
+.corner-accent {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border: 2px solid var(--theme-color);
+    transition: all 0.3s;
+    opacity: 0.5;
+}
+
+.top-left {
+    top: 8px;
+    left: 8px;
+    border-bottom: none;
+    border-right: none;
+}
+
+.top-right {
+    top: 8px;
+    right: 8px;
+    border-bottom: none;
+    border-left: none;
+}
+
+.bottom-left {
+    bottom: 8px;
+    left: 8px;
+    border-top: none;
+    border-right: none;
+}
+
+.bottom-right {
+    bottom: 8px;
+    right: 8px;
+    border-top: none;
+    border-left: none;
+}
+
+.unified-card:hover .corner-accent {
+    opacity: 1;
+    width: 12px;
+    height: 12px;
+}
+
+/* AI Card Layout Override */
+.ai-card-content {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    justify-content: flex-start;
+    padding-top: 10px;
+}
+
+.ai-title {
+    font-size: 1.4em;
+    color: var(--theme-color);
+    font-weight: 700;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.ai-text {
+    font-size: 0.95em;
+    color: #ddd;
+    text-align: center;
+    line-height: 1.5;
+    margin-bottom: 15px;
+    min-height: 3em;
+}
+
+.ai-visual {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.ai-visual img {
+    max-width: 100%;
+    max-height: 140px;
+    filter: drop-shadow(0 0 15px var(--theme-glow));
+}
+
+.ai-contributors {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.contrib-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85em;
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.contrib-row:last-child {
+    border-bottom: none;
+}
+
+.contrib-name {
+    color: #fff;
+}
+
+.contrib-val {
+    color: var(--theme-color);
+    font-weight: 600;
+}
+
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=Rajdhani:wght@400;600;700&display=swap');
 
 :root {
@@ -20,8 +329,25 @@
     --neon-red: #FF3333;
     --neon-green: #33FF33;
     --neon-blue: #00d4ff;
+    --neon-purple: #bc13fe;
     --neon-void: #a78bfa;
     /* Light Purple for void accents */
+
+    /* Boss Theme Colors (6 Categories) */
+    --boss-cyan: #00f3ff;
+    --boss-cyan-glow: rgba(0, 243, 255, 0.4);
+    --boss-purple: #aa00ff;
+    --boss-purple-glow: rgba(170, 0, 255, 0.4);
+    --boss-green: #39ff14;
+    --boss-green-glow: rgba(57, 255, 20, 0.4);
+    --boss-red: #ff3333;
+    --boss-red-glow: rgba(255, 51, 51, 0.4);
+    --boss-gold: #ffd700;
+    --boss-gold-glow: rgba(255, 215, 0, 0.4);
+    --boss-orange: #ffaa00;
+    --boss-orange-glow: rgba(255, 170, 0, 0.4);
+    --boss-white: #ffffff;
+    --boss-white-glow: rgba(255, 255, 255, 0.4);
 
     /* Typography */
     --text-main: #E0E0E0;
@@ -304,89 +630,121 @@ th,
 }
 
 /* ALERT CARDS (AI INSIGHTS) */
-.alert-card {
-    padding: 30px;
-    /* Increased padding */
+/* AI INSIGHT CARDS (Replaces Alert Cards) */
+.insight-card {
+    padding: 25px;
     position: relative;
-    background: rgba(30, 30, 35, 0.6);
+    background: rgba(20, 20, 25, 0.8);
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     border-radius: 12px;
-    transition: 0.3s;
-    min-height: 140px;
-    /* Taller cards */
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    min-height: 180px;
+    /* Taller for better readability */
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
+    /* Align top */
+    overflow: hidden;
+    backdrop-filter: blur(10px);
 }
 
-.alert-card:hover {
+.insight-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
 }
 
-/* Card Variants */
-.alert-card.leadership {
+/* Insight Variants */
+.insight-card.leadership {
     border: 1px solid var(--neon-gold);
-    background: linear-gradient(135deg, rgba(255, 215, 0, 0.05) 0%, rgba(10, 10, 10, 0.8) 100%);
-    box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(10, 10, 10, 0.9) 100%);
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.1);
 }
 
-.alert-card.trend {
+.insight-card.trend-positive {
     border-left: 4px solid var(--neon-blue);
-    background: linear-gradient(90deg, rgba(0, 212, 255, 0.05) 0%, rgba(10, 10, 10, 0.8) 100%);
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.05) 0%, rgba(10, 10, 12, 0.9) 100%);
 }
 
-.alert-card.roast {
+.insight-card.trend-negative {
+    border-left: 4px solid var(--neon-red);
+    background: linear-gradient(135deg, rgba(255, 51, 51, 0.05) 0%, rgba(10, 5, 5, 0.9) 100%);
+}
+
+.insight-card.milestone {
+    border-top: 4px solid var(--neon-green);
+    background: linear-gradient(180deg, rgba(51, 255, 51, 0.05) 0%, rgba(10, 15, 10, 0.9) 100%);
+}
+
+.insight-card.roast {
     border: 1px solid var(--neon-red);
-    background: linear-gradient(135deg, rgba(255, 51, 51, 0.05) 0%, rgba(10, 10, 10, 0.8) 100%);
+    background: linear-gradient(135deg, rgba(255, 51, 51, 0.1) 0%, rgba(10, 0, 0, 0.9) 100%);
 }
 
-.alert-card.spoon {
-    border: 1px solid var(--neon-green);
-    background: linear-gradient(135deg, rgba(51, 255, 51, 0.05) 0%, rgba(10, 10, 10, 0.8) 100%);
+.insight-card.anomaly {
+    border: 1px solid var(--neon-void);
+    background: linear-gradient(135deg, rgba(167, 139, 250, 0.1) 0%, rgba(10, 5, 15, 0.95) 100%);
+    animation: border-pulse 4s infinite;
 }
 
-.alert-card.dying {
-    /* Special negative trend */
-    border: 1px solid #ff0000;
-    box-shadow: inset 0 0 20px rgba(255, 0, 0, 0.2);
+/* Typography inside Cards */
+.insight-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
 }
 
-.alert-icon {
-    font-size: 2rem;
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    opacity: 0.3;
+.insight-icon {
+    font-size: 1.5rem;
+    opacity: 0.8;
 }
 
-.alert-name {
+.insight-title {
     font-family: 'Outfit', sans-serif;
-    font-size: 1.4rem;
-    /* Larger Title */
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
     color: #fff;
-    margin-bottom: 10px;
-    text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
-.alert-card.leadership .alert-name {
+/* Variant Text Colors */
+.insight-card.leadership .insight-title,
+.insight-card.leadership .insight-icon {
     color: var(--neon-gold);
 }
 
-.alert-card.roast .alert-name {
+.insight-card.trend-positive .insight-title,
+.insight-card.trend-positive .insight-icon {
+    color: var(--neon-blue);
+}
+
+.insight-card.trend-negative .insight-title,
+.insight-card.trend-negative .insight-icon {
     color: var(--neon-red);
 }
 
-.alert-card.spoon .alert-name {
+.insight-card.milestone .insight-title,
+.insight-card.milestone .insight-icon {
     color: var(--neon-green);
 }
 
-.alert-reason {
-    color: var(--text-main);
-    font-size: 1.1rem;
-    /* Larger Text */
-    line-height: 1.4;
+.insight-card.roast .insight-title,
+.insight-card.roast .insight-icon {
+    color: var(--neon-red);
+}
+
+.insight-card.anomaly .insight-title,
+.insight-card.anomaly .insight-icon {
+    color: var(--neon-void);
+}
+
+.insight-message {
+    font-size: 0.95rem;
+    color: #ddd;
+    line-height: 1.5;
+    font-weight: 300;
 }
 
 /* PREMIUM CARD STYLING (Boss Card Style) */

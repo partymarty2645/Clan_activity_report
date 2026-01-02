@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Test V3 - Agreed Design</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <style>
+        body {
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+
+        .test-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .section-label {
+            color: #fff;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.7;
+        }
+
+        /* Mock specific colors for demo */
+        .mock-blue {
+            --theme-color: #00d4ff;
+            --theme-glow: rgba(0, 212, 255, 0.4);
+        }
+
+        .mock-gold {
+            --theme-color: #FFD700;
+            --theme-glow: rgba(255, 215, 0, 0.4);
+        }
+
+        .mock-red {
+            --theme-color: #FF3333;
+            --theme-glow: rgba(255, 51, 51, 0.4);
+        }
+
+        .mock-green {
+            --theme-color: #33FF33;
+            --theme-glow: rgba(51, 255, 51, 0.4);
+        }
+
+        /* Ensure cards have a specific width for the demo if not set by class */
+        .unified-card {
+            width: 300px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- SECTION 1: AI INSIGHTS (Reference) -->
+    <div class="test-section">
+        <div class="section-label">AI Insight (Reference)</div>
+
+        <div class="unified-card insight-card leadership mock-gold">
+            <!-- SHADOW_DECORATORS -->
+            <div class="necrotic-border"></div>
+            <div class="scanlines"></div>
+            <div class="corner-accent top-left"></div>
+            <div class="corner-accent top-right"></div>
+            <div class="corner-accent bottom-left"></div>
+            <div class="corner-accent bottom-right"></div>
+            <div class="void-particles">
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+            </div>
+
+            <div class="ai-card-content">
+                <div class="insight-header"
+                    style="width:100%; display:flex; justify-content:space-between; margin-bottom:10px;">
+                    <i class="fas fa-chart-line insight-icon" style="color:var(--theme-color);"></i>
+                    <div class="insight-title" style="color:var(--theme-color); font-weight:bold;">CLAN RECORD BROKEN
+                    </div>
+                </div>
+
+                <div class="ai-text">
+                    The clan has achieved a new milestone in total XP gains this week!
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION 2: GENERAL STATS (Proposed V3) -->
+    <div class="test-section">
+        <div class="section-label">General Stat (V3 Proposed)</div>
+
+        <div class="unified-card mock-blue">
+            <!-- SHADOW_DECORATORS -->
+            <div class="necrotic-border"></div>
+            <div class="scanlines"></div>
+            <div class="corner-accent top-left"></div>
+            <div class="corner-accent top-right"></div>
+            <div class="corner-accent bottom-left"></div>
+            <div class="corner-accent bottom-right"></div>
+            <div class="void-particles">
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+            </div>
+
+            <div class="card-header">
+                <div class="rank-badge">
+                    <span>Rank 1</span>
+                </div>
+                <div class="card-type-label">Skill of the Week</div>
+            </div>
+
+            <div class="card-visual">
+                <img src="assets/skill_slayer.png" alt="Slayer" style="height: 100px;">
+            </div>
+
+            <div class="card-info">
+                <div class="primary-text">Active Members</div>
+                <div class="primary-stat-val">42</div>
+                <div class="secondary-text">Online in last 7 days</div>
+            </div>
+
+            <div class="details-overlay">
+                <div class="detail-row">
+                    <span>Previous Week</span>
+                    <span>38</span>
+                </div>
+                <div class="detail-row">
+                    <span>Growth</span>
+                    <span>+10.5%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION 3: BOSS CARD (Proposed V3) -->
+    <div class="test-section">
+        <div class="section-label">Boss Card (V3 Proposed)</div>
+
+        <div class="unified-card mock-red" style="--theme-color: #00f3ff; --theme-glow: rgba(0, 243, 255, 0.4);">
+            <!-- SHADOW_DECORATORS -->
+            <div class="necrotic-border"></div>
+            <div class="scanlines"></div>
+            <div class="corner-accent top-left"></div>
+            <div class="corner-accent top-right"></div>
+            <div class="corner-accent bottom-left"></div>
+            <div class="corner-accent bottom-right"></div>
+            <div class="void-particles">
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+            </div>
+
+            <div class="card-header">
+                <div class="rank-badge">
+                    <span>#1 Killer</span>
+                </div>
+                <div class="card-type-label">VORKATH</div>
+            </div>
+
+            <div class="card-visual">
+                <img src="assets/boss_vorkath.png" alt="Vorkath" style="height: 120px;">
+            </div>
+
+            <div class="card-info">
+                <div class="primary-text">PartyMarty</div>
+                <div class="primary-stat-val">1,337</div>
+                <div class="secondary-text">Kills (7d)</div>
+            </div>
+
+            <div class="details-overlay">
+                <div class="detail-row">
+                    <span>Total Kills</span>
+                    <span>5,204</span>
+                </div>
+                <div class="detail-row">
+                    <span>30d Kills</span>
+                    <span>+402</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION 4: GENERAL STAT - TOP XP (Proposed V3) -->
+    <div class="test-section">
+        <div class="section-label">Top XP (V3 Proposed)</div>
+
+        <div class="unified-card mock-green">
+            <!-- SHADOW_DECORATORS -->
+            <div class="necrotic-border"></div>
+            <div class="scanlines"></div>
+            <div class="corner-accent top-left"></div>
+            <div class="corner-accent top-right"></div>
+            <div class="corner-accent bottom-left"></div>
+            <div class="corner-accent bottom-right"></div>
+            <div class="void-particles">
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+            </div>
+
+            <div class="card-header">
+                <div class="rank-badge">
+                    <span>#1 Gainer</span>
+                </div>
+                <div class="card-type-label">XP MACHINE</div>
+            </div>
+
+            <div class="card-visual">
+                <img src="assets/skill_herblore.png" alt="Herblore" style="height: 100px;">
+            </div>
+
+            <div class="card-info">
+                <div class="primary-text">IronPker420</div>
+                <div class="primary-stat-val">12.5M</div>
+                <div class="secondary-text">XP Gained (7d)</div>
+            </div>
+
+            <div class="details-overlay">
+                <div class="detail-row">
+                    <span>Skill Focus</span>
+                    <span>Herblore</span>
+                </div>
+                <div class="detail-row">
+                    <span>Total XP</span>
+                    <span>104.2M</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION 5: GENERAL STAT - TOP CHATTER (Proposed V3) -->
+    <div class="test-section">
+        <div class="section-label">Top Chatter (V3 Proposed)</div>
+
+        <div class="unified-card mock-blue">
+            <!-- SHADOW_DECORATORS -->
+            <div class="necrotic-border"></div>
+            <div class="scanlines"></div>
+            <div class="corner-accent top-left"></div>
+            <div class="corner-accent top-right"></div>
+            <div class="corner-accent bottom-left"></div>
+            <div class="corner-accent bottom-right"></div>
+            <div class="void-particles">
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+                <div class="void-particle"></div>
+            </div>
+
+            <div class="card-header">
+                <div class="rank-badge">
+                    <span>Most Active</span>
+                </div>
+                <div class="card-type-label">DISCORD</div>
+            </div>
+
+            <div class="card-visual">
+                <img src="assets/rank_admin.png" alt="Admin" style="height: 100px;">
+            </div>
+
+            <div class="card-info">
+                <div class="primary-text">ChattyCathy</div>
+                <div class="primary-stat-val">4,092</div>
+                <div class="secondary-text">Messages (7d)</div>
+            </div>
+
+            <div class="details-overlay">
+                <div class="detail-row">
+                    <span>Daily Avg</span>
+                    <span>584</span>
+                </div>
+                <div class="detail-row">
+                    <span>Role</span>
+                    <span>Administrator</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>

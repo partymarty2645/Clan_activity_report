@@ -4,6 +4,7 @@ import json
 import sqlite3
 import datetime
 import logging
+import shutil
 from datetime import timezone, timedelta
 
 logger = logging.getLogger(__name__)
@@ -87,6 +88,53 @@ def format_number(num):
     if num >= 1000000: return f"{num/1000000:.1f}M"
     if num >= 1000: return f"{num/1000:.1f}k"
     return str(num)
+
+
+def validate_output_data(payload: dict) -> None:
+    """Fail fast if critical dashboard data is missing before publishing."""
+    required_keys = [
+        "allMembers",
+        "history",
+        "activity_heatmap",
+        "chart_boss_diversity",
+        "chart_raids",
+        "chart_skills",
+        "chart_boss_trend",
+    ]
+
+    missing = [k for k in required_keys if k not in payload]
+    if missing:
+        raise ValueError(f"Missing required fields: {', '.join(missing)}")
+
+    if not payload.get("allMembers"):
+        raise ValueError("allMembers is empty; dashboard cannot render")
+
+    def _ensure_chart(chart_key: str, fields: list[str]):
+        chart = payload.get(chart_key)
+        if not chart:
+            raise ValueError(f"{chart_key} is missing")
+        for field in fields:
+            if field not in chart or not chart[field]:
+                raise ValueError(f"{chart_key}.{field} is missing or empty")
+
+    _ensure_chart("chart_boss_diversity", ["labels", "datasets"])
+    _ensure_chart("chart_raids", ["labels", "datasets"])
+    _ensure_chart("chart_skills", ["labels", "datasets"])
+
+    # Boss trend requires nested chart_data
+    trend = payload.get("chart_boss_trend")
+    if not trend or "chart_data" not in trend:
+        raise ValueError("chart_boss_trend.chart_data is missing")
+    chart_data = trend["chart_data"]
+    if not chart_data.get("labels") or not chart_data.get("datasets"):
+        raise ValueError("chart_boss_trend.chart_data is empty")
+
+    # History and heatmap should not be empty
+    if not payload.get("history"):
+        raise ValueError("history is empty; activity trend cannot render")
+    heatmap = payload.get("activity_heatmap")
+    if not heatmap or len(heatmap) == 0:
+        raise ValueError("activity_heatmap is empty; heatmap cannot render")
 
 def get_db_connection():
     return sqlite3.connect(Config.DB_FILE)
@@ -620,6 +668,13 @@ def run_export():
             "leaderboard_size": Config.LEADERBOARD_SIZE,
             "top_boss_cards": Config.TOP_BOSS_CARDS
         }
+
+        # Validate critical fields before writing
+        try:
+            validate_output_data(output_data)
+        except Exception as e:
+            logger.error(f"Dashboard export validation failed: {e}")
+            raise
         
         # JSON Export
         with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:

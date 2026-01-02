@@ -1,62 +1,74 @@
 [
   {
     "type": "milestone",
-    "title": "Massive XP Gain!",
-    "message": "drylogs smashed it with 91.5M XP this week! Machine!",
+    "title": "BIG XP GAINS!",
+    "message": "drylogs just sent it with 9.1M XP! \ud83d\udca5",
     "icon": "fa-trophy"
   },
   {
     "type": "milestone",
     "title": "Boss Slayer!",
-    "message": "Arrogancee with 1933 boss kills this week! That's insane!",
-    "icon": "fa-skull"
+    "message": "arrogancee with a massive 1933 boss kills! \ud83d\udc80",
+    "icon": "fa-dragon"
   },
   {
     "type": "roast",
     "title": "Silent Grinder",
-    "message": "arrogancee with 68.3M XP and 0 messages? Bot??",
-    "icon": "fa-robot"
+    "message": "arrogancee: 1933 boss kills, 0 messages? Bot?? \ud83e\udd16",
+    "icon": "fa-user-ninja"
   },
   {
     "type": "roast",
-    "title": "Silent Grinder",
-    "message": "tylenolchugr with 20.1M XP and 0 messages? Bot??",
-    "icon": "fa-robot"
+    "title": "XP Waste?",
+    "message": "basket15cool with 26.7M XP but only 3 messages? \ud83e\udd74",
+    "icon": "fa-comment-slash"
   },
   {
-    "type": "trend",
-    "title": "Clan Activity",
-    "message": "14k messages on Discord & 4k game snapshots! We're buzzing!",
+    "type": "trend-positive",
+    "title": "Chat is POPPIN'!",
+    "message": "+75.5% Discord messages this week! \ud83d\ude80",
     "icon": "fa-chart-line"
   },
   {
+    "type": "trend-positive",
+    "title": "The Batgang is TALKING!",
+    "message": "15157 messages this week! Keep it up! \ud83c\udf82",
+    "icon": "fa-comments"
+  },
+  {
     "type": "leadership",
-    "title": "Leadership Shoutout!",
-    "message": "Partymarty2645 leading by example with 5.4M XP & 332 messages!",
+    "title": "Staff Spotlight",
+    "message": "Partymarty2645 is on fire with 704 messages! \ud83d\udc4c",
+    "icon": "fa-crown"
+  },
+  {
+    "type": "anomaly",
+    "title": "Weird Stats Here",
+    "message": "kxntsugi: 46.6M XP gain, 141 boss kills, 0 messages. Hmm. \ud83e\udd14",
+    "icon": "fa-question-circle"
+  },
+  {
+    "type": "general",
+    "title": "Top XP Getter",
+    "message": "drylogs leads with 9.1M XP gain this week! \ud83c\udfc6",
     "icon": "fa-star"
   },
   {
     "type": "general",
-    "title": "Top Killer",
-    "message": "Youcoxucker has a whopping 26,622 total boss kills!",
-    "icon": "fa-hand-rock"
+    "title": "Bossing Machine",
+    "message": "samaelilith bagged 2280 boss kills! \ud83d\ude0e",
+    "icon": "fa-chess-king"
+  },
+  {
+    "type": "roast",
+    "title": "Touch Grass?",
+    "message": "drylogs with 9.1M XP and 15 messages? That's a LOT. \ud83c\udf33",
+    "icon": "fa-leaf"
   },
   {
     "type": "general",
-    "title": "XP Powerhouse",
-    "message": "Theforgegod has accumulated an insane 584M total XP!",
-    "icon": "fa-fire"
-  },
-  {
-    "type": "fun",
-    "title": "Social Butterfly",
-    "message": "sirgowi with 655 messages but only 5.6M XP this week. Social butterfly!",
-    "icon": "fa-comment-dots"
-  },
-  {
-    "type": "fun",
-    "title": "Low Message Count",
-    "message": "kxntsugi gained 46.6M XP with 0 messages. Shhh, they're grinding!",
-    "icon": "fa-headphones"
+    "title": "Chat and Chill",
+    "message": "samaelilith balances 930 messages with 15.2M XP gain. \ud83e\udd73",
+    "icon": "fa-grin-alt"
   }
 ]

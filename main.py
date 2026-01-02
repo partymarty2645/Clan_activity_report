@@ -110,17 +110,17 @@ async def main():
     if not run_module('scripts.report_sqlite', "Generating Excel Report (SQLite source)"):
         log_error("Excel Report generation failed.")
     
-    # Step 3: Analytics & Export
-    log_step(3, 4, "DASHBOARD EXPORT")
+    # Step 4: Analytics & Export
+    log_step(4, 5, "DASHBOARD EXPORT")
     if not run_module('scripts.export_sqlite', "Exporting JSON Data for Web Dashboard"):
         log_error("Dashboard data export failed.")
 
-    # Step 3b: Deploy Docs
+    # Step 4b: Deploy Docs
     if not run_module('scripts.publish_docs', "Deploying Dashboard to /docs"):
         log_error("Docs deployment failed.")
 
-    # Step 4: CSV Export
-    log_step(4, 4, "LEGACY EXPORT")
+    # Step 5: CSV Export
+    log_step(5, 5, "LEGACY EXPORT")
     run_module('scripts.export_csv', "Generating CSV Dump")
 
     # Final Summary
