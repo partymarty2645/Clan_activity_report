@@ -19,7 +19,18 @@ TARGETS = {
     "Ahrim_the_Blighted.png": "boss_ahrim_the_blighted.png",
     "Sol_Heredit.png": "boss_sol_heredit.png",
     "Deranged_archaeologist.png": "boss_deranged_archaeologist.png",
-    "Crazy_archaeologist.png": "boss_crazy_archaeologist.png"
+    "Crazy_archaeologist.png": "boss_crazy_archaeologist.png",
+    # GWD & Others
+    "Commander_Zilyana.png": "boss_commander_zilyana.png",
+    "General_Graardor.png": "boss_general_graardor.png",
+    "Hespori.png": "boss_hespori.png",
+    "King_Black_Dragon.png": "boss_king_black_dragon.png",
+    "Kree'arra.png": "boss_kree_arra.png",
+    "K'ril_Tsutsaroth.png": "boss_kril_tsutsaroth.png",
+    "Phosani's_Nightmare.png": "boss_phosanis_nightmare.png",
+    # Check these (Varlamore/Other)
+    "Amoxliatl.png": "boss_amoxliatl.png",
+    "Yama.png": "boss_yama.png"
 }
 
 def fetch_assets():
