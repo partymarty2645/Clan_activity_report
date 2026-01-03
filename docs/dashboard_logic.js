@@ -14,9 +14,22 @@ let CONFIG = {
     PURGE_MIN_XP: 0,
     PURGE_MIN_BOSS: 0,
     PURGE_MIN_MSGS: 0,
-    LEADERBOARD_SIZE: 10,
-    TOP_BOSS_CARDS: 5
+    LEADERBOARD_SIZE: 25,
+    TOP_BOSS_CARDS: 6
 };
+
+// Global HTML Decorators (used by multiple render functions)
+const SHADOW_DECORATORS = `
+    <div class="necrotic-border"></div>
+    <div class="scanlines"></div>
+    <div class="corner-accent top-left"></div>
+    <div class="corner-accent top-right"></div>
+    <div class="corner-accent bottom-left"></div>
+    <div class="corner-accent bottom-right"></div>
+    <div class="void-particles">
+        <div class="void-particle"></div><div class="void-particle"></div><div class="void-particle"></div>
+        <div class="void-particle"></div><div class="void-particle"></div>
+    </div>`;
 
 // Global Error Handler
 window.onerror = function (msg, url, lineNo, columnNo, error) {
@@ -168,6 +181,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         const updateEl = document.getElementById('updated-time');
         if (updateEl) updateEl.innerText = "Data Loaded. Rendering...";
 
+        // CRITICAL: Initialize BOSS_THEMES BEFORE calling any render functions that use getBossTheme()
+        BOSS_THEMES = getBossThemesFromCSS();
+        console.log("BOSS_THEMES initialized from CSS variables");
+
         // 2. Initial Render
         safelyRun(() => renderLastUpdated(dashboardData.generated_at), "renderLastUpdated");
         safelyRun(() => renderGeneralStats(dashboardData), "renderGeneralStats");
@@ -200,6 +217,777 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (el) el.innerHTML = `<span style="color:red; font-size: 0.8em;">INIT ERROR: ${criticalError.message}</span>`;
     }
 });
+
+// ========== HELPER FUNCTIONS (MOVED TO TOP FOR HOISTING) ==========
+
+function renderTime(id, isoDate) {
+    const el = document.getElementById(id);
+    if (el && isoDate) {
+        const d = new Date(isoDate);
+        el.innerText = d.toLocaleString('en-GB').replace(/\//g, '-');
+    }
+}
+
+
+const BOSS_ASSET_MAP = {
+    // === 1. RAIDS & MEGA BOSSES ===
+    'cox': 'boss_chambers_of_xeric.png',
+    'chambers': 'boss_chambers_of_xeric.png',
+    'olm': 'boss_great_olm.png',
+    'muttadile': 'boss_muttadile.png',
+    'tekton': 'boss_tekton.png',
+    'vasa': 'boss_vasa_nistirio.png',
+    'vespula': 'boss_vespula.png',
+    'ice demon': 'boss_ice_demon.png',
+
+    // ToB
+    'tob': 'boss_theatre_of_blood.png',
+    'theatre': 'boss_theatre_of_blood.png',
+    'verzik': 'boss_verzik_vitur.png',
+    'bloat': 'boss_pestilent_bloat.png',
+    'maiden': 'boss_the_maiden_of_sugadinti.png',
+    'sote': 'boss_sotetseg.png',
+    'sotetseg': 'boss_sotetseg.png',
+    'xarpus': 'boss_xarpus.png',
+
+    // ToA
+    'toa': 'boss_tombs_of_amascut.png',
+    'tombs': 'boss_tombs_of_amascut.png',
+    'warden': 'boss_tumeken\'s_warden.png',
+    'tumeken': 'boss_tumeken\'s_warden.png',
+    'elidinis': 'boss_elidinis\'_warden.png',
+    'akkha': 'boss_akkha.png',
+    'baba': 'boss_ba-ba.png',
+    'kephri': 'boss_kephri.png',
+    'zebak': 'boss_zebak.png',
+
+    // Mega
+    'nex': 'boss_nex.png',
+    'corp': 'boss_corporeal_beast.png',
+    'nightmare': 'boss_the_nightmare.png',
+    'phosani': 'boss_phosanis_nightmare.png',
+
+    // === 2. DESERT TREASURE 2 (DT2) ===
+    'whisperer': 'boss_the_whisperer.png',
+    'vardorvis': 'boss_vardorvis.png',
+    'leviathan': 'boss_the_leviathan.png',
+    'duke': 'boss_duke_sucellus.png',
+    'sucellus': 'boss_duke_sucellus.png',
+
+    // === 3. GOD WARS DUNGEON (GWD) ===
+    'zilyana': 'boss_commander_zilyana.png',
+    'sara': 'boss_commander_zilyana.png',
+    'graardor': 'boss_general_graardor.png',
+    'bandos': 'boss_general_graardor.png',
+    'kril': 'boss_kril_tsutsaroth.png',
+    'zammy': 'boss_kril_tsutsaroth.png',
+    'kree': 'boss_kree_arra.png',
+    'arma': 'boss_kree_arra.png',
+
+    // === 4. SLAYER BOSSES ===
+    'hydra': 'boss_alchemical_hydra.png',
+    'araxxor': 'boss_araxxor.png',
+    'sire': 'boss_abyssal_sire.png',
+    'cerberus': 'boss_cerberus.png',
+    'cerb': 'boss_cerberus.png',
+    'kraken': 'boss_kraken.png',
+    'thermy': 'boss_thermonuclear_smoke_devil.png',
+    'smoke devil': 'boss_thermonuclear_smoke_devil.png',
+    'ggs': 'boss_dusk.png',
+    'grotesque': 'boss_dusk.png',
+    'dusk': 'boss_dusk.png',
+    // 'dawn': 'boss_grotesque_guardians.png',
+
+    // === 5. WILDERNESS ===
+    'artio': 'boss_artio.png',
+    'callisto': 'boss_callisto.png',
+    'calvarion': 'boss_calvarion.png',
+    'vetion': 'boss_vet\'ion.png',
+    'spindel': 'boss_spindel.png',
+    'venenatis': 'boss_venenatis.png',
+    'chaos ele': 'boss_chaos_elemental.png',
+    'fanatic': 'boss_chaos_fanatic.png',
+    'archaeologist': 'boss_crazy_archaeologist.png',
+    'scorpia': 'boss_scorpia.png',
+
+    // === 6. SKILLING / MINIGAMES / OTHER ===
+    'zalcano': 'boss_zalcano.png',
+    'tempoross': 'boss_tempoross.png',
+    'todt': null,
+    'wintertodt': null,
+    'jad': 'boss_tztok-jad.png',
+    'zuk': 'boss_tzkal-zuk.png',
+    'inferno': 'boss_tzkal-zuk.png',
+    'barrows': 'boss_dharok_the_wretched.png',
+    'gauntlet': 'boss_the_corrupted_gauntlet.png',
+    'hunllef': 'boss_corrupted_hunllef.png',
+    'mimic': 'boss_the_mimic.png',
+    'hespori': 'boss_hespori.png',
+    'skotizo': 'boss_skotizo.png',
+    'obor': 'boss_obor.png',
+    'bryophyta': 'boss_bryophyta.png',
+    'deranged': 'boss_deranged_archaeologist.png',
+
+    // === 7. NEW / VARLAMORE ===
+    'scurrius': 'boss_scurrius.png',
+    'huey': 'boss_the_hueycoatl.png',
+    'hueycoatl': 'boss_the_hueycoatl.png',
+    'sol': 'boss_sol_heredit.png',
+    'colosseum': 'boss_sol_heredit.png',
+
+    // === 8. MOONS OF PERIL ===
+    'blood moon': 'boss_blood_moon.png',
+    'blue moon': 'boss_blue_moon.png',
+    'eclipse': 'boss_eclipse_moon.png',
+    'amoxliatl': 'boss_amoxliatl.png',
+
+    // === 9. SOLO / WANDERING ===
+    'zulrah': 'boss_zulrah.png',
+    'vorkath': 'boss_vorkath.png',
+    'muspah': 'boss_phantom_muspah.png',
+    'mole': 'boss_giant_mole.png',
+    'kq': 'boss_kalphite_queen.png',
+    'kalphite': 'boss_kalphite_queen.png',
+    'sarachnis': 'boss_sarachnis.png',
+    'kbd': 'boss_king_black_dragon.png',
+    'black dragon': 'boss_king_black_dragon.png',
+};
+
+function resolveBossImage(bossName, providedImg) {
+    if (!bossName) return 'boss_pet_rock.png';
+    const lower = bossName.toLowerCase();
+
+    // 1. Check EXACT or KEYWORD match in Dictionary
+    for (const [key, filename] of Object.entries(BOSS_ASSET_MAP)) {
+        if (lower.includes(key)) {
+            // Note: If mapped to null (e.g. wintertodt), we return pet rock
+            return filename || 'boss_pet_rock.png';
+        }
+    }
+
+    // 2. Fallback: If provided image is valid, use it
+    if (providedImg && !providedImg.includes('pet_rock')) return providedImg;
+
+    return 'boss_pet_rock.png';
+}
+
+function formatInsightMessage(msg) {
+    if (!msg) return '';
+    // Highlight large numbers
+    let formatted = msg.replace(/(\d+(?:,\d+)?(?:\.\d+)?[KMB]?)/g, '<span style="color:var(--neon-gold); font-weight:bold;">$1</span>');
+
+    // Highlight quoted names/text - REMOVED to prevent HTML attribute collision
+    // formatted = formatted.replace(/'([^']+)'/g, '<span style="color:#fff; font-weight:bold;">$1</span>');
+    // formatted = formatted.replace(/"([^"]+)"/g, '<span style="color:#fff; font-weight:bold;">$1</span>');
+
+    // Highlight keywords
+    const keywords = ['PEAK', 'RECORD', 'HIGH', 'LOW', 'ACTIVE', 'DORMANT', 'CLAN'];
+    keywords.forEach(k => {
+        formatted = formatted.replace(new RegExp(`\\b${k}\\b`, 'g'), `<span style="color:var(--neon-blue); font-weight:bold;">${k}</span>`);
+    });
+
+    return formatted;
+}
+
+function renderBossesSection(members) {
+    console.log("renderBossesSection called with", members ? members.length : 0, "members");
+    if (dashboardData && dashboardData.generated_at) renderTime('updated-time-boss', dashboardData.generated_at);
+
+    const container = document.getElementById('bosses-grid');
+    if (!container) return;
+
+    container.innerHTML = '';
+    container.style.display = 'grid';
+    container.style.gridTemplateColumns = 'repeat(3, minmax(0, 1fr))';
+    container.style.gap = '20px';
+
+    const bossesSorted = [...members].sort((a, b) => (b.boss_7d || 0) - (a.boss_7d || 0)).filter(m => m.boss_7d > 0).slice(0, 6);
+
+    if (bossesSorted.length === 0) {
+        container.innerHTML = '<div class="glass-card" style="padding:20px;grid-column:1/-1;text-align:center;color:#888">No boss data available</div>';
+    }
+
+    bossesSorted.forEach((m, idx) => {
+        const bossName = (m.favorite_boss_all_time || m.favorite_boss || 'Top Killer').toString();
+        // Use helper to resolve image, fixing specific mismatches like Whisperer/Vardorvis
+        const bossImg = resolveBossImage(bossName, m.favorite_boss_img);
+        const theme = getBossTheme(bossName);
+        const color = theme.color || '#bc13fe';
+        const glow = theme.glow || 'rgba(188, 19, 254, 0.4)';
+
+        container.innerHTML += `
+        <div class="unified-card" style="--theme-color: ${color}; --theme-glow: ${glow};">
+            ${SHADOW_DECORATORS}
+            <div class="card-header" style="padding: 10px 12px 0 12px;">
+                <div class="card-header-inner" style="display:flex; align-items:center; width:100%; gap:10px;">
+                    <img src="assets/${m.rank_img || 'rank_minion.png'}" alt="rank" style="width:48px; height:48px; object-fit:contain;" onerror="this.src='assets/rank_minion.png'" />
+                    <div style="flex:1; text-align:center;">
+                        <div class="primary-text" style="font-size:1.3em; color:#fff;">${m.username}</div>
+                        <div class="card-type-label" style="margin-top:2px;">${bossName.toUpperCase()}</div>
+                    </div>
+                    <div class="rank-badge"><span>#${idx + 1}</span></div>
+                </div>
+            </div>
+            <div class="card-visual" style="text-align:center; padding-top:6px;">
+                <img src="assets/${bossImg}" alt="${bossName}" style="height: 245px; object-fit: contain; filter: drop-shadow(0 0 12px ${glow});" />
+            </div>
+            <div class="card-info" style="text-align:center; padding-bottom:10px;">
+                <div class="primary-stat-val" style="font-size:2.2em;">${formatNumber(m.boss_7d)}</div>
+                <div class="secondary-text">Kills (7d)</div>
+            </div>
+            <div class="details-overlay">
+                <div class="detail-row"><span>Total Kills</span><span>${formatNumber(m.total_boss || 0)}</span></div>
+                <div class="detail-row"><span>30d Kills</span><span>${formatNumber(m.boss_30d || 0)}</span></div>
+            </div>
+        </div>`;
+    });
+
+    // Also keep table in sync for data transparency
+    const tbody = document.querySelector('#bosses-table tbody');
+    if (tbody) {
+        const sorted = [...members].sort((a, b) => b.boss_7d - a.boss_7d).slice(0, 50);
+        tbody.innerHTML = sorted.map((m, i) => {
+            const bossName = (m.favorite_boss_all_time || m.favorite_boss || 'Top Killer').toString();
+            const bossKey = bossName.toLowerCase().replace(/[^a-z0-9]/g, ''); // Normalize for CSS class
+            const theme = getBossTheme(bossName);
+            // We use the CSS class for the theme if available, otherwise fallback to inline styles
+            const themeClass = `theme-row-${bossKey}`;
+
+            // Fallback inline style if CSS class doesn't exist (though harmless to add class)
+            // But we keep the inline border for guaranteed color match if CSS is missing
+            const style = `border-left: 3px solid ${theme.color};`;
+
+            return `
+            <tr class="${themeClass}" style="${style}">
+                <td style="color:${i < 3 ? 'var(--neon-gold)' : '#fff'}">#${i + 1}</td>
+                <td>${m.username}</td>
+                <td>${m.role}</td>
+                <td style="color:rgba(255,255,255,0.7)">${formatNumber(m.total_boss)}</td>
+                <td style="color:var(--neon-red);font-weight:bold">+${formatNumber(m.boss_7d)}</td>
+                <td style="color:rgba(255,255,255,0.7)">+${formatNumber(m.boss_30d || 0)}</td>
+            </tr>`;
+        }).join('');
+    }
+}
+
+function renderOutliersSection(members) {
+    console.log("renderOutliersSection called with", members ? members.length : 0, "members");
+    renderTime('updated-time-out', dashboardData.generated_at);
+
+    const tbody = document.querySelector('#outliers-table tbody');
+    if (tbody) {
+        const purgingCandidates = getPurgeCandidates(members);
+
+        if (purgingCandidates.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--neon-green)">No purging candidates found. Healthy roster!</td></tr>';
+        } else {
+            tbody.innerHTML = purgingCandidates.map(m => `
+                <tr>
+                    <td>${m.username}</td>
+                    <td>${m.role}</td>
+                    <td>${m.msgs_30d}</td>
+                    <td>${formatNumber(m.xp_30d)}</td>
+                    <td>${m.days_in_clan} days</td>
+                    <td style="color:var(--neon-red);font-weight:bold">${m.status}</td>
+                </tr>
+            `).join('');
+        }
+    }
+}
+
+function getPurgeCandidates(members) {
+    const candidates = [];
+
+    members.forEach(m => {
+        let status = null;
+        let type = "";
+
+        const pDays = CONFIG.PURGE_DAYS || 30;
+        const minXP = CONFIG.PURGE_MIN_XP || 0;
+        const minBoss = CONFIG.PURGE_MIN_BOSS || 0;
+        const minMsgs = CONFIG.PURGE_MIN_MSGS || 0;
+
+        if (m.days_in_clan > 60 && m.xp_30d < minXP && m.boss_30d < minBoss && m.msgs_30d === minMsgs) {
+            status = "Terminally Inactive";
+            type = "Purge High Priority";
+        } else if (m.days_in_clan > pDays && m.xp_30d === 0 && m.msgs_30d === 0) {
+            status = "Zero Activity (30d)";
+            type = "Purge";
+        } else if (m.days_in_clan > 90 && m.msgs_total < minMsgs && m.xp_30d < 100000) {
+            status = "Long-term Ghost";
+            type = "Purge";
+        }
+
+        if (status) {
+            candidates.push({ ...m, status, type });
+        }
+    });
+
+    return candidates.sort((a, b) => b.days_in_clan - a.days_in_clan);
+}
+
+function renderActivityHeatmap() {
+    const container = 'activity-heatmap';
+    if (!document.getElementById(container)) return;
+    if (charts.heatmap) charts.heatmap.destroy();
+
+    const data = dashboardData.activity_heatmap;
+    if (!data || !Array.isArray(data) || data.length === 0) {
+        document.getElementById(container).innerHTML = '<div class="no-data">No heatmap data</div>';
+        return;
+    }
+
+    const plotData = data.map((val, idx) => ({
+        hour: `${String(idx).padStart(2, '0')}:00`,
+        value: Number(val) || 0
+    }));
+
+    try {
+        const column = new G2Plot.Column(container, {
+            data: plotData,
+            xField: 'hour',
+            yField: 'value',
+            color: '#00d4ff',
+            columnStyle: { radius: [4, 4, 0, 0] },
+            autoFit: true,
+            theme: {
+                styleSheet: {
+                    backgroundColor: 'transparent',
+                    plotBackgroundColor: 'transparent'
+                }
+            },
+            meta: { value: { alias: 'Messages' } },
+            xAxis: { label: { autoRotate: false, style: { fill: '#666', fontSize: 10 } }, grid: null },
+            yAxis: { grid: { line: { style: { stroke: '#333', lineDash: [2, 2] } } } },
+            legend: {
+                position: 'top-left',
+                itemName: { style: { fill: '#ccc', fontSize: 12 } }
+            },
+            tooltip: { formatter: (datum) => ({ name: 'Activity', value: datum.value + ' msgs' }) }
+        });
+        column.render();
+        charts.heatmap = column;
+    } catch (e) {
+        console.warn("Failed to render Heatmap:", e);
+    }
+}
+
+function renderActivityTrend() {
+    const container = 'container-activity-trend';
+    const el = document.getElementById(container);
+    if (!el) return;
+
+    el.innerHTML = '';
+
+    const hist = dashboardData.history;
+    if (!hist || !Array.isArray(hist) || hist.length === 0) {
+        el.innerHTML = '<div style="text-align:center;padding:40px;color:#666;font-style:italic;">Activity history not yet available. Check back after more data is collected.</div>';
+        return;
+    }
+
+    const data = hist.map(item => ({
+        date: item.date,
+        value: Number(item.msgs) || 0,
+        category: 'Messages'
+    }));
+
+    try {
+        const area = new G2Plot.Area(container, {
+            data: data,
+            xField: 'date',
+            yField: 'value',
+            seriesField: 'category',
+            color: ['#00d4ff'],
+            areaStyle: { fill: 'l(270) 0:#00d4ff 1:rgba(0, 212, 255, 0.1)' },
+            theme: 'dark',
+            xAxis: { range: [0, 1], label: { style: { fill: '#666' }, autoRotate: true } },
+            yAxis: { grid: { line: { style: { stroke: '#333' } } }, label: { formatter: (v) => formatNumber(Number(v)) } },
+            legend: false,
+            tooltip: { showMarkers: true },
+            smooth: true,
+            animation: { appear: { animation: 'wave-in', duration: 1000 } }
+        });
+        area.render();
+        charts.activityTrend = area;
+    } catch (e) {
+        console.warn("Failed to render Activity Trend:", e);
+    }
+}
+
+function renderTenureChart() {
+    const ctx = document.getElementById('tenure-distribution-chart');
+    if (!ctx) return;
+    if (charts.tenure) charts.tenure.destroy();
+
+    const members = dashboardData.allMembers || [];
+    if (members.length === 0) {
+        ctx.style.display = 'none';
+        return;
+    }
+
+    const buckets = { '0-30d': 0, '30-90d': 0, '90-180d': 0, '180d+': 0 };
+    members.forEach(m => {
+        const d = m.days_in_clan || 0;
+        if (d <= 30) buckets['0-30d']++;
+        else if (d <= 90) buckets['30-90d']++;
+        else if (d <= 180) buckets['90-180d']++;
+        else buckets['180d+']++;
+    });
+
+    charts.tenure = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(buckets),
+            datasets: [{
+                data: Object.values(buckets),
+                backgroundColor: ['#00d4ff', '#33FF33', '#FFD700', '#FF3333'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'right', labels: { color: '#ccc' } } }
+        }
+    });
+}
+
+function renderXPWeeklyCorrelation() {
+    const container = document.getElementById('container-xp-scatter');
+    if (!container) return;
+    if (charts.xpMsgsCorr && charts.xpMsgsCorr.destroy) charts.xpMsgsCorr.destroy();
+
+    const members = dashboardData.allMembers || [];
+    const points = members
+        .filter(m => m.xp_7d > 0 && m.msgs_7d > 0)
+        .slice(0, 200)
+        .map(m => ({ name: m.username, xp: m.xp_7d, msgs: m.msgs_7d }));
+
+    if (points.length === 0) {
+        container.innerHTML = '<div style="text-align:center;padding:1.5rem;color:#666;font-style:italic;">No XP/message correlation data available</div>';
+        return;
+    }
+
+    const scatter = new G2Plot.Scatter('container-xp-scatter', {
+        data: points,
+        xField: 'msgs',
+        yField: 'xp',
+        size: 5,
+        shape: 'circle',
+        color: '#00d4ff',
+        theme: 'dark',
+        xAxis: { title: { text: 'Messages (7d)', style: { fill: '#888' } } },
+        yAxis: { title: { text: 'XP (7d)', style: { fill: '#888' } }, label: { formatter: (v) => formatNumber(Number(v)) } },
+        tooltip: { formatter: (d) => ({ name: d.name, value: `${d.msgs} msgs, ${formatNumber(d.xp)} XP` }) }
+    });
+
+    scatter.render();
+    charts.xpMsgsCorr = scatter;
+}
+
+function renderLeaderboardChart() {
+    const ctx = document.getElementById('leaderboard-chart');
+    if (!ctx) return;
+    if (charts.leaderboard) charts.leaderboard.destroy();
+
+    const scores = dashboardData.allMembers.map(m => {
+        const score = (m.msgs_7d * 100) + (m.xp_7d / 100000) + (m.boss_7d);
+        return { name: m.username, score: Math.round(score) };
+    }).sort((a, b) => b.score - a.score).slice(0, CONFIG.LEADERBOARD_SIZE);
+
+    charts.leaderboard = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: scores.map(s => s.name),
+            datasets: [{
+                label: 'Clan Activity Score',
+                data: scores.map(s => s.score),
+                backgroundColor: [
+                    '#FFD700', '#C0C0C0', '#CD7F32',
+                    'rgba(0, 212, 255, 0.6)', 'rgba(0, 212, 255, 0.5)',
+                    'rgba(0, 212, 255, 0.4)', 'rgba(0, 212, 255, 0.3)',
+                    'rgba(0, 212, 255, 0.2)', 'rgba(0, 212, 255, 0.1)', 'rgba(0, 212, 255, 0.05)'
+                ],
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+                x: { grid: { display: false } }
+            },
+            plugins: {
+                legend: { display: false },
+                title: {
+                    display: true,
+                    text: `Composite: (Msgs*100) + (XP/100k) + (Boss*1)`,
+                    color: '#888',
+                    font: { size: 10, style: 'italic' },
+                    padding: { bottom: 10 }
+                }
+            }
+        }
+    });
+}
+
+function renderAIHealthGauge() {
+    const container = document.getElementById('ai-health-container');
+    if (!container) return;
+
+    // Improved container styling for Chart.js visibility
+    container.style.display = 'block';
+    container.style.width = '100%';
+    container.style.padding = '20px';
+
+    container.innerHTML = `
+        <div style="width: 100%; max-width: 400px; margin: 0 auto; text-align:center;">
+             <h3 style="color:var(--neon-blue); margin-bottom:15px; font-family:'Outfit',sans-serif; text-transform:uppercase; letter-spacing:1px;">System Health</h3>
+             <div style="position:relative; height:220px; width:100%;">
+                <canvas id="ai-health-canvas"></canvas>
+             </div>
+        </div>
+    `;
+
+    const ctx = document.getElementById('ai-health-canvas');
+    if (!ctx) return;
+
+    const members = dashboardData.allMembers;
+    const high = members.filter(m => m.xp_7d > 1000000).length;
+    const med = members.filter(m => m.xp_7d > 100000 && m.xp_7d <= 1000000).length;
+    const low = members.filter(m => m.xp_7d > 0 && m.xp_7d <= 100000).length;
+    const inactive = members.filter(m => m.xp_7d === 0).length;
+
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['High Activity', 'Moderate', 'Low', 'Inactive'],
+            datasets: [{
+                data: [high, med, low, inactive],
+                backgroundColor: ['#33FF33', '#00d4ff', '#FFD700', '#FF3333'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right', labels: { color: '#ccc', font: { family: "'Outfit', sans-serif" } } }
+            }
+        }
+    });
+}
+
+function renderAIInsights(members) {
+    console.log("renderAIInsights called with", members ? members.length : 0, "members");
+    renderTime('updated-time-ai', dashboardData.generated_at);
+
+    try { renderAIHealthGauge(); } catch (e) { console.warn("AI Gauge Error:", e); }
+
+    const container = document.getElementById('ai-feed-container');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    // Use ai_data.js format if available (richer structure with title + message)
+    const aiData = window.aiData || dashboardData.ai || {};
+    const insights = aiData.insights || [];
+
+    // If empty, show fallback
+    if (!insights || insights.length === 0) {
+        container.innerHTML = '<div class="glass-card" style="padding:20px;grid-column:1/-1;text-align:center;color:#4fec4f">AI Insights will be available after next data refresh.</div>';
+        return;
+    }
+
+    const extractPlayerName = (insight, allMembers) => {
+        const msg = insight.message || insight.title || '';
+        const lines = msg.split(':');
+        if (lines.length > 0) {
+            const firstWord = lines[0].trim().split(/\s+/)[0];
+            if (firstWord && allMembers) {
+                const found = allMembers.find(m =>
+                    m.username.toLowerCase() === firstWord.toLowerCase() ||
+                    m.username.toLowerCase().replace(/\s/g, '').includes(firstWord.toLowerCase().replace(/\s/g, ''))
+                );
+                if (found) return found;
+            }
+        }
+        return null;
+    };
+
+    const findAssetForInsight = (insight, playerObj) => {
+        const text = `${insight.message || insight.title || ''}`.toLowerCase();
+
+        if (playerObj) {
+            if (playerObj.favorite_boss_img && playerObj.favorite_boss_img !== 'boss_pet_rock.png') return playerObj.favorite_boss_img;
+            if (playerObj.favorite_boss_all_time_img && playerObj.favorite_boss_all_time_img !== 'boss_pet_rock.png') return playerObj.favorite_boss_all_time_img;
+        }
+
+        const bossMap = {
+            'prayer': 'skill_prayer.png', 'strength': 'skill_strength.png', 'hitpoint': 'skill_hitpoint.png',
+            'construction': 'skill_construction.png', 'slayer': 'skill_slayer.png',
+            'hydra': 'boss_alchemical_hydra.png', 'vorkath': 'boss_vorkath.png', 'zulrah': 'boss_zulrah.png',
+            'cox': 'boss_chambers_of_xeric.png', 'chamber': 'boss_chambers_of_xeric.png', 'olm': 'boss_great_olm.png',
+            'tob': 'boss_theatre_of_blood.png', 'verzik': 'boss_verzik_vitur.png',
+            'toa': 'boss_tombs_of_amascut.png', 'warden': 'boss_warden.png',
+            'nex': 'boss_nex.png', 'corp': 'boss_corporeal_beast.png',
+            'jad': 'boss_tztok-jad.png', 'zuk': 'boss_tzkal-zuk.png', 'inferno': 'boss_tzkal-zuk.png',
+            'nightmare': 'boss_the_nightmare.png', 'bandos': 'boss_general_graardor.png',
+            'sara': 'boss_commander_zilyana.png', 'arma': 'boss_kreearra.png',
+            'zammy': 'boss_kril_tsutsaroth.png', 'muspah': 'boss_phantom_muspah.png',
+            'duke': 'boss_duke_sucellus.png', 'vard': 'boss_vardorvis.png', 'chat': 'boss_phoenix.png',
+            'grind': 'boss_tzkal-zuk.png', 'owner': 'rank_dragon.png', 'deputy': 'rank_rune.png'
+        };
+
+        for (const [key, img] of Object.entries(bossMap)) {
+            if (text.includes(key)) return img;
+        }
+
+        const pool = [
+            'boss_alchemical_hydra.png', 'boss_thermonuclear_smoke_devil.png', 'boss_tombs_of_amascut.png',
+            'boss_nightmare.png', 'boss_chambers_of_xeric.png', 'boss_theatre_of_blood.png',
+            'boss_vorkath.png', 'boss_zulrah.png', 'boss_corporeal_beast.png', 'boss_nex.png',
+            'boss_tztok-jad.png', 'boss_general_graardor.png', 'skill_slayer.png'
+        ];
+        return pool[Math.floor(Math.random() * pool.length)];
+    };
+
+    const toTheme = (assetName, insightType) => {
+        const hexToRgb = (hex) => {
+            if (!hex) return null;
+            const cleaned = hex.replace('#', '').trim();
+            if (![3, 6].includes(cleaned.length)) return null;
+            const full = cleaned.length === 3 ? cleaned.split('').map((c) => c + c).join('') : cleaned;
+            const intVal = parseInt(full, 16);
+            const r = (intVal >> 16) & 255;
+            const g = (intVal >> 8) & 255;
+            const b = intVal & 255;
+            return `${r}, ${g}, ${b}`;
+        };
+
+        const bossNameFromAsset = (name) => {
+            if (!name) return null;
+            const file = name.split('/').pop() || name;
+            const base = (file.split('.')[0] || '').replace(/^boss_/, '').replace(/^rank_/, '');
+            const slug = base.replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+            if (!slug) return null;
+            return slug.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        };
+
+        const bossName = bossNameFromAsset(assetName);
+        const bossKey = bossName && Object.keys(BOSS_THEMES || {}).find(k => k.toLowerCase() === bossName.toLowerCase());
+        const bossTheme = bossKey ? BOSS_THEMES[bossKey] : null;
+
+        const typeColorMap = {
+            'milestone': { color: 'var(--neon-gold)', rgb: '255, 215, 0', glow: 'rgba(255, 215, 0, 0.4)', icon: 'fa-trophy' },
+            'roast': { color: 'var(--neon-red)', rgb: '255, 51, 51', glow: 'rgba(255, 51, 51, 0.4)', icon: 'fa-fire' },
+            'trend-positive': { color: 'var(--neon-green)', rgb: '51, 255, 51', glow: 'rgba(51, 255, 51, 0.4)', icon: 'fa-arrow-up' },
+            'trend-negative': { color: 'var(--boss-orange)', rgb: '255, 170, 0', glow: 'rgba(255, 170, 0, 0.4)', icon: 'fa-arrow-down' },
+            'leadership': { color: 'var(--neon-blue)', rgb: '0, 212, 255', glow: 'rgba(0, 212, 255, 0.4)', icon: 'fa-crown' },
+            'anomaly': { color: 'var(--neon-purple)', rgb: '188, 19, 254', glow: 'rgba(188, 19, 254, 0.4)', icon: 'fa-exclamation-circle' },
+            'general': { color: '#888888', rgb: '136, 136, 136', glow: 'rgba(136, 136, 136, 0.4)', icon: 'fa-star' }
+        };
+
+        const baseTheme = typeColorMap[insightType] || typeColorMap.general;
+        if (!bossTheme) return baseTheme;
+
+        const rgb = hexToRgb(bossTheme.color) || baseTheme.rgb;
+        return { ...baseTheme, color: bossTheme.color, rgb, glow: bossTheme.glow || baseTheme.glow };
+    };
+
+    // Render the insights in a rich 3-column grid
+    container.style.display = 'grid';
+    container.style.gridTemplateColumns = 'repeat(3, minmax(0, 1fr))';
+    container.style.gap = '20px';
+    container.style.padding = '0';
+    container.style.maxWidth = 'none';
+    container.style.width = '100%';
+    container.style.margin = '0';
+
+    insights.slice(0, 12).forEach((insight, idx) => {
+        // Use title if available (ai_data.js format), fall back to message
+        const insightTitle = insight.title || 'Clan Analysis';
+        const insightMessage = insight.message || '';
+        const insightType = insight.type || 'general';
+
+        const playerObj = extractPlayerName(insight, members);
+        const playerName = playerObj ? playerObj.username : 'Clan';
+        const playerRank = playerObj ? playerObj.rank_img : 'rank_minion.png';
+        const asset = findAssetForInsight(insight, playerObj);
+        const theme = toTheme(asset, insightType);
+        const badgeLabel = `#${idx + 1}`;
+        const themeVars = `--theme-color: ${theme.color}; --theme-glow: ${theme.glow};`;
+
+        // Extract primary metric from insight message for stats display
+        let primaryStat = '';
+        let secondaryLabel = insightType.toUpperCase();
+
+        const parts = insightMessage.split(':');
+        if (parts.length > 1) {
+            const statsAndMsg = parts[1].trim();
+            const numberMatch = statsAndMsg.match(/(\d+(?:,\d+)?(?:\.\d+)?[KMB]?)\s+([A-Za-z\s]+?)(?:;|and|\s+\d|$)/);
+            if (numberMatch) {
+                primaryStat = numberMatch[1];
+                secondaryLabel = numberMatch[2].toUpperCase().trim().split(/\s+/)[0];
+            }
+        }
+
+        // Fallback to relevant stat if player object available and no stat extracted
+        if (!primaryStat && playerObj) {
+            if (insightType.includes('xp') || insightType === 'milestone') {
+                primaryStat = formatNumber(playerObj.xp_7d || 0);
+                secondaryLabel = 'XP (7D)';
+            } else if (insightType.includes('message') || insightType === 'trend-positive') {
+                primaryStat = formatNumber(playerObj.msgs_7d || 0);
+                secondaryLabel = 'MESSAGES';
+            } else if (insightType.includes('kill') || insightType.includes('boss')) {
+                primaryStat = formatNumber(playerObj.boss_7d || 0);
+                secondaryLabel = 'KILLS (7D)';
+            } else {
+                primaryStat = formatNumber(playerObj.total_xp || 0);
+                secondaryLabel = 'TOTAL XP';
+            }
+        }
+
+        // Build details section from player stats
+        let detailsHTML = '';
+        if (playerObj) {
+            detailsHTML = `
+            <div class="details-overlay">
+                <div class="detail-row"><span>Total XP</span><span>${formatNumber(playerObj.total_xp || 0)}</span></div>
+                <div class="detail-row"><span>7d Msgs</span><span>${formatNumber(playerObj.msgs_7d || 0)}</span></div>
+            </div>`;
+        }
+
+        container.innerHTML += `
+        <div class="unified-card" style="${themeVars}">
+            ${SHADOW_DECORATORS}
+            <div class="card-header" style="padding: 10px 12px 0 12px;">
+                <div class="card-header-inner" style="display:flex; align-items:center; width:100%; gap:10px;">
+                    <img src="assets/${playerRank}" alt="rank" style="width:48px; height:48px; object-fit:contain;" onerror="this.onerror=null;this.src='assets/rank_minion.png'" />
+                    <div style="flex:1; text-align:center;">
+                        <div class="primary-text" style="font-size:1.2em; color:#fff;">${insightTitle}</div>
+                        <div class="card-type-label" style="margin-top:2px;">${insightType.toUpperCase()}</div>
+                    </div>
+                    <div class="rank-badge"><span>${badgeLabel}</span></div>
+                </div>
+            </div>
+            <div class="card-visual" style="text-align:center; padding-top:6px;">
+                <img src="assets/${asset}" alt="${insightTitle}" style="height: 160px; object-fit: contain; filter: drop-shadow(0 0 12px ${theme.glow});" onerror="this.onerror=null;this.src='assets/boss_pet_rock.png';" />
+            </div>
+            <div class="card-info" style="text-align:center; padding:10px 0;">
+                ${primaryStat ? `<div class="primary-stat-val" style="font-size:2em;">${primaryStat}</div>` : ''}
+                <div class="secondary-text">${secondaryLabel}</div>
+            </div>
+            <div style="padding:0 12px 12px; font-size:0.9em; line-height:1.5; color:#ddd; text-align:center; border-top:1px solid rgba(255,255,255,0.1); margin-top:6px; min-height:60px;">
+                ${formatInsightMessage(insightMessage)}
+            </div>
+            ${detailsHTML}
+        </div>
+        `;
+    });
+}
 
 // Table Sorting Logic
 // ---------------------------------------------------------
@@ -317,18 +1105,6 @@ function renderGeneralStats(data) {
     const container = document.getElementById('general-stats');
     if (!container) return;
 
-    const SHADOW_DECORATORS = `
-        <div class="necrotic-border"></div>
-        <div class="scanlines"></div>
-        <div class="corner-accent top-left"></div>
-        <div class="corner-accent top-right"></div>
-        <div class="corner-accent bottom-left"></div>
-        <div class="corner-accent bottom-right"></div>
-        <div class="void-particles">
-            <div class="void-particle"></div><div class="void-particle"></div><div class="void-particle"></div>
-            <div class="void-particle"></div><div class="void-particle"></div>
-        </div>`;
-
     container.innerHTML = '';
     container.style.display = 'grid';
     container.style.gridTemplateColumns = 'repeat(3, minmax(0, 1fr))';
@@ -368,7 +1144,7 @@ function renderGeneralStats(data) {
                 </div>
             </div>
             <div class="card-visual" style="text-align:center; padding-top:6px;">
-                <img src="assets/${img}" alt="${title}" style="height: 225px; object-fit: contain; filter: drop-shadow(0 0 10px ${t.glow});" />
+                <img src="assets/${img}" alt="${title}" style="height: 380px; object-fit: contain; filter: drop-shadow(0 0 10px ${t.glow});" />
             </div>
             <div class="card-info" style="text-align:center; padding-bottom:10px;">
                 <div class="primary-stat-val" style="font-size:2.2em;">${value}</div>
@@ -463,7 +1239,7 @@ function renderGeneralStats(data) {
         detailA: { label: 'Roster', value: formatNumber(members.length) },
         detailB: { label: 'Active', value: formatNumber(activeCount) },
         themeKey: 'gold',
-        imgOverride: 'skill_total.png'
+        imgOverride: 'boss_the_mimic.png'
     });
 
     container.innerHTML = html;
@@ -681,11 +1457,16 @@ function renderScatterInteraction() {
         tooltip: {
             fields: ['player', 'msgs', 'xp', 'role'],
             formatter: (datum) => {
-                return { name: datum.player, value: `${datum.msgs} msgs, ${formatNumber(datum.xp)} XP` };
+                return { name: datum.player, value: `${datum.msgs} msgs (30d), ${formatNumber(datum.xp)} XP` };
             },
             showTitle: false
         },
-        theme: 'dark',
+        theme: {
+            styleSheet: {
+                backgroundColor: 'transparent',
+                plotBackgroundColor: 'transparent'
+            }
+        },
         legend: { position: 'top' }
     });
 
@@ -727,7 +1508,12 @@ function renderBossDiversity() {
             content: '{name}\n{percentage}',
         },
         interactions: [{ type: 'element-active' }, { type: 'pie-statistic-active' }],
-        theme: 'dark',
+        theme: {
+            styleSheet: {
+                backgroundColor: 'transparent',
+                plotBackgroundColor: 'transparent'
+            }
+        },
         statistic: {
             title: false,
             content: {
@@ -763,9 +1549,9 @@ function renderRaidsPerformance() {
                 label: 'Total Kills',
                 data: data.datasets[0].data,
                 backgroundColor: [
-                    '#55FF55', '#228822', // CoX
-                    '#FF5555', '#882222', // ToB
-                    '#FFFF55', '#888822'  // ToA
+                    '#00FF00', '#004400', // CoX (Green)
+                    '#FF0000', '#550000', // ToB (Red)
+                    '#FFD700', '#665500'  // ToA (Gold)
                 ],
                 borderRadius: 4
             }]
@@ -1048,6 +1834,9 @@ function renderXPContribution() {
     // chart.js instance map might need cleanup if reusing keys.
     if (charts.xpContrib) charts.xpContrib.destroy();
 
+    // Clear container to prevent artifacts (CRITICAL FIX)
+    container.innerHTML = '';
+
     const members = dashboardData.allMembers;
     const sorted = [...members].sort((a, b) => (b.xp_30d || b.xp_7d) - (a.xp_30d || a.xp_7d));
 
@@ -1120,7 +1909,7 @@ function setupSectionSearch(inputId, rowSelector) {
 function getBossThemesFromCSS() {
     const root = document.documentElement;
     const getVar = (name) => getComputedStyle(root).getPropertyValue(name).trim();
-    
+
     return {
         // Cyan (Ice/Spirit)
         "Vorkath": { color: getVar('--boss-cyan'), glow: getVar('--boss-cyan-glow') },
@@ -1525,7 +2314,12 @@ function renderXpSection(members) {
                 data,
                 xField: 'name',
                 yField: 'value',
-                theme: 'dark',
+                theme: {
+                    styleSheet: {
+                        backgroundColor: 'transparent',
+                        plotBackgroundColor: 'transparent'
+                    }
+                },
                 color: '#33FF33',
                 meta: {
                     value: {
@@ -1552,821 +2346,5 @@ function renderXpSection(members) {
             ctxContrib.innerHTML = `<div style="text-align:center;padding:20px;color:#ff6b6b">Error rendering chart</div>`;
         }
     }
-
-
-    function renderBossesSection(members) {
-        console.log("renderBossesSection called with", members ? members.length : 0, "members");
-        if (dashboardData && dashboardData.generated_at) renderTime('updated-time-boss', dashboardData.generated_at);
-
-        const container = document.getElementById('bosses-grid');
-        if (!container) return;
-
-        const SHADOW_DECORATORS = `
-        <div class="necrotic-border"></div>
-        <div class="scanlines"></div>
-        <div class="corner-accent top-left"></div>
-        <div class="corner-accent top-right"></div>
-        <div class="corner-accent bottom-left"></div>
-        <div class="corner-accent bottom-right"></div>
-        <div class="void-particles">
-            <div class="void-particle"></div><div class="void-particle"></div><div class="void-particle"></div>
-            <div class="void-particle"></div><div class="void-particle"></div>
-        </div>`;
-
-        container.innerHTML = '';
-        container.style.display = 'grid';
-        container.style.gridTemplateColumns = 'repeat(3, minmax(0, 1fr))';
-        container.style.gap = '20px';
-
-        const bossesSorted = [...members].sort((a, b) => (b.boss_7d || 0) - (a.boss_7d || 0)).filter(m => m.boss_7d > 0).slice(0, 6);
-
-        if (bossesSorted.length === 0) {
-            container.innerHTML = '<div class="glass-card" style="padding:20px;grid-column:1/-1;text-align:center;color:#888">No boss data available</div>';
-        }
-
-        bossesSorted.forEach((m, idx) => {
-            const bossName = (m.favorite_boss_all_time || m.favorite_boss || 'Top Killer').toString();
-            const bossImg = m.favorite_boss_img || 'boss_pet_rock.png';
-            const theme = getBossTheme(bossName);
-            const color = theme.color || '#bc13fe';
-            const glow = theme.glow || 'rgba(188, 19, 254, 0.4)';
-
-            container.innerHTML += `
-            <div class="unified-card" style="--theme-color: ${color}; --theme-glow: ${glow};">
-                ${SHADOW_DECORATORS}
-                <div class="card-header" style="padding: 10px 12px 0 12px;">
-                    <div class="card-header-inner" style="display:flex; align-items:center; width:100%; gap:10px;">
-                        <img src="assets/${m.rank_img || 'rank_minion.png'}" alt="rank" style="width:48px; height:48px; object-fit:contain;" onerror="this.src='assets/rank_minion.png'" />
-                        <div style="flex:1; text-align:center;">
-                            <div class="primary-text" style="font-size:1.3em; color:#fff;">${m.username}</div>
-                            <div class="card-type-label" style="margin-top:2px;">${bossName.toUpperCase()}</div>
-                        </div>
-                        <div class="rank-badge"><span>#${idx + 1}</span></div>
-                    </div>
-                </div>
-                <div class="card-visual" style="text-align:center; padding-top:6px;">
-                    <img src="assets/${bossImg}" alt="${bossName}" style="height: 180px; object-fit: contain; filter: drop-shadow(0 0 12px ${glow});" />
-                </div>
-                <div class="card-info" style="text-align:center; padding-bottom:10px;">
-                    <div class="primary-stat-val" style="font-size:2.2em;">${formatNumber(m.boss_7d)}</div>
-                    <div class="secondary-text">Kills (7d)</div>
-                </div>
-                <div class="details-overlay">
-                    <div class="detail-row"><span>Total Kills</span><span>${formatNumber(m.total_boss || 0)}</span></div>
-                    <div class="detail-row"><span>30d Kills</span><span>${formatNumber(m.boss_30d || 0)}</span></div>
-                </div>
-            </div>`;
-        });
-
-        // Also keep table in sync for data transparency
-        const tbody = document.querySelector('#bosses-table tbody');
-        if (tbody) {
-            const sorted = [...members].sort((a, b) => b.boss_7d - a.boss_7d).slice(0, 50);
-            tbody.innerHTML = sorted.map((m, i) => `
-            <tr>
-                <td>#${i + 1}</td>
-                <td>${m.username}</td>
-                <td>${m.role}</td>
-                <td style="color:rgba(255,255,255,0.7)">${formatNumber(m.total_boss)}</td>
-                <td style="color:var(--neon-red);font-weight:bold">+${formatNumber(m.boss_7d)}</td>
-                <td style="color:rgba(255,255,255,0.7)">+${formatNumber(m.boss_30d || 0)}</td>
-            </tr>
-        `).join('');
-        }
-    }
-
-    function renderOutliersSection(members) {
-        console.log("renderOutliersSection called with", members ? members.length : 0, "members");
-        renderTime('updated-time-out', dashboardData.generated_at);
-
-        const tbody = document.querySelector('#outliers-table tbody');
-        if (tbody) {
-            const purgingCandidates = getPurgeCandidates(members);
-
-            if (purgingCandidates.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--neon-green)">No purging candidates found. Healthy roster!</td></tr>';
-            } else {
-                tbody.innerHTML = purgingCandidates.map(m => `
-                    <tr>
-                        <td>${m.username}</td>
-                        <td>${m.role}</td>
-                        <td>${m.msgs_30d}</td>
-                        <td>${formatNumber(m.xp_30d)}</td>
-                        <td>${m.days_in_clan} days</td>
-                        <td style="color:var(--neon-red);font-weight:bold">${m.status}</td>
-                    </tr>
-                `).join('');
-            }
-        }
-    }
-
-    /**
-     * Pure Function: Determine Purge Candidates
-     * @param {Array} members 
-     * @returns {Array} List of candidates with status/type
-     */
-    function getPurgeCandidates(members) {
-        const candidates = [];
-
-        members.forEach(m => {
-            let status = null;
-            let type = "";
-
-            // Criteria for Purging - Uses CONFIG if available, else defaults
-            const pDays = CONFIG.PURGE_DAYS || 30;
-            const minXP = CONFIG.PURGE_MIN_XP || 0;
-            const minBoss = CONFIG.PURGE_MIN_BOSS || 0;
-            const minMsgs = CONFIG.PURGE_MIN_MSGS || 0;
-
-            if (m.days_in_clan > 60 && m.xp_30d < minXP && m.boss_30d < minBoss && m.msgs_30d === minMsgs) {
-                status = "Terminally Inactive";
-                type = "Purge High Priority";
-            } else if (m.days_in_clan > pDays && m.xp_30d === 0 && m.msgs_30d === 0) {
-                status = "Zero Activity (30d)";
-                type = "Purge";
-            } else if (m.days_in_clan > 90 && m.msgs_total < minMsgs && m.xp_30d < 100000) {
-                status = "Long-term Ghost";
-                type = "Purge";
-            }
-
-            if (status) {
-                candidates.push({ ...m, status, type });
-            }
-        });
-
-        return candidates.sort((a, b) => b.days_in_clan - a.days_in_clan);
-    }
-
-    // ---------------------------------------------------------
-    // ADDED MISSING RENDER FUNCTIONS
-    // ---------------------------------------------------------
-
-    function renderActivityHeatmap() {
-        // 24h Hourly Activity (Aggregated)
-        const container = 'activity-heatmap';
-        if (!document.getElementById(container)) return;
-        if (charts.heatmap) charts.heatmap.destroy();
-
-        const data = dashboardData.activity_heatmap;
-        if (!data || !Array.isArray(data) || data.length === 0) {
-            document.getElementById(container).innerHTML = '<div class="no-data">No heatmap data</div>';
-            return;
-        }
-
-        // transform [v0, v1...] to [{hour: '00:00', value: v0}, ...]
-        const plotData = data.map((val, idx) => ({
-            hour: `${String(idx).padStart(2, '0')}:00`,
-            value: Number(val) || 0
-        }));
-
-        try {
-            const column = new G2Plot.Column(container, {
-                data: plotData,
-                xField: 'hour',
-                yField: 'value',
-                color: '#00d4ff',
-                columnStyle: {
-                    radius: [4, 4, 0, 0],
-                },
-                autoFit: true,
-                theme: 'dark',
-                meta: {
-                    value: { alias: 'Messages' }
-                },
-                xAxis: {
-                    label: { autoRotate: false, style: { fill: '#666', fontSize: 10 } },
-                    grid: null
-                },
-                yAxis: {
-                    grid: { line: { style: { stroke: '#333', lineDash: [2, 2] } } }
-                },
-                tooltip: {
-                    formatter: (datum) => {
-                        return { name: 'Activity', value: datum.value + ' msgs' };
-                    }
-                }
-            });
-
-            column.render();
-            charts.heatmap = column;
-        } catch (e) {
-            console.warn("Failed to render Heatmap:", e);
-        }
-    }
-
-    function renderActivityTrend() {
-        // Weekly Activity Trend (Line/Area Chart)
-        const container = 'container-activity-trend';
-        const el = document.getElementById(container);
-        if (!el) return;
-
-        // Clear previous if G2Plot attached to div
-        el.innerHTML = '';
-
-        const hist = dashboardData.history; // This is a list of objects: [{date: '...', msgs: ...}, ...]
-        if (!hist || !Array.isArray(hist) || hist.length === 0) {
-            el.innerHTML = '<div style="text-align:center;padding:40px;color:#666;font-style:italic;">Activity history not yet available. Check back after more data is collected.</div>';
-            return;
-        }
-
-        // Transform to [{date: '...', value: ..., category: 'Messages'}, ...]
-        const data = hist.map(item => ({
-            date: item.date,
-            value: Number(item.msgs) || 0,
-            category: 'Messages'
-        }));
-
-        try {
-            const area = new G2Plot.Area(container, {
-                data: data,
-                xField: 'date',
-                yField: 'value',
-                seriesField: 'category',
-                color: ['#00d4ff'],
-                areaStyle: {
-                    fill: 'l(270) 0:#00d4ff 1:rgba(0, 212, 255, 0.1)',
-                },
-                theme: 'dark',
-                xAxis: {
-                    range: [0, 1], // optimize time axis range
-                    label: { style: { fill: '#666' }, autoRotate: true }
-                },
-                yAxis: {
-                    grid: { line: { style: { stroke: '#333' } } },
-                    label: { formatter: (v) => formatNumber(Number(v)) }
-                },
-                legend: false,
-                tooltip: {
-                    showMarkers: true
-                },
-                smooth: true,
-                animation: {
-                    appear: {
-                        animation: 'wave-in',
-                        duration: 1000,
-                    },
-                },
-            });
-
-            area.render();
-            charts.activityTrend = area;
-        } catch (e) {
-            console.warn("Failed to render Activity Trend:", e);
-        }
-    }
-
-    function renderAIInsights() {
-        const container = document.getElementById('ai-feed-container') || document.getElementById('ai-insights-container');
-        if (!container) return;
-
-        // Ensure window.aiData exists (fallback if ai_data.js missing)
-        if (!window.aiData) {
-            window.aiData = { insights: [], pulse: [] };
-        }
-
-        const SHADOW_DECORATORS = `
-        <div class="necrotic-border"></div>
-        <div class="scanlines"></div>
-        <div class="corner-accent top-left"></div>
-        <div class="corner-accent top-right"></div>
-        <div class="corner-accent bottom-left"></div>
-        <div class="corner-accent bottom-right"></div>
-        <div class="void-particles">
-            <div class="void-particle"></div><div class="void-particle"></div><div class="void-particle"></div>
-            <div class="void-particle"></div><div class="void-particle"></div>
-        </div>`;
-
-        const insights = (window.dashboardData && window.dashboardData.ai && window.dashboardData.ai.insights)
-            ? window.dashboardData.ai.insights
-            : (window.dashboardData && window.dashboardData.ai_insights ? window.dashboardData.ai_insights : []);
-
-        if (!insights.length) {
-            container.innerHTML = '<div style="text-align:center;color:#888;padding:20px;font-style:italic;">No AI Insights available at this time.</div>';
-            return;
-        }
-
-        const themeByType = {
-            leadership: { color: '#FFD700', glow: 'rgba(255, 215, 0, 0.4)', icon: 'fa-trophy' },
-            'trend-positive': { color: '#33FF33', glow: 'rgba(51, 255, 51, 0.4)', icon: 'fa-chart-line' },
-            'trend-negative': { color: '#FF3333', glow: 'rgba(255, 51, 51, 0.4)', icon: 'fa-exclamation-triangle' },
-            anomaly: { color: '#bc13fe', glow: 'rgba(188, 19, 254, 0.4)', icon: 'fa-brain' },
-            roast: { color: '#FF3333', glow: 'rgba(255, 51, 51, 0.4)', icon: 'fa-fire-alt' },
-            milestone: { color: '#FFD700', glow: 'rgba(255, 215, 0, 0.4)', icon: 'fa-medal' },
-            general: { color: '#00d4ff', glow: 'rgba(0, 212, 255, 0.4)', icon: 'fa-lightbulb' }
-        };
-
-        let html = '<div class="section-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px;">';
-
-        insights.forEach(item => {
-            const t = themeByType[item.type] || themeByType.general;
-            html += `
-        <div class="unified-card insight-card" style="--theme-color: ${t.color}; --theme-glow: ${t.glow};">
-            ${SHADOW_DECORATORS}
-            <div class="ai-card-content">
-                <div class="insight-header" style="width:100%; display:flex; justify-content:space-between; margin-bottom:10px;">
-                    <i class="fas ${item.icon || t.icon} insight-icon" style="color:var(--theme-color);"></i>
-                    <div class="insight-title" style="color:var(--theme-color); font-weight:bold;">${item.title || ''}</div>
-                </div>
-                <div class="ai-text">
-                    ${item.message || item.insight || ''}
-                </div>
-            </div>
-        </div>`;
-        });
-
-        html += '</div>';
-        container.innerHTML = html;
-    }
-
-
-
-
-    function renderPlayerRadar() {
-        const container = 'player-radar-chart';
-        if (!document.getElementById(container)) return;
-
-        // Destroy existing chart instance if it exists (using the key 'playerRadar' which we will reuse)
-        if (charts.playerRadar) charts.playerRadar.destroy();
-
-        // 1. Get Top 5 Players (by XP for now, or weighted score)
-        const top5 = dashboardData.topXPGainers.slice(0, 5);
-
-        // 2. Prepare Data for Grouped Column Chart (Normalized)
-        // We want to compare them across 3 metrics: XP, Messages, Boss Kills
-        // Issues: Values are vastly different scales (XP in millions, others in hundreds).
-        // Solution: Normalize each metric to 0-100% relative to the MAX in that set.
-
-        // Find Max for each metric among these 5
-        const maxXP = Math.max(...top5.map(m => m.xp_7d), 1);
-        const maxMsgs = Math.max(...top5.map(m => m.msgs_7d), 1);
-        const maxBoss = Math.max(...top5.map(m => m.boss_7d), 1);
-
-        const data = [];
-        top5.forEach(m => {
-            data.push({ name: m.username, metric: 'XP (Relative)', value: (m.xp_7d / maxXP) * 100, raw: m.xp_7d, unit: 'XP' });
-            data.push({ name: m.username, metric: 'Messages (Relative)', value: (m.msgs_7d / maxMsgs) * 100, raw: m.msgs_7d, unit: 'Msgs' });
-            data.push({ name: m.username, metric: 'Boss Kills (Relative)', value: (m.boss_7d / maxBoss) * 100, raw: m.boss_7d, unit: 'Kills' });
-        });
-
-        try {
-            const columnPlot = new G2Plot.Column(container, {
-                data: data,
-                isGroup: true,
-                xField: 'metric',
-                yField: 'value',
-                seriesField: 'name',
-                // Dodge means grouped bars
-                groupField: 'name',
-                columnStyle: {
-                    radius: [4, 4, 0, 0],
-                },
-                theme: 'dark',
-                color: ['#00d4ff', '#ffb84d', '#33FF33', '#FF3333', '#A020F0'], // Distinct colors
-                meta: {
-                    value: {
-                        alias: 'Performance %',
-                        min: 0,
-                        max: 100,
-                    }
-                },
-                tooltip: {
-                    formatter: (datum) => {
-                        return { name: datum.name, value: `${formatNumber(datum.raw)} ${datum.unit}` };
-                    }
-                },
-                legend: {
-                    position: 'top-left',
-                },
-                label: {
-                    // Optional: show raw value on top of bar? Might be too crowded.
-                    // Let's hide labels for cleaner look, tooltip is enough.
-                    content: ''
-                }
-            });
-
-            columnPlot.render();
-            charts.playerRadar = columnPlot;
-        } catch (e) {
-            console.warn("Failed to render Top 5 Comparison chart:", e);
-            document.getElementById(container).innerHTML = `<div style="text-align:center;padding:20px;color:#ff6b6b">Error rendering chart</div>`;
-        }
-    }
-
-    function renderTenureDistribution() {
-        const ctx = document.getElementById('tenure-distribution-chart');
-        if (!ctx) return;
-        if (charts.tenure) charts.tenure.destroy();
-
-        const members = dashboardData.allMembers;
-
-        // Buckets: 0-30, 31-90, 91-180, 180-365, 365+
-        const buckets = {
-            'New Blood (0-30d)': 0,
-            'Rising (1-3mo)': 0,
-            'Established (3-6mo)': 0,
-            'Veterans (6-12mo)': 0,
-            'Legends (1y+)': 0
-        };
-
-        members.forEach(m => {
-            const days = m.days_in_clan || 0;
-            if (days <= 30) buckets['New Blood (0-30d)']++;
-            else if (days <= 90) buckets['Rising (1-3mo)']++;
-            else if (days <= 180) buckets['Established (3-6mo)']++;
-            else if (days <= 365) buckets['Veterans (6-12mo)']++;
-            else buckets['Legends (1y+)']++;
-        });
-
-        charts.tenure = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: Object.keys(buckets),
-                datasets: [{
-                    data: Object.values(buckets),
-                    backgroundColor: [
-                        '#00d4ff', // New - Blue
-                        '#33FF33', // Rising - Green
-                        '#FFD700', // Est - Gold
-                        '#FFA500', // Vet - Orange
-                        '#FF00FF'  // Legend - Magenta
-                    ],
-                    borderColor: '#1a1c2e',
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'right',
-                        labels: { color: '#ccc', boxWidth: 10 }
-                    },
-                    title: {
-                        display: false
-                    }
-                }
-            }
-        });
-    }
-
-
-    function renderXPvsBossChart(members) {
-        // XP vs Boss Kills Scatter
-        const ctx = document.getElementById('xp-boss-chart');
-        if (!ctx) return;
-        if (charts.xpBoss) charts.xpBoss.destroy();
-
-        const dataPoints = members
-            .filter(m => m.xp_7d > 0 && m.boss_7d > 0)
-            .map(m => ({ x: m.boss_7d, y: m.xp_7d, player: m.username }));
-
-        charts.xpBoss = new Chart(ctx, {
-            type: 'scatter',
-            data: {
-                datasets: [{
-                    label: 'XP vs Boss Kills (7d)',
-                    data: dataPoints,
-                    backgroundColor: 'rgba(255, 51, 51, 0.6)'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: { title: { display: true, text: 'Boss Kills (7d)' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                    y: { title: { display: true, text: 'XP (7d)' }, grid: { color: 'rgba(255,255,255,0.05)' } }
-                },
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            label: function (context) {
-                                const p = context.raw;
-                                return `${p.player}: ${p.x} kills, ${formatNumber(p.y)} XP`;
-                            }
-                        }
-                    }
-                }
-            }
-        });
-
-    }
-
-    function renderTenureChart() {
-        const ctx = document.getElementById('tenure-distribution-chart');
-        if (!ctx) return;
-        if (charts.tenure) charts.tenure.destroy();
-
-        const members = dashboardData.allMembers || [];
-        if (members.length === 0) {
-            ctx.style.display = 'none';
-            const container = ctx.parentElement;
-            const msg = document.createElement('div');
-            msg.style.cssText = "text-align:center;padding:40px;color:#666;font-style:italic;";
-            msg.innerText = 'No member tenure data available';
-            if (container.lastChild !== ctx) container.appendChild(msg);
-            return;
-        }
-        const buckets = {
-            '0-30d': 0,
-            '30-90d': 0,
-            '90-180d': 0,
-            '180d+': 0
-        };
-
-        members.forEach(m => {
-            const d = m.days_in_clan || 0;
-            if (d <= 30) buckets['0-30d']++;
-            else if (d <= 90) buckets['30-90d']++;
-            else if (d <= 180) buckets['90-180d']++;
-            else buckets['180d+']++;
-        });
-
-        charts.tenure = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: Object.keys(buckets),
-                datasets: [{
-                    data: Object.values(buckets),
-                    backgroundColor: ['#00d4ff', '#33FF33', '#FFD700', '#FF3333'],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'right', labels: { color: '#ccc' } } }
-            }
-        });
-    }
-
-    function renderXPWeeklyCorrelation() {
-        const container = document.getElementById('container-xp-scatter');
-        if (!container) return;
-        if (charts.xpMsgsCorr && charts.xpMsgsCorr.destroy) charts.xpMsgsCorr.destroy();
-
-        const members = dashboardData.allMembers || [];
-        const points = members
-            .filter(m => m.xp_7d > 0 && m.msgs_7d > 0)
-            .slice(0, 200)
-            .map(m => ({ name: m.username, xp: m.xp_7d, msgs: m.msgs_7d }));
-
-        if (points.length === 0) {
-            container.innerHTML = '<div style="text-align:center;padding:1.5rem;color:#666;font-style:italic;">No XP/message correlation data available</div>';
-            return;
-        }
-
-        const scatter = new G2Plot.Scatter('container-xp-scatter', {
-            data: points,
-            xField: 'msgs',
-            yField: 'xp',
-            size: 5,
-            shape: 'circle',
-            color: '#00d4ff',
-            theme: 'dark',
-            xAxis: { title: { text: 'Messages (7d)', style: { fill: '#888' } } },
-            yAxis: { title: { text: 'XP (7d)', style: { fill: '#888' } }, label: { formatter: (v) => formatNumber(Number(v)) } },
-            tooltip: {
-                formatter: (d) => ({ name: d.name, value: `${d.msgs} msgs, ${formatNumber(d.xp)} XP` })
-            }
-        });
-
-        scatter.render();
-        charts.xpMsgsCorr = scatter;
-    }
-
-    function renderLeaderboardChart() {
-        const ctx = document.getElementById('leaderboard-chart');
-        if (!ctx) return;
-        if (charts.leaderboard) charts.leaderboard.destroy();
-
-        // Composite Score: Messages > XP > Boss KC
-        // Previous: (Boss * Weight) + (Msgs * Weight)
-        // New Request: "messages>xp gained>boss kc" implies a hierarchy or a specific weighting where Msgs is dominant, then XP, then Boss.
-        // Let's interpret as Weighted Sum with heavier weights on Msgs.
-        // Msgs (High Weight), XP (scaled down significantly as it's in millions), Boss (Mid Weight).
-        // Let's try: Msgs * 10, Boss * 5, XP / 1000.
-
-        // Normalize first to avoid XP dominating purely by magnitude (1M XP vs 1000 Msgs)
-        // But "Messages > XP > Boss" could also mean sorting order: Sort by Msg, if tie Sort by XP...
-        // "Composite Score" usually implies a formula.
-        // Let's do a weighted formula where
-        // --- THEMATIC SYSTEM ---
-        // Uses Global BOSS_THEMES and getBossTheme now
-        /* BOSS_THEMES moved to global scope */
-        const scores = dashboardData.allMembers.map(m => {
-            const score = (m.msgs_7d * 100) + (m.xp_7d / 100000) + (m.boss_7d);
-            return { name: m.username, score: Math.round(score) };
-        }).sort((a, b) => b.score - a.score).slice(0, CONFIG.LEADERBOARD_SIZE);
-
-        charts.leaderboard = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: scores.map(s => s.name),
-                datasets: [{
-                    label: 'Clan Activity Score',
-                    data: scores.map(s => s.score),
-                    backgroundColor: [
-                        '#FFD700', '#C0C0C0', '#CD7F32', // Gold, Silver, Bronze
-                        'rgba(0, 212, 255, 0.6)', 'rgba(0, 212, 255, 0.5)',
-                        'rgba(0, 212, 255, 0.4)', 'rgba(0, 212, 255, 0.3)',
-                        'rgba(0, 212, 255, 0.2)', 'rgba(0, 212, 255, 0.1)', 'rgba(0, 212, 255, 0.05)'
-                    ],
-                    borderRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
-                    x: { grid: { display: false } }
-                },
-                plugins: {
-                    legend: { display: false },
-                    title: {
-                        display: true,
-                        text: `Composite: (Msgs*100) + (XP/100k) + (Boss*1)`,
-                        color: '#888',
-                        font: { size: 10, style: 'italic' },
-                        padding: { bottom: 10 }
-                    }
-                }
-            }
-        });
-    }
-
-
-
-    function renderTime(id, isoDate) {
-        const el = document.getElementById(id);
-        if (el && isoDate) {
-            const d = new Date(isoDate);
-            el.innerText = d.toLocaleString('en-GB').replace(/\//g, '-');
-        }
-    }
-
-    function renderAIInsights(members) {
-        console.log("renderAIInsights called with", members ? members.length : 0, "members");
-        renderTime('updated-time-ai', dashboardData.generated_at);
-
-        const container = document.getElementById('ai-feed-container');
-        if (!container) return;
-
-        container.innerHTML = '';
-
-        const findAssetForInsight = (insight) => {
-            // Try to map to a member mentioned in the message/title
-            const text = `${insight.title || ''} ${insight.message || ''}`.toLowerCase();
-            const member = (members || []).find(m => text.includes((m.username || '').toLowerCase()));
-            if (member) {
-                if (member.favorite_boss_img && member.favorite_boss_img !== 'boss_pet_rock.png') return member.favorite_boss_img;
-                if (member.rank_img) return member.rank_img;
-            }
-
-            // Try to match boss names in text
-            const bossMap = {
-                'hydra': 'boss_alchemical_hydra.png',
-                'vorkath': 'boss_vorkath.png',
-                'zulrah': 'boss_zulrah.png',
-                'cox': 'boss_chambers_of_xeric.png', 'chamber': 'boss_chambers_of_xeric.png', 'olm': 'boss_great_olm.png',
-                'tob': 'boss_theatre_of_blood.png', 'verzik': 'boss_verzik_vitur.png',
-                'toa': 'boss_tombs_of_amascut.png', 'warden': 'boss_tumeken\'s_warden.png',
-                'nex': 'boss_nex.png',
-                'corp': 'boss_corporeal_beast.png',
-                'jad': 'boss_tztok-jad.png', 'zuk': 'boss_tzkal-zuk.png', 'inferno': 'boss_tzkal-zuk.png',
-                'nightmare': 'boss_the_nightmare.png',
-                'bandos': 'boss_general_graardor.png', 'graardor': 'boss_general_graardor.png',
-                'sara': 'boss_commander_zilyana.png', 'zilyana': 'boss_commander_zilyana.png',
-                'arma': 'boss_kree\'arra.png', 'kree': 'boss_kree\'arra.png',
-                'zammy': 'boss_k\'ril_tsutsaroth.png', 'kril': 'boss_k\'ril_tsutsaroth.png',
-                'muspah': 'boss_phantom_muspah.png',
-                'duke': 'boss_duke_sucellus.png',
-                'vard': 'boss_vardorvis.png',
-                'levi': 'boss_the_leviathan.png',
-                'whisperer': 'boss_the_whisperer.png',
-                'wildy': 'boss_wilderness.png',
-                'slayer': 'skill_slayer.png',
-                'max': 'rank_maxed.png', 'comp': 'rank_completionist.png'
-            };
-
-            // Check for boss matches
-            for (const [key, img] of Object.entries(bossMap)) {
-                if (text.includes(key)) return img;
-            }
-
-            // Generic themed assets pool (Expanded)
-            const pool = [
-                'boss_alchemical_hydra.png',
-                'boss_thermonuclear_smoke_devil.png',
-                'boss_tombs_of_amascut.png',
-                'boss_nightmare.png',
-                'boss_chambers_of_xeric.png',
-                'boss_theatre_of_blood.png',
-                'boss_vorkath.png',
-                'boss_zulrah.png',
-                'boss_corporeal_beast.png',
-                'boss_nex.png',
-                'boss_tztok-jad.png',
-                'boss_general_graardor.png',
-                'skill_slayer.png',
-                'boss_pet_rock.png'
-            ];
-            return pool[Math.floor(Math.random() * pool.length)];
-        };
-
-        // AI INSIGHTS INTEGRATION
-        if (dashboardData.ai && dashboardData.ai.insights) {
-            container.className = 'grid-3-col'; // Switch to 3-column grid layout
-            dashboardData.ai.insights.forEach(insight => {
-                const colorVar = insight.type === 'trend' ? 'var(--neon-gold)' : insight.type === 'analysis' ? 'var(--neon-blue)' : 'var(--neon-green)';
-                const icon = insight.type === 'trend' ? 'fa-chart-line' : insight.type === 'analysis' ? 'fa-brain' : 'fa-heartbeat';
-                const asset = findAssetForInsight(insight);
-                container.innerHTML += `
-            <div class="premium-card ${insight.type === 'trend' ? 'gold' : insight.type === 'analysis' ? 'blue' : 'green'}">
-                 ${SHADOW_DECORATORS}
-                 <div class="premium-card-bg" style="background-image: url('assets/${asset}');"></div>
-                 <div class="premium-card-content">
-                    <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px;color:${colorVar}">
-                         <i class="fas ${icon}" style="font-size: 1.2em;"></i>
-                         <span style="font-family:'Outfit'; font-weight:700;">${insight.title}</span>
-                    </div>
-                    <div style="font-size: 1.1em; line-height: 1.5; color:#e0e0e0;">
-                        ${insight.message}
-                    </div>
-                 </div>
-            </div>
-            `;
-            });
-        } else {
-            container.innerHTML = '<div class="glass-card" style="padding:20px;grid-column:1/-1;text-align:center;color:#4fec4f">AI Insights will be available after next data refresh.</div>';
-        }
-    }
-
-    // Player Profile Modal Handling
-    window.openPlayerProfile = function (username) {
-        const m = dashboardData.allMembers.find(p => p.username === username);
-        if (!m) return;
-
-        const modal = document.getElementById('player-profile-modal');
-        if (!modal) return;
-
-        document.getElementById('pp-username').innerText = m.username;
-        document.getElementById('pp-role').innerText = m.role;
-
-        // Dynamic Profile Background
-        const header = document.querySelector('.profile-header');
-        if (header) {
-            if (m.favorite_boss_all_time_img && m.favorite_boss_all_time_img !== 'boss_pet_rock.png') {
-                header.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.9)), url('assets/${m.favorite_boss_all_time_img}')`;
-                header.style.backgroundSize = 'cover';
-                header.style.backgroundPosition = 'center';
-            } else {
-                // Default Gradient
-                header.style.background = 'linear-gradient(180deg, rgba(255, 215, 0, 0.1) 0%, transparent 100%)';
-            }
-        }
-        // Helper to toggle visibility based on value
-        const setStat = (id, val, suffix = '', forceShow = false) => {
-            const el = document.getElementById(id);
-            const parent = el.parentElement; // The .p-stat container
-            if (!el || !parent) return;
-
-            // Convert to number for checking
-            const numVal = Number(val.toString().replace(/,/g, ''));
-
-            if (numVal > 0 || forceShow) {
-                el.innerText = formatNumber(numVal) + suffix;
-                parent.style.display = 'flex';
-            } else {
-                parent.style.display = 'none'; // Spec: Hide if 0
-            }
-        };
-
-        setStat('pp-total-xp', m.total_xp);
-        setStat('pp-total-boss', m.total_boss);
-        setStat('pp-total-msg', m.msgs_total, '', true); // Keep Total Messages visible even if 0
-        // Days always shown if present
-        if (m.days_in_clan !== undefined) {
-            document.getElementById('pp-days').innerText = m.days_in_clan;
-        }
-
-        setStat('pp-xp-7d', m.xp_7d);
-        setStat('pp-boss-7d', m.boss_7d); // Handled by setStat for 0 check
-
-
-        // Images
-        const rankImg = document.getElementById('pp-rank-img');
-        if (rankImg) rankImg.src = `assets/${m.rank_img || 'rank_minion.png'}`;
-
-        document.getElementById('pp-top-skill').innerText = m.favorite_boss || 'Unknown';
-        // Reusing Top Skill for Fav Boss for now as data structure suggests
-
-        modal.style.display = 'flex';
-    }
-
-    window.closePlayerProfile = function () {
-        const modal = document.getElementById('player-profile-modal');
-        if (modal) modal.style.display = 'none';
-    }
 }
+

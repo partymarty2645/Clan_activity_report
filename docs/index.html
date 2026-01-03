@@ -12,8 +12,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <!-- Fonts: 'Outfit' is imported in styles.css -->
-    <script src="clan_data.js?v=12"></script>
-    <script src="ai_data.js?v=12"></script>
+    <script src="clan_data.js?v=15"></script>
+    <script src="ai_data.js?v=15"></script>
     <!-- Removed deferred logic, moved to body end -->
 
     <!-- NEW: Styling Libraries (Production Integration) -->
@@ -27,7 +27,7 @@
 
 
 
-    <link rel="stylesheet" href="assets/styles.css?v=12">
+    <link rel="stylesheet" href="assets/styles.css?v=20">
     <link rel="stylesheet" href="assets/dynamic_styles.css">
 </head>
 
@@ -102,7 +102,7 @@
                     <!-- Row 1: Scatter (Full Width) -->
                     <div class="chart-container" style="margin-bottom: 24px;">
                         <div class="chart-title">"Chatterboxes" vs "Grinders" (Activity Matrix)</div>
-                        <div class="chart-wrapper" style="height: 400px;">
+                        <div class="chart-wrapper" style="height: 400px; min-height: 400px;">
                             <div id="container-scatter-interaction"></div>
                         </div>
                     </div>
@@ -110,7 +110,8 @@
                     <!-- Row 2: Bossing Diversity (Full Width - 4x size) -->
                     <div class="chart-container" style="margin-bottom: 24px;">
                         <div class="chart-title">Bossing Diversity</div>
-                        <div class="chart-wrapper" style="height: 500px;"> <!-- Increased height for 4x impact -->
+                        <div class="chart-wrapper" style="height: 500px; min-height: 500px;">
+                            <!-- Increased height for 4x impact -->
                             <div id="container-boss-diversity"></div>
                         </div>
                     </div>
@@ -373,7 +374,7 @@
                                 <th onclick="sortTable(4)">Boss (Total) <i class="fas fa-sort"></i></th>
                                 <th onclick="sortTable(5)">Msgs (7d) <i class="fas fa-sort"></i></th>
                                 <th onclick="sortTable(6)">Msgs (Total) <i class="fas fa-sort"></i></th>
-                                <th onclick="sortTable(7)">Ratio <i class="fas fa-sort"></i></th>
+                                <th onclick="sortTable(7)" title="XP per Message">Ratio <i class="fas fa-sort"></i></th>
                                 <th onclick="sortTable(8)">Days <i class="fas fa-sort"></i></th>
                             </tr>
                         </thead>
@@ -383,26 +384,24 @@
                     </table>
                 </div>
             </div>
-        </div>
-    </div>
-
-
-    <!-- AI Insights Section -->
-    <div id="ai-insights" class="section">
-        <div class="header">
-            <h1>AI Insights</h1>
-            <div style="text-align: right;">
-                <div class="header-info">Updated: <span id="updated-time-ai">loading...</span></div>
+            <!-- AI Insights Section -->
+            <div id="ai-insights" class="section">
+                <div class="header">
+                    <h1>AI Insights</h1>
+                    <div style="text-align: right;">
+                        <div class="header-info">Updated: <span id="updated-time-ai">loading...</span></div>
+                    </div>
+                </div>
+                <div id="ai-health-container" class="ai-health-container" style="display:none;"></div>
+                <div id="ai-feed-container" class="vertical-feed">
+                    <!-- Dynamic AI Insights will be injected here -->
+                    <div class="glass-card neon-border-blue" style="padding: 20px; text-align: center;">
+                        <div class="stat-label">Analyzing Clan Data...</div>
+                    </div>
+                </div>
             </div>
         </div>
-        <div id="ai-feed-container" class="vertical-feed">
-            <!-- Dynamic AI Insights will be injected here -->
-            <div class="glass-card neon-border-blue" style="padding: 20px; text-align: center;">
-                <div class="stat-label">Analyzing Clan Data...</div>
-            </div>
-        </div>
     </div>
-
     <!-- OMNI-SEARCH MODAL -->
     <div id="omni-search-overlay" class="omni-overlay" onclick="if(event.target===this) toggleOmni()">
         <div class="omni-modal">
@@ -484,7 +483,7 @@
     </div>
     </div>
     </div>
-    <script src="dashboard_logic.js?v=5"></script>
+    <script src="dashboard_logic.js?v=15"></script>
 </body>
 
 </html>
