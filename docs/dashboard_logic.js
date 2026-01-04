@@ -179,6 +179,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Indicate Data Loaded
         const updateEl = document.getElementById('updated-time');
+
         if (updateEl) updateEl.innerText = "Data Loaded. Rendering...";
 
         // CRITICAL: Initialize BOSS_THEMES BEFORE calling any render functions that use getBossTheme()
@@ -389,6 +390,19 @@ function formatInsightMessage(msg) {
     return formatted;
 }
 
+// Helper to determine biome class for CSS texturing
+function getBossBiome(bossName) {
+    const lower = bossName.toLowerCase();
+    if (lower.includes('blood') || lower.includes('theatre') || lower.includes('verzik') || lower.includes('vardorvis') || lower.includes('sote') || lower.includes('maiden') || lower.includes('bloat') || lower.includes('xarpus')) return 'biome-blood';
+    if (lower.includes('ice') || lower.includes('nex') || lower.includes('wintertodt') || lower.includes('vorkath') || lower.includes('muspah') || lower.includes('blue moon') || lower.includes('phantom')) return 'biome-ice';
+    if (lower.includes('desert') || lower.includes('tombs') || lower.includes('amascut') || lower.includes('kq') || lower.includes('kalphite') || lower.includes('warden') || lower.includes('kephri') || lower.includes('zebak') || lower.includes('akka') || lower.includes('baba')) return 'biome-desert';
+    if (lower.includes('fire') || lower.includes('inferno') || lower.includes('zuk') || lower.includes('jad')) return 'biome-fire';
+    if (lower.includes('toxic') || lower.includes('zulrah') || lower.includes('hydra') || lower.includes('cox') || lower.includes('xeric') || lower.includes('olm') || lower.includes('muttadile') || lower.includes('venenatis') || lower.includes('spindel')) return 'biome-toxic';
+    if (lower.includes('whisperer') || lower.includes('leviathan') || lower.includes('void') || lower.includes('duke') || lower.includes('sucellus') || lower.includes('nightmare')) return 'biome-cosmic';
+    if (lower.includes('undead') || lower.includes('vet') || lower.includes('barrows') || lower.includes('callisto') || lower.includes('artio') || lower.includes('scorpia') || lower.includes('chaos')) return 'biome-undead';
+    return 'biome-generic';
+}
+
 function renderBossesSection(members) {
     console.log("renderBossesSection called with", members ? members.length : 0, "members");
     if (dashboardData && dashboardData.generated_at) renderTime('updated-time-boss', dashboardData.generated_at);
@@ -414,13 +428,14 @@ function renderBossesSection(members) {
         const theme = getBossTheme(bossName);
         const color = theme.color || '#bc13fe';
         const glow = theme.glow || 'rgba(188, 19, 254, 0.4)';
+        const biomeClass = getBossBiome(bossName);
 
         container.innerHTML += `
-        <div class="unified-card" style="--theme-color: ${color}; --theme-glow: ${glow};">
+        <div class="unified-card ${biomeClass}" style="--theme-color: ${color}; --theme-glow: ${glow};">
             ${SHADOW_DECORATORS}
             <div class="card-header" style="padding: 10px 12px 0 12px;">
                 <div class="card-header-inner" style="display:flex; align-items:center; width:100%; gap:10px;">
-                    <img src="assets/${m.rank_img || 'rank_minion.png'}" alt="rank" style="width:48px; height:48px; object-fit:contain;" onerror="this.src='assets/rank_minion.png'" />
+                    <img src="../assets/${m.rank_img || 'rank_minion.png'}" alt="rank" style="width:48px; height:48px; object-fit:contain;" onerror="this.src='../assets/rank_minion.png'" />
                     <div style="flex:1; text-align:center;">
                         <div class="primary-text" style="font-size:1.3em; color:#fff;">${m.username}</div>
                         <div class="card-type-label" style="margin-top:2px;">${bossName.toUpperCase()}</div>
@@ -429,7 +444,7 @@ function renderBossesSection(members) {
                 </div>
             </div>
             <div class="card-visual" style="text-align:center; padding-top:6px;">
-                <img src="assets/${bossImg}" alt="${bossName}" style="height: 245px; object-fit: contain; filter: drop-shadow(0 0 12px ${glow});" />
+                <img src="../assets/${bossImg}" alt="${bossName}" class="boss-img" />
             </div>
             <div class="card-info" style="text-align:center; padding-bottom:10px;">
                 <div class="primary-stat-val" style="font-size:2.2em;">${formatNumber(m.boss_7d)}</div>
@@ -472,9 +487,9 @@ function renderBossesSection(members) {
 
 function renderOutliersSection(members) {
     console.log("renderOutliersSection called with", members ? members.length : 0, "members");
-    renderTime('updated-time-out', dashboardData.generated_at);
+    renderTime('updated-time-purging', dashboardData.generated_at);
 
-    const tbody = document.querySelector('#outliers-table tbody');
+    const tbody = document.querySelector('#purging-table tbody');
     if (tbody) {
         const purgingCandidates = getPurgeCandidates(members);
 
@@ -547,7 +562,7 @@ function renderActivityHeatmap() {
             data: plotData,
             xField: 'hour',
             yField: 'value',
-            color: '#00d4ff',
+            color: 'l(270) 0:#00d4ff 1:#0055ff',
             columnStyle: { radius: [4, 4, 0, 0] },
             autoFit: true,
             theme: {
@@ -825,19 +840,17 @@ function renderAIInsights(members) {
         }
 
         const bossMap = {
-            'prayer': 'skill_prayer.png', 'strength': 'skill_strength.png', 'hitpoint': 'skill_hitpoint.png',
-            'construction': 'skill_construction.png', 'slayer': 'skill_slayer.png',
             'hydra': 'boss_alchemical_hydra.png', 'vorkath': 'boss_vorkath.png', 'zulrah': 'boss_zulrah.png',
             'cox': 'boss_chambers_of_xeric.png', 'chamber': 'boss_chambers_of_xeric.png', 'olm': 'boss_great_olm.png',
             'tob': 'boss_theatre_of_blood.png', 'verzik': 'boss_verzik_vitur.png',
-            'toa': 'boss_tombs_of_amascut.png', 'warden': 'boss_warden.png',
+            'toa': 'boss_tombs_of_amascut.png', 'warden': 'boss_tombs_of_amascut.png',
             'nex': 'boss_nex.png', 'corp': 'boss_corporeal_beast.png',
             'jad': 'boss_tztok-jad.png', 'zuk': 'boss_tzkal-zuk.png', 'inferno': 'boss_tzkal-zuk.png',
             'nightmare': 'boss_the_nightmare.png', 'bandos': 'boss_general_graardor.png',
             'sara': 'boss_commander_zilyana.png', 'arma': 'boss_kreearra.png',
             'zammy': 'boss_kril_tsutsaroth.png', 'muspah': 'boss_phantom_muspah.png',
             'duke': 'boss_duke_sucellus.png', 'vard': 'boss_vardorvis.png', 'chat': 'boss_phoenix.png',
-            'grind': 'boss_tzkal-zuk.png', 'owner': 'rank_dragon.png', 'deputy': 'rank_rune.png'
+            'grind': 'boss_tzkal-zuk.png'
         };
 
         for (const [key, img] of Object.entries(bossMap)) {
@@ -846,14 +859,14 @@ function renderAIInsights(members) {
 
         const pool = [
             'boss_alchemical_hydra.png', 'boss_thermonuclear_smoke_devil.png', 'boss_tombs_of_amascut.png',
-            'boss_nightmare.png', 'boss_chambers_of_xeric.png', 'boss_theatre_of_blood.png',
+            'boss_the_nightmare.png', 'boss_chambers_of_xeric.png', 'boss_theatre_of_blood.png',
             'boss_vorkath.png', 'boss_zulrah.png', 'boss_corporeal_beast.png', 'boss_nex.png',
-            'boss_tztok-jad.png', 'boss_general_graardor.png', 'skill_slayer.png'
+            'boss_tztok-jad.png', 'boss_general_graardor.png', 'boss_phoenix.png'
         ];
         return pool[Math.floor(Math.random() * pool.length)];
     };
 
-    const toTheme = (assetName, insightType) => {
+    const getAITheme = (insightType, assetName, bossNameExplicit) => {
         const hexToRgb = (hex) => {
             if (!hex) return null;
             const cleaned = hex.replace('#', '').trim();
@@ -875,25 +888,25 @@ function renderAIInsights(members) {
             return slug.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
         };
 
-        const bossName = bossNameFromAsset(assetName);
+        const bossName = bossNameExplicit || bossNameFromAsset(assetName);
         const bossKey = bossName && Object.keys(BOSS_THEMES || {}).find(k => k.toLowerCase() === bossName.toLowerCase());
         const bossTheme = bossKey ? BOSS_THEMES[bossKey] : null;
 
         const typeColorMap = {
-            'milestone': { color: 'var(--neon-gold)', rgb: '255, 215, 0', glow: 'rgba(255, 215, 0, 0.4)', icon: 'fa-trophy' },
-            'roast': { color: 'var(--neon-red)', rgb: '255, 51, 51', glow: 'rgba(255, 51, 51, 0.4)', icon: 'fa-fire' },
-            'trend-positive': { color: 'var(--neon-green)', rgb: '51, 255, 51', glow: 'rgba(51, 255, 51, 0.4)', icon: 'fa-arrow-up' },
-            'trend-negative': { color: 'var(--boss-orange)', rgb: '255, 170, 0', glow: 'rgba(255, 170, 0, 0.4)', icon: 'fa-arrow-down' },
-            'leadership': { color: 'var(--neon-blue)', rgb: '0, 212, 255', glow: 'rgba(0, 212, 255, 0.4)', icon: 'fa-crown' },
-            'anomaly': { color: 'var(--neon-purple)', rgb: '188, 19, 254', glow: 'rgba(188, 19, 254, 0.4)', icon: 'fa-exclamation-circle' },
-            'general': { color: '#888888', rgb: '136, 136, 136', glow: 'rgba(136, 136, 136, 0.4)', icon: 'fa-star' }
+            'milestone': { color: 'var(--neon-gold)', rgb: '255, 215, 0', glow: 'rgba(255, 215, 0, 0.35)', icon: 'fa-trophy' },
+            'roast': { color: 'var(--neon-red)', rgb: '255, 51, 51', glow: 'rgba(255, 51, 51, 0.35)', icon: 'fa-fire' },
+            'trend-positive': { color: 'var(--neon-green)', rgb: '51, 255, 51', glow: 'rgba(51, 255, 51, 0.35)', icon: 'fa-arrow-up' },
+            'trend-negative': { color: 'var(--boss-orange)', rgb: '255, 170, 0', glow: 'rgba(255, 170, 0, 0.35)', icon: 'fa-arrow-down' },
+            'leadership': { color: 'var(--neon-blue)', rgb: '0, 212, 255', glow: 'rgba(0, 212, 255, 0.35)', icon: 'fa-crown' },
+            'anomaly': { color: 'var(--neon-purple)', rgb: '188, 19, 254', glow: 'rgba(188, 19, 254, 0.35)', icon: 'fa-exclamation-circle' },
+            'general': { color: '#888888', rgb: '136, 136, 136', glow: 'rgba(136, 136, 136, 0.35)', icon: 'fa-star' }
         };
 
         const baseTheme = typeColorMap[insightType] || typeColorMap.general;
         if (!bossTheme) return baseTheme;
 
         const rgb = hexToRgb(bossTheme.color) || baseTheme.rgb;
-        return { ...baseTheme, color: bossTheme.color, rgb, glow: bossTheme.glow || baseTheme.glow };
+        return { ...baseTheme, color: bossTheme.color, rgb: rgb || baseTheme.rgb, glow: bossTheme.glow || baseTheme.glow };
     };
 
     // Render the insights in a rich 3-column grid
@@ -906,81 +919,68 @@ function renderAIInsights(members) {
     container.style.margin = '0';
 
     insights.slice(0, 12).forEach((insight, idx) => {
-        // Use title if available (ai_data.js format), fall back to message
         const insightTitle = insight.title || 'Clan Analysis';
-        const insightMessage = insight.message || '';
+        const insightMessage = insight.message || insight.insight;
         const insightType = insight.type || 'general';
 
-        const playerObj = extractPlayerName(insight, members);
-        const playerName = playerObj ? playerObj.username : 'Clan';
-        const playerRank = playerObj ? playerObj.rank_img : 'rank_minion.png';
-        const asset = findAssetForInsight(insight, playerObj);
-        const theme = toTheme(asset, insightType);
-        const badgeLabel = `#${idx + 1}`;
-        const themeVars = `--theme-color: ${theme.color}; --theme-glow: ${theme.glow};`;
-
-        // Extract primary metric from insight message for stats display
-        let primaryStat = '';
-        let secondaryLabel = insightType.toUpperCase();
-
-        const parts = insightMessage.split(':');
-        if (parts.length > 1) {
-            const statsAndMsg = parts[1].trim();
-            const numberMatch = statsAndMsg.match(/(\d+(?:,\d+)?(?:\.\d+)?[KMB]?)\s+([A-Za-z\s]+?)(?:;|and|\s+\d|$)/);
-            if (numberMatch) {
-                primaryStat = numberMatch[1];
-                secondaryLabel = numberMatch[2].toUpperCase().trim().split(/\s+/)[0];
-            }
+        // Robust Member Lookup (Case Insensitive)
+        let member = null;
+        if (insight.player) {
+            const cleanName = insight.player.toLowerCase().trim();
+            member = dashboardData.allMembers.find(m => m.username.toLowerCase().trim() === cleanName);
         }
+        // Theme & Assets
+        const playerBossName = member ? (member.boss_30d_top || member.favorite_boss || member.favorite_boss_all_time) : null;
+        const playerBossImg = member ? (member.boss_30d_top_img || member.favorite_boss_img || member.favorite_boss_all_time_img) : null;
 
-        // Fallback to relevant stat if player object available and no stat extracted
-        if (!primaryStat && playerObj) {
-            if (insightType.includes('xp') || insightType === 'milestone') {
-                primaryStat = formatNumber(playerObj.xp_7d || 0);
-                secondaryLabel = 'XP (7D)';
-            } else if (insightType.includes('message') || insightType === 'trend-positive') {
-                primaryStat = formatNumber(playerObj.msgs_7d || 0);
-                secondaryLabel = 'MESSAGES';
-            } else if (insightType.includes('kill') || insightType.includes('boss')) {
-                primaryStat = formatNumber(playerObj.boss_7d || 0);
-                secondaryLabel = 'KILLS (7D)';
-            } else {
-                primaryStat = formatNumber(playerObj.total_xp || 0);
-                secondaryLabel = 'TOTAL XP';
-            }
-        }
+        // Priority: Player 30d boss -> Explicit asset -> Logic Fallback -> Pet Rock default
+        const rawAsset = playerBossImg || insight.asset || findAssetForInsight(insight, member) || 'boss_pet_rock.png';
+        const candidateBossName = insight.boss || playerBossName || insight.title || (member ? (member.favorite_boss_all_time || member.favorite_boss) : null);
+        const asset = resolveBossImage(candidateBossName, rawAsset);
+        const theme = getAITheme(insightType, asset, candidateBossName);
+        const rankImg = member && member.rank_img ? member.rank_img : 'rank_minion.png';
 
-        // Build details section from player stats
+        // Stats to show
+        let primaryStat = insight.score ? formatNumber(insight.score) : '';
+        let secondaryLabel = insight.metric || 'Impact Score';
+
+        // Details (Optional)
         let detailsHTML = '';
-        if (playerObj) {
-            detailsHTML = `
-            <div class="details-overlay">
-                <div class="detail-row"><span>Total XP</span><span>${formatNumber(playerObj.total_xp || 0)}</span></div>
-                <div class="detail-row"><span>7d Msgs</span><span>${formatNumber(playerObj.msgs_7d || 0)}</span></div>
-            </div>`;
+        if (insight.details) {
+            detailsHTML = `<div class="details-check" style="margin-top:5px; border-top:1px solid rgba(255,255,255,0.05); padding-top:5px;">
+                ${Object.entries(insight.details).map(([k, v]) => `<div style="display:flex;justify-content:space-between;font-size:0.8em;color:#888;"><span>${k}</span><span style="color:#fff">${v}</span></div>`).join('')}
+             </div>`;
         }
 
+        // Card Construction
         container.innerHTML += `
-        <div class="unified-card" style="${themeVars}">
-            ${SHADOW_DECORATORS}
+        <div class="unified-card" style="--theme-color: ${theme.color}; --theme-glow: ${theme.glow};">
+            <div class="card-decorators">
+                <div class="corner-accent top-left"></div>
+                <div class="corner-accent bottom-right"></div>
+                <div class="scan-line"></div>
+                <div class="glow-effect"></div>
+            </div>
+            
             <div class="card-header" style="padding: 10px 12px 0 12px;">
                 <div class="card-header-inner" style="display:flex; align-items:center; width:100%; gap:10px;">
-                    <img src="assets/${playerRank}" alt="rank" style="width:48px; height:48px; object-fit:contain;" onerror="this.onerror=null;this.src='assets/rank_minion.png'" />
-                    <div style="flex:1; text-align:center;">
-                        <div class="primary-text" style="font-size:1.2em; color:#fff;">${insightTitle}</div>
-                        <div class="card-type-label" style="margin-top:2px;">${insightType.toUpperCase()}</div>
+                    <img src="../assets/${rankImg}" alt="rank" style="width:40px; height:40px; object-fit:contain;" onerror="this.src='../assets/rank_minion.png'" />
+                    <div style="flex:1;">
+                         <div class="primary-text" style="font-size:1.1em; color:#fff; font-weight:bold;">${member ? member.username : 'Clan Intelligence'}</div>
+                         <div class="card-type-label" style="font-size:0.8em; opacity:0.8;">${insightTitle}</div>
                     </div>
-                    <div class="rank-badge"><span>${badgeLabel}</span></div>
                 </div>
             </div>
-            <div class="card-visual" style="text-align:center; padding-top:6px;">
-                <img src="assets/${asset}" alt="${insightTitle}" style="height: 160px; object-fit: contain; filter: drop-shadow(0 0 12px ${theme.glow});" onerror="this.onerror=null;this.src='assets/boss_pet_rock.png';" />
+
+            <div class="card-visual" style="text-align:center; padding-top:10px;">
+                <img src="../assets/${asset}" alt="${insightTitle.replace(/"/g, '&quot;')}" 
+                     style="height: 220px; width: 100%; object-fit: contain; filter: drop-shadow(0 0 15px ${theme.glow}); transition: transform 0.3s;" 
+                     onerror="this.onerror=null; this.alt=''; this.src='../assets/boss_pet_rock.png';" />
             </div>
             <div class="card-info" style="text-align:center; padding:10px 0;">
-                ${primaryStat ? `<div class="primary-stat-val" style="font-size:2em;">${primaryStat}</div>` : ''}
-                <div class="secondary-text">${secondaryLabel}</div>
+                ${primaryStat ? `<div class="primary-stat-val" style="font-size:1.8em;">${primaryStat}</div>` : ''}
             </div>
-            <div style="padding:0 12px 12px; font-size:0.9em; line-height:1.5; color:#ddd; text-align:center; border-top:1px solid rgba(255,255,255,0.1); margin-top:6px; min-height:60px;">
+            <div class="ai-card-message-block">
                 ${formatInsightMessage(insightMessage)}
             </div>
             ${detailsHTML}
@@ -1089,7 +1089,7 @@ function safelyRun(fn, name) {
     try {
         fn();
     } catch (e) {
-        console.error(`Error in ${name}:`, e);
+        console.error(`Error in ${name}: `, e);
     }
 }
 
@@ -1116,35 +1116,48 @@ function renderGeneralStats(data) {
 
     const themes = {
         blue: { color: '#00d4ff', glow: 'rgba(0, 212, 255, 0.4)' },
-        gold: { color: '#FFD700', glow: 'rgba(255, 215, 0, 0.4)' },
-        red: { color: '#FF3333', glow: 'rgba(255, 51, 51, 0.4)' },
-        green: { color: '#33FF33', glow: 'rgba(51, 255, 51, 0.4)' }
+        gold: { color: '#FFD700', glow: 'rgba(255, 215, 0, 0.35)' },
+        red: { color: '#FF3333', glow: 'rgba(255, 51, 51, 0.35)' },
+        green: { color: '#33FF33', glow: 'rgba(51, 255, 51, 0.35)' }
     };
 
-    const buildCard = ({ title, badge, member, value, secondary, detailA, detailB, themeKey, imgOverride }) => {
-        const t = themes[themeKey] || themes.blue;
+    const deriveThemeFromMember = (member, fallbackKey = 'blue') => {
+        const base = themes[fallbackKey] || themes.blue;
+        const bossName = member ? (member.boss_30d_top || member.favorite_boss || member.favorite_boss_all_time) : null;
+        const bossTheme = bossName ? getBossTheme(bossName) : null;
+        return {
+            color: bossTheme?.color || base.color,
+            glow: bossTheme?.glow || base.glow,
+            bossName
+        };
+    };
+
+    const buildCard = ({ title, titleHtml, badge, member, value, secondary, detailA, detailB, theme, imgOverride }) => {
+        const t = theme || themes.blue;
         const img = imgOverride
             || (member && member.favorite_boss_img && member.favorite_boss_img !== 'boss_pet_rock.png' ? member.favorite_boss_img
                 : member && member.rank_img ? member.rank_img
                     : 'rank_minion.png');
         const rankImg = member && member.rank_img ? member.rank_img : 'rank_minion.png';
 
+        // Use titleHtml for display if provided, otherwise plain title
+        const displayTitle = titleHtml || title;
 
         return `
-        <div class="unified-card" style="--theme-color: ${t.color}; --theme-glow: ${t.glow};">
-            ${SHADOW_DECORATORS}
+            <div class="unified-card" style="--theme-color: ${t.color}; --theme-glow: ${t.glow};">
+                ${SHADOW_DECORATORS}
             <div class="card-header" style="padding: 10px 12px 0 12px;">
                 <div class="card-header-inner" style="display:flex; align-items:center; width:100%; gap:10px;">
-                    <img src="assets/${rankImg}" alt="rank" style="width:48px; height:48px; object-fit:contain;" onerror="this.src='assets/rank_minion.png'" />
+                    <img src="../assets/${rankImg}" alt="rank" style="width:48px; height:48px; object-fit:contain;" onerror="this.src='../assets/rank_minion.png'" />
                     <div style="flex:1; text-align:center;">
-                        <div class="primary-text" style="font-size:1.3em; color:#fff;">${member ? member.username : title}</div>
-                        <div class="card-type-label" style="margin-top:2px;">${title}</div>
+                        <div class="primary-text" style="font-size:1.3em; color:#fff;">${member ? member.username : displayTitle}</div>
+                        <div class="card-type-label" style="margin-top:2px;">${displayTitle}</div>
                     </div>
                     <div class="rank-badge"><span>${badge}</span></div>
                 </div>
             </div>
             <div class="card-visual" style="text-align:center; padding-top:6px;">
-                <img src="assets/${img}" alt="${title}" style="height: 380px; object-fit: contain; filter: drop-shadow(0 0 10px ${t.glow});" />
+                <img src="../assets/${img}" alt="${title.replace(/"/g, '&quot;')}" style="height: 380px; object-fit: contain; filter: drop-shadow(0 0 10px ${t.glow});" />
             </div>
             <div class="card-info" style="text-align:center; padding-bottom:10px;">
                 <div class="primary-stat-val" style="font-size:2.2em;">${value}</div>
@@ -1154,7 +1167,7 @@ function renderGeneralStats(data) {
                 <div class="detail-row"><span>${detailA.label}</span><span>${detailA.value}</span></div>
                 <div class="detail-row"><span>${detailB.label}</span><span>${detailB.value}</span></div>
             </div>
-        </div>`;
+            </div>`;
     };
 
     let html = '';
@@ -1163,13 +1176,14 @@ function renderGeneralStats(data) {
     if (topMsg && topMsg[msgKey] > 0) {
         html += buildCard({
             title: 'Top Messenger',
+            titleHtml: '<h3>Top Messenger <span style="font-size:0.8em; opacity:0.7; font-weight:normal">(Total)</span></h3>',
             badge: '#1',
             member: topMsg,
             value: formatNumber(topMsg[msgKey]),
-            secondary: `Messages (${periodLabel})`,
+            secondary: `Messages(${periodLabel})`,
             detailA: { label: 'Total Messages', value: formatNumber(topMsg.msgs_total || 0) },
             detailB: { label: `${periodLabel} Messages`, value: formatNumber(topMsg[msgKey]) },
-            themeKey: 'blue'
+            theme: deriveThemeFromMember(topMsg, 'blue')
         });
     }
 
@@ -1180,10 +1194,10 @@ function renderGeneralStats(data) {
             badge: '#1',
             member: topXp,
             value: formatNumber(topXp[xpKey]),
-            secondary: `XP Gained (${periodLabel})`,
+            secondary: `XP Gained(${periodLabel})`,
             detailA: { label: 'Total XP', value: formatNumber(topXp.total_xp || 0) },
             detailB: { label: `${periodLabel} XP`, value: formatNumber(topXp[xpKey] || 0) },
-            themeKey: 'gold'
+            theme: deriveThemeFromMember(topXp, 'green')
         });
     }
 
@@ -1191,13 +1205,14 @@ function renderGeneralStats(data) {
     if (rising && rising[msgKey] > 0) {
         html += buildCard({
             title: 'Rising Star',
+            titleHtml: '<h3>Rising Star <span style="font-size:0.8em; opacity:0.7; font-weight:normal">(7d Activity)</span></h3>',
             badge: '#1',
             member: rising,
             value: `${formatNumber(rising[msgKey])} msgs`,
             secondary: 'Recent Activity',
             detailA: { label: 'Days in Clan', value: formatNumber(rising.days_in_clan || 0) },
             detailB: { label: `${periodLabel} Messages`, value: formatNumber(rising[msgKey] || 0) },
-            themeKey: 'blue'
+            theme: deriveThemeFromMember(rising, 'blue')
         });
     }
 
@@ -1208,10 +1223,10 @@ function renderGeneralStats(data) {
             badge: '#1',
             member: topBoss,
             value: formatNumber(topBoss.boss_7d),
-            secondary: `Kills (${periodLabel})`,
+            secondary: `Kills(${periodLabel})`,
             detailA: { label: 'Total Kills', value: formatNumber(topBoss.total_boss || 0) },
             detailB: { label: `${periodLabel} Kills`, value: formatNumber(topBoss.boss_7d || 0) },
-            themeKey: 'red'
+            theme: deriveThemeFromMember(topBoss, 'red')
         });
     }
 
@@ -1224,21 +1239,21 @@ function renderGeneralStats(data) {
         secondary: `${((activeCount / Math.max(members.length, 1)) * 100).toFixed(1)}% of Roster`,
         detailA: { label: 'Total Roster', value: formatNumber(members.length) },
         detailB: { label: 'Active', value: formatNumber(activeCount) },
-        themeKey: 'blue',
+        theme: themes.blue,
         imgOverride: 'skill_slayer.png'
     });
 
     // 6th card: Clan XP for the current period (7d/30d)
     const totalPeriodXp = members.reduce((sum, m) => sum + (m[xpKey] || 0), 0);
     html += buildCard({
-        title: `Clan XP (${periodLabel})`,
+        title: `Clan XP(${periodLabel})`,
         badge: 'CLAN',
         member: null,
         value: formatNumber(totalPeriodXp),
         secondary: 'Total XP gained',
         detailA: { label: 'Roster', value: formatNumber(members.length) },
         detailB: { label: 'Active', value: formatNumber(activeCount) },
-        themeKey: 'gold',
+        theme: themes.green,
         imgOverride: 'boss_the_mimic.png'
     });
 
@@ -1282,7 +1297,7 @@ function renderNewsTicker(members) {
 
     // 4. Random Flavour
     const totalXp = members.reduce((sum, m) => sum + (m.xp_7d || 0), 0);
-    news.push(`📈 Clan Total XP Gained: ${formatNumber(totalXp)}`);
+    news.push(`📈 Clan Total XP Gained: ${formatNumber(totalXp)} `);
 
     // Duplicate string to ensure smooth infinite loop if short
     let finalHtml = news.join(' &nbsp;&bull;&nbsp; ');
@@ -1342,24 +1357,24 @@ function renderAlertCards(members) {
 
     // Optimized: Build HTML string first (Single DOM write)
     cardsHtml += atRisk.map(m => `
-        <div class="alert-card">
+            <div class="alert-card">
             <div class="alert-header" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;color:var(--neon-red)">
                 <i class="fas fa-exclamation-triangle"></i>
                 <span style="font-family:'Outfit'">Inactivity Risk</span>
             </div>
             <div class="player-info" style="display:flex;align-items:center;gap:15px">
-                <img src="assets/${m.rank_img || 'rank_minion.png'}" style="width:40px;height:auto;" onerror="this.src='assets/rank_minion.png'">
+                <img src="../assets/${m.rank_img || 'rank_minion.png'}" style="width:40px;height:auto;" onerror="this.src='../assets/rank_minion.png'">
                 <div class="player-details">
                     <div class="player-name" style="color:#fff;font-weight:bold">${m.username}</div>
                     <div class="player-role" style="color:#888;font-size:0.8em">${m.role}</div>
                 </div>
             </div>
             <div class="alert-metric" style="margin-top:15px;display:flex;justify-content:space-between;border-top:1px solid rgba(255,255,255,0.1);padding-top:10px">
-                <span style="color:#888">7d Activity</span>
-                <span style="color:var(--neon-red)">0 XP</span>
+                <div><span>Bossing:</span> <span style="color:#fff">${m.boss_7d}</span></div>
+                <div><span>Msgs:</span> <span style="color:#fff">${m.msgs_7d}</span></div>
             </div>
-        </div>
-    `).join('');
+            </div>
+            `).join('');
 
     alertsContainer.innerHTML = cardsHtml;
 }
@@ -1378,13 +1393,13 @@ function renderRecentActivity(members) {
             <tr>
                 <td style="color:${i < 3 ? 'var(--neon-gold)' : '#fff'}">#${i + 1}</td>
                 <td style="display:flex;align-items:center;gap:10px">
-                     <img src="assets/${m.rank_img}" width="20" onerror="this.style.display='none'">
+                     <img src="../assets/${m.rank_img}" width="20" onerror="this.style.display='none'">
                      ${m.username}
                 </td>
                 <td>${m.msgs_7d}</td>
                 <td style="color:var(--neon-green)">+${formatNumber(m.xp_7d)}</td>
             </tr>
-        `;
+            `;
     });
     tbody.innerHTML = html;
 }
@@ -1442,14 +1457,14 @@ function renderScatterInteraction() {
         shape: 'circle',
         pointStyle: { fillOpacity: 0.8, stroke: '#fff', lineWidth: 1 },
         xAxis: {
-            title: { text: 'Messages (30d)', style: { fill: '#888' } },
+            title: { text: 'Messages (30d)', style: { fill: '#a0a0a0' } },
             grid: { line: { style: { stroke: '#333', lineDash: [4, 4] } } },
             label: { style: { fill: '#888' } },
             max: xMax,
             minLimit: 0
         },
         yAxis: {
-            title: { text: 'XP Gained (30d)', style: { fill: '#888' } },
+            title: { text: 'XP Gained (30d)', style: { fill: '#a0a0a0' } },
             grid: { line: { style: { stroke: '#333', lineDash: [4, 4] } } },
             label: { formatter: (v) => formatNumber(Number(v)), style: { fill: '#888' } },
             min: 0
@@ -1457,7 +1472,7 @@ function renderScatterInteraction() {
         tooltip: {
             fields: ['player', 'msgs', 'xp', 'role'],
             formatter: (datum) => {
-                return { name: datum.player, value: `${datum.msgs} msgs (30d), ${formatNumber(datum.xp)} XP` };
+                return { name: datum.player, value: `${datum.msgs} msgs(30d), ${formatNumber(datum.xp)} XP` };
             },
             showTitle: false
         },
@@ -1636,7 +1651,7 @@ function renderBossTrend() {
         if (!msg) {
             msg = document.createElement('div');
             msg.className = 'no-data-msg-boss';
-            msg.innerText = fallbackBoss ? `No trend data. Fallback: ${fallbackBoss}` : "No Trending Boss Data Available";
+            msg.innerText = fallbackBoss ? `No trend data.Fallback: ${fallbackBoss} ` : "No Trending Boss Data Available";
             msg.style.cssText = "text-align:center; padding: 2rem; color: #666; font-style: italic;";
             container.appendChild(msg);
         }
@@ -1763,7 +1778,7 @@ function renderTopXPChart() {
         data: {
             labels: top5.map(m => m.username),
             datasets: [{
-                label: `XP Gained (${currentPeriod})`,
+                label: `XP Gained(${currentPeriod})`,
                 data: top5.map(m => m[xpKey]),
                 backgroundColor: '#00d4ff',
                 borderRadius: 4
@@ -1811,16 +1826,21 @@ function renderActivityCorrelation() {
             { geometry: 'column', color: '#00d4ff' }, // XP Bars
             { geometry: 'line', color: '#FFD700', lineStyle: { lineWidth: 3 } } // Msg Line
         ],
-        theme: 'dark',
+        theme: {
+            styleSheet: {
+                backgroundColor: 'transparent',
+                plotBackgroundColor: 'transparent'
+            }
+        },
         meta: {
             xp: { alias: 'XP Gained', formatter: (v) => formatNumber(Number(v)) },
             msgs: { alias: 'Messages' }
         },
         yAxis: [
-            { min: 0, label: { formatter: (v) => formatNumber(Number(v)) } }, // Left: XP
-            { min: 0 } // Right: Messages
+            { min: 0, label: { formatter: (v) => formatNumber(Number(v)), style: { fill: '#888' } } }, // Left: XP
+            { min: 0, label: { style: { fill: '#888' } } } // Right: Messages
         ],
-        legend: { position: 'top-left' }
+        legend: { position: 'top-left', itemName: { style: { fill: '#ccc' } } }
     });
 
     dualAxes.render();
@@ -1855,7 +1875,7 @@ function renderXPContribution() {
         xField: 'type',
         yField: 'value',
         theme: 'dark',
-        color: '#33FF33',
+        color: 'l(270) 0:#33FF33 1:#00AA00',
         meta: {
             value: { alias: 'Annualized XP', formatter: (v) => formatNumber(v) }
         },
@@ -1867,7 +1887,7 @@ function renderXPContribution() {
             label: { formatter: (v) => formatNumber(Number(v)) }
         },
         tooltip: {
-            formatter: (d) => ({ name: d.type, value: `${formatNumber(d.value)} XP/yr` })
+            formatter: (d) => ({ name: d.type, value: `${formatNumber(d.value)} XP / yr` })
         }
     });
 
@@ -1883,7 +1903,7 @@ function setupSearch() {
     setupSectionSearch('search-messages', '#messages-table tbody tr');
     setupSectionSearch('search-xp', '#xp-table tbody tr');
     setupSectionSearch('search-bosses', '#bosses-table tbody tr');
-    setupSectionSearch('search-outliers', '#outliers-table tbody tr');
+    setupSectionSearch('search-purging', '#purging-table tbody tr');
 }
 
 function setupSectionSearch(inputId, rowSelector) {
@@ -2079,22 +2099,24 @@ function renderFullRoster(members) {
 
     let html = '';
     members.forEach(m => {
-        const ratio = m.msgs_total > 0 ? (m.total_xp / m.msgs_total).toFixed(0) : 0;
+        // Safeguard: Clamp negative XP values to 0 (data corruption protection)
+        const total_xp = Math.max(0, m.total_xp || 0);
+        const ratio = m.msgs_total > 0 ? Math.max(0, (total_xp / m.msgs_total).toFixed(0)) : 0;
         html += `
             <tr>
                 <td style="display:flex;align-items:center;gap:10px">
-                     <img src="assets/${m.rank_img || 'rank_minion.png'}" width="24">
+                     <img src="../assets/${m.rank_img || 'rank_minion.png'}" width="24">
                      <span class="player-link" onclick="openPlayerProfile('${m.username}')">${m.username}</span>
                 </td>
                 <td>${formatNumber(m.xp_7d)}</td>
-                <td>${formatNumber(m.total_xp)}</td>
+                <td>${formatNumber(total_xp)}</td>
                 <td>${formatNumber(m.boss_7d)}</td>
                 <td>${formatNumber(m.total_boss)}</td>
                 <td>${formatNumber(m.msgs_7d)}</td>
                 <td>${formatNumber(m.msgs_total)}</td>
                 <td>${formatNumber(ratio)}</td>
                 <td>${m.days_in_clan || 0}</td>
-            </tr>
+            </tr >
         `;
     });
     tbody.innerHTML = html;
@@ -2113,14 +2135,14 @@ function renderMessagesSection(members) {
             tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#888">No message data available</td></tr>';
         } else {
             tbody.innerHTML = sorted.map(m => `
-                <tr>
+            <tr>
                     <td>${m.username}</td>
                     <td>${m.role}</td>
                     <td>${formatNumber(m.msgs_total)}</td>
                     <td style="color:var(--neon-green)">${m.msgs_7d}</td>
                     <td>${formatNumber(m.msgs_30d || 0)}</td> 
-                </tr>
-            `).join('');
+                </tr >
+        `).join('');
         }
     }
 
@@ -2222,14 +2244,14 @@ function renderXpSection(members) {
         tbody.innerHTML = sorted.map(m => `
             <tr>
                 <td style="display:flex;align-items:center;gap:10px">
-                    <img src="assets/${m.rank_img || 'rank_minion.png'}" width="20">
+                    <img src="../assets/${m.rank_img || 'rank_minion.png'}" width="20">
                     ${m.username}
                 </td>
                 <td>${m.role}</td>
                 <td>${formatNumber(m.total_xp)}</td>
                 <td style="color:var(--neon-green)">+${formatNumber(m.xp_7d)}</td>
                 <td style="color:rgba(255,255,255,0.7)">+${formatNumber(m.xp_30d || 0)}</td>
-            </tr>
+                </tr>
         `).join('');
     }
 
@@ -2251,7 +2273,7 @@ function renderXpSection(members) {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } } }
+                scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { callback: function (value) { return formatNumber(value); } } } }
             }
         });
     }
@@ -2348,3 +2370,159 @@ function renderXpSection(members) {
     }
 }
 
+// ---------------------------------------------------------
+// INTERACTION HANDLERS & MODAL
+// ---------------------------------------------------------
+
+// ---------------------------------------------------------
+// INTERACTION HANDLERS & MODAL
+// ---------------------------------------------------------
+
+// Inject Modal CSS once
+const style = document.createElement('style');
+style.textContent = `
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(5px);
+        z-index: 1000; display: flex; align-items: center; justify-content: center;
+        opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+    }
+    .modal-overlay.active { opacity: 1; pointer-events: auto; }
+    
+    .player-modal {
+        background: rgba(16, 20, 24, 0.95);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        width: 90%; max-width: 800px;
+        max-height: 90vh; overflow-y: auto;
+        box-shadow: 0 0 50px rgba(0, 212, 255, 0.1);
+        transform: scale(0.95); transition: transform 0.3s ease;
+        position: relative;
+    }
+    .modal-overlay.active .player-modal { transform: scale(1); }
+
+    .modal-header {
+        padding: 20px 25px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        display: flex; justify-content: space-between; align-items: center;
+        background: linear-gradient(90deg, rgba(0,212,255,0.05) 0%, transparent 100%);
+    }
+
+    .modal-close {
+        background: none; border: none; color: #888; font-size: 1.5rem; cursor: pointer;
+        transition: color 0.2s;
+    }
+    .modal-close:hover { color: #fff; }
+
+    .modal-body { padding: 25px; }
+    
+    .stat-grid {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px; margin-top: 20px;
+    }
+    
+    .stat-box {
+        background: rgba(255, 255, 255, 0.03);
+        padding: 15px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.05);
+        text-align: center;
+    }
+    .stat-box .label { color: #888; font-size: 0.8rem; letter-spacing: 1px; margin-bottom: 5px; }
+    .stat-box .val { color: #fff; font-size: 1.2rem; font-weight: bold; }
+    .stat-box .highlight { color: #00d4ff; }
+`;
+document.head.appendChild(style);
+
+function openPlayerProfile(username) {
+    console.log("Opening profile for:", username);
+    const member = dashboardData.allMembers.find(m => m.username === username);
+    if (!member) {
+        alert("Player data not found.");
+        return;
+    }
+
+    let modal = document.getElementById('player-profile-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'player-profile-modal';
+        modal.className = 'modal-overlay';
+        modal.onclick = (e) => { if (e.target === modal) closePlayerProfile(); };
+        modal.innerHTML = `
+            <div class="player-modal">
+                <div class="modal-header">
+                    <div style="display:flex;align-items:center;gap:15px">
+                        <img id="pm-rank" src="" style="width:40px;height:auto">
+                        <div>
+                            <h2 id="pm-username" style="margin:0;font-size:1.5rem;color:#fff"></h2>
+                            <div id="pm-role" style="color:#00d4ff;font-size:0.9rem;letter-spacing:1px"></div>
+                        </div>
+                    </div>
+                    <button class="modal-close" onclick="closePlayerProfile()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div style="display:flex; gap:25px; flex-wrap:wrap; margin-bottom:25px; align-items:center;">
+                        <div style="flex:0 0 150px; text-align:center;">
+                             <img id="pm-boss-img" src="" style="width:100%; max-width:120px; filter:drop-shadow(0 0 15px rgba(0,212,255,0.3));">
+                             <div style="margin-top:10px;font-size:0.8rem;color:#666">Favorite Target</div>
+                        </div>
+                        <div style="flex:1;">
+                            <h3 style="margin:0 0 15px 0; color:#fff; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:5px;">Performance Overview</h3>
+                            <div class="stat-grid">
+                                <div class="stat-box">
+                                    <div class="label">TOTAL XP</div>
+                                    <div class="val" id="pm-xp-total"></div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="label">7D GAIN</div>
+                                    <div class="val highlight" id="pm-xp-7d"></div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="label">MSGS (TOTAL)</div>
+                                    <div class="val" id="pm-msgs-total"></div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="label">MSGS (7D)</div>
+                                    <div class="val highlight" id="pm-msgs-7d"></div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="label">BOSS KILLS</div>
+                                    <div class="val" id="pm-boss-total"></div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="label">DAYS IN CLAN</div>
+                                    <div class="val" id="pm-tenure"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    // Populate Data
+    document.getElementById('pm-username').innerText = member.username;
+    document.getElementById('pm-role').innerText = member.role.toUpperCase();
+    document.getElementById('pm-rank').src = `../assets/${member.rank_img || 'rank_minion.png'}`;
+    document.getElementById('pm-rank').onerror = function () { this.src = '../assets/rank_minion.png'; };
+
+    document.getElementById('pm-boss-img').src = `../assets/${member.favorite_boss_img || 'boss_pet_rock.png'}`;
+    document.getElementById('pm-boss-img').onerror = function () { this.src = '../assets/boss_pet_rock.png'; };
+
+    document.getElementById('pm-xp-total').innerText = formatNumber(member.total_xp);
+    document.getElementById('pm-xp-7d').innerText = "+" + formatNumber(member.xp_7d);
+    document.getElementById('pm-msgs-total').innerText = formatNumber(member.msgs_total);
+    document.getElementById('pm-msgs-7d').innerText = member.msgs_7d;
+    document.getElementById('pm-boss-total').innerText = formatNumber(member.total_boss);
+    document.getElementById('pm-tenure').innerText = member.days_in_clan + " days";
+
+    // Show
+    setTimeout(() => modal.classList.add('active'), 10);
+}
+
+function closePlayerProfile() {
+    const modal = document.getElementById('player-profile-modal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
