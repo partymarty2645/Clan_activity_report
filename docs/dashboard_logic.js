@@ -42,7 +42,8 @@ const ASSET_BASE = (() => {
 
 const normalizeAssetPath = (src) => {
     if (!src) return src;
-    return src.replace(/^(?:\.\.\/)?assets\//, ASSET_BASE);
+    // Rewrite any leading assets/ reference (assets/, ../assets/, or /assets/) to the correct base
+    return src.replace(/^\/?(?:\.\.\/)?assets\//, ASSET_BASE);
 };
 
 const normalizeAssetTags = (root = document) => {
