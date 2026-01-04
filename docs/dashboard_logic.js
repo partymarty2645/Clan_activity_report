@@ -462,7 +462,7 @@ function renderBossesSection(members) {
             ${SHADOW_DECORATORS}
             <div class="card-header" style="padding: 10px 12px 0 12px;">
                 <div class="card-header-inner" style="display:flex; align-items:center; width:100%; gap:10px;">
-                    <img src="../assets/${m.rank_img || 'rank_minion.png'}" alt="rank" style="width:48px; height:48px; object-fit:contain;" onerror="this.src='../assets/rank_minion.png'" />
+                    <img src="assets/${m.rank_img || 'rank_minion.png'}" alt="rank" style="width:48px; height:48px; object-fit:contain;" onerror="this.src='assets/rank_minion.png'" />
                     <div style="flex:1; text-align:center;">
                         <div class="primary-text" style="font-size:1.3em; color:#fff;">${m.username}</div>
                         <div class="card-type-label" style="margin-top:2px;">${bossName.toUpperCase()}</div>
@@ -471,7 +471,7 @@ function renderBossesSection(members) {
                 </div>
             </div>
             <div class="card-visual" style="text-align:center; padding-top:6px;">
-                <img src="../assets/${bossImg}" alt="${bossName}" class="boss-img" />
+                <img src="assets/${bossImg}" alt="${bossName}" class="boss-img" />
             </div>
             <div class="card-info" style="text-align:center; padding-bottom:10px;">
                 <div class="primary-stat-val" style="font-size:2.2em;">${formatNumber(m.boss_7d)}</div>
@@ -836,17 +836,6 @@ function renderAIInsights(members) {
     const aiData = window.aiData || dashboardData.ai || {};
     const insights = aiData.insights || [];
 
-    // Deterministic asset fallbacks by insight type to avoid blank cards
-    const insightAssetFallback = {
-        'milestone': 'boss_tzkal-zuk.png',
-        'roast': 'boss_phoenix.png',
-        'trend-positive': 'boss_chambers_of_xeric.png',
-        'trend-negative': 'boss_the_nightmare.png',
-        'leadership': 'boss_tombs_of_amascut.png',
-        'anomaly': 'boss_vardorvis.png',
-        'general': 'boss_pet_rock.png'
-    };
-
     // If empty, show fallback
     if (!insights || insights.length === 0) {
         container.innerHTML = '<div class="glass-card" style="padding:20px;grid-column:1/-1;text-align:center;color:#4fec4f">AI Insights will be available after next data refresh.</div>';
@@ -968,17 +957,16 @@ function renderAIInsights(members) {
             const cleanName = insight.player.toLowerCase().trim();
             member = dashboardData.allMembers.find(m => m.username.toLowerCase().trim() === cleanName);
         }
-        // Fallback: try to extract player name from the message/title and resolve to roster
         if (!member) {
             const guessed = extractPlayerName(insight, dashboardData.allMembers);
             if (guessed) member = guessed;
         }
         const displayName = member ? member.username : (insight.player || 'Clan Intelligence');
+
         // Theme & Assets
         const playerBossName = member ? (member.boss_30d_top || member.favorite_boss || member.favorite_boss_all_time) : null;
         const playerBossImg = member ? (member.boss_30d_top_img || member.favorite_boss_img || member.favorite_boss_all_time_img) : null;
 
-        // Priority: Player 30d boss -> Explicit asset -> Logic Fallback -> Type-based fallback -> Pet Rock default
         const typeFallback = insightAssetFallback[insightType] || insightAssetFallback.general;
         let rawAsset = playerBossImg || insight.asset || findAssetForInsight(insight, member) || typeFallback || 'boss_pet_rock.png';
         const candidateBossName = insight.boss || playerBossName || insight.title || (member ? (member.favorite_boss_all_time || member.favorite_boss) : null);
@@ -1026,15 +1014,15 @@ function renderAIInsights(members) {
                 <div class="card-header-inner" style="display:flex; align-items:center; width:100%; gap:10px;">
                     <img src="assets/${rankImg}" alt="rank" style="width:40px; height:40px; object-fit:contain;" onerror="this.src='assets/rank_minion.png'" />
                     <div style="flex:1;">
-                        <div class="primary-text" style="font-size:1.1em; color:#fff; font-weight:bold;">${displayName}</div>
-                        <div class="card-type-label" style="font-size:0.8em; opacity:0.8;">${insightTitle}</div>
+                         <div class="primary-text" style="font-size:1.1em; color:#fff; font-weight:bold;">${displayName}</div>
+                         <div class="card-type-label" style="font-size:0.8em; opacity:0.8;">${insightTitle}</div>
                     </div>
                     <div class="rank-badge"><i class="fas ${theme.icon || 'fa-star'}"></i><span>${insightTypeLabel}</span></div>
                 </div>
             </div>
 
             <div class="card-visual" style="text-align:center; padding-top:10px;">
-                 <img class="boss-img" src="assets/${asset}" alt="${insightTitle.replace(/"/g, '&quot;')}" 
+                <img class="boss-img" src="assets/${asset}" alt="${insightTitle.replace(/"/g, '&quot;')}" 
                      style="height: 220px; width: 100%; object-fit: contain; filter: drop-shadow(0 0 15px ${theme.glow}); transition: transform 0.3s; image-rendering: pixelated;" 
                      onerror="this.onerror=null; this.alt=''; this.src='assets/boss_pet_rock.png';" />
             </div>
@@ -1215,7 +1203,7 @@ function renderGeneralStats(data) {
                 ${SHADOW_DECORATORS}
             <div class="card-header" style="padding: 10px 12px 0 12px;">
                 <div class="card-header-inner" style="display:flex; align-items:center; width:100%; gap:10px;">
-                    <img src="../assets/${rankImg}" alt="rank" style="width:48px; height:48px; object-fit:contain;" onerror="this.src='../assets/rank_minion.png'" />
+                    <img src="assets/${rankImg}" alt="rank" style="width:48px; height:48px; object-fit:contain;" onerror="this.src='assets/rank_minion.png'" />
                     <div style="flex:1; text-align:center;">
                         <div class="primary-text" style="font-size:1.3em; color:#fff;">${member ? member.username : displayTitle}</div>
                         <div class="card-type-label" style="margin-top:2px;">${displayTitle}</div>
@@ -1224,7 +1212,7 @@ function renderGeneralStats(data) {
                 </div>
             </div>
             <div class="card-visual" style="text-align:center; padding-top:6px;">
-                <img src="../assets/${img}" alt="${title.replace(/"/g, '&quot;')}" style="height: 380px; object-fit: contain; filter: drop-shadow(0 0 10px ${t.glow});" />
+                <img src="assets/${img}" alt="${title.replace(/"/g, '&quot;')}" style="height: 380px; object-fit: contain; filter: drop-shadow(0 0 10px ${t.glow});" />
             </div>
             <div class="card-info" style="text-align:center; padding-bottom:10px;">
                 <div class="primary-stat-val" style="font-size:2.2em;">${value}</div>
@@ -1430,7 +1418,7 @@ function renderAlertCards(members) {
                 <span style="font-family:'Outfit'">Inactivity Risk</span>
             </div>
             <div class="player-info" style="display:flex;align-items:center;gap:15px">
-                <img src="../assets/${m.rank_img || 'rank_minion.png'}" style="width:40px;height:auto;" onerror="this.src='../assets/rank_minion.png'">
+                <img src="assets/${m.rank_img || 'rank_minion.png'}" style="width:40px;height:auto;" onerror="this.src='assets/rank_minion.png'">
                 <div class="player-details">
                     <div class="player-name" style="color:#fff;font-weight:bold">${m.username}</div>
                     <div class="player-role" style="color:#888;font-size:0.8em">${m.role}</div>
@@ -1460,7 +1448,7 @@ function renderRecentActivity(members) {
             <tr>
                 <td style="color:${i < 3 ? 'var(--neon-gold)' : '#fff'}">#${i + 1}</td>
                 <td style="display:flex;align-items:center;gap:10px">
-                     <img src="../assets/${m.rank_img}" width="20" onerror="this.style.display='none'">
+                     <img src="assets/${m.rank_img}" width="20" onerror="this.style.display='none'">
                      ${m.username}
                 </td>
                 <td>${m.msgs_7d}</td>
@@ -2172,7 +2160,7 @@ function renderFullRoster(members) {
         html += `
             <tr>
                 <td style="display:flex;align-items:center;gap:10px">
-                     <img src="../assets/${m.rank_img || 'rank_minion.png'}" width="24">
+                     <img src="assets/${m.rank_img || 'rank_minion.png'}" width="24">
                      <span class="player-link" onclick="openPlayerProfile('${m.username}')">${m.username}</span>
                 </td>
                 <td>${formatNumber(m.xp_7d)}</td>
@@ -2311,7 +2299,7 @@ function renderXpSection(members) {
         tbody.innerHTML = sorted.map(m => `
             <tr>
                 <td style="display:flex;align-items:center;gap:10px">
-                    <img src="../assets/${m.rank_img || 'rank_minion.png'}" width="20">
+                    <img src="assets/${m.rank_img || 'rank_minion.png'}" width="20">
                     ${m.username}
                 </td>
                 <td>${m.role}</td>
@@ -2570,11 +2558,11 @@ function openPlayerProfile(username) {
     // Populate Data
     document.getElementById('pm-username').innerText = member.username;
     document.getElementById('pm-role').innerText = member.role.toUpperCase();
-    document.getElementById('pm-rank').src = `../assets/${member.rank_img || 'rank_minion.png'}`;
-    document.getElementById('pm-rank').onerror = function () { this.src = '../assets/rank_minion.png'; };
+    document.getElementById('pm-rank').src = `assets/${member.rank_img || 'rank_minion.png'}`;
+    document.getElementById('pm-rank').onerror = function () { this.src = 'assets/rank_minion.png'; };
 
-    document.getElementById('pm-boss-img').src = `../assets/${member.favorite_boss_img || 'boss_pet_rock.png'}`;
-    document.getElementById('pm-boss-img').onerror = function () { this.src = '../assets/boss_pet_rock.png'; };
+    document.getElementById('pm-boss-img').src = `assets/${member.favorite_boss_img || 'boss_pet_rock.png'}`;
+    document.getElementById('pm-boss-img').onerror = function () { this.src = 'assets/boss_pet_rock.png'; };
 
     document.getElementById('pm-xp-total').innerText = formatNumber(member.total_xp);
     document.getElementById('pm-xp-7d').innerText = "+" + formatNumber(member.xp_7d);
