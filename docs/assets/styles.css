@@ -1,4 +1,10 @@
 /* --- UNIFIED CARD SYSTEM (v3) --- */
+/* Fix rank icon in header as well */
+.card-header-inner img {
+    filter: grayscale(100%);
+    opacity: 0.8;
+}
+
 .unified-card {
     position: relative;
     background: rgba(10, 10, 15, 0.6);
@@ -17,14 +23,43 @@
     padding: 20px;
 
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    backdrop-filter: blur(10px);
+    /* moved backdrop-filter to main rule for override clarity */
 
     /* DEFAULT STATE: Subtle Theme Glow */
     box-shadow: 0 4px 20px -5px var(--theme-glow, rgba(0, 0, 0, 0.5));
 
+    /* ENHANCED THEME: Dynamic Background Gradient */
+    /* ENHANCED THEME: Dynamic Background Gradient */
+    background: rgba(20, 20, 25, 0.15);
+    /* Deep Theme Radial Glow - "The Core" */
+    background-image: radial-gradient(circle at center, var(--theme-glow, rgba(100, 100, 100, 0.1)) 0%, transparent 70%);
+    backdrop-filter: blur(5px);
+    box-shadow: none;
+
     /* DEFAULT THEME (If not overridden) */
     --theme-color: var(--neon-purple);
     --theme-glow: rgba(188, 19, 254, 0.3);
+}
+
+/* Theme Integration: Border & Glow Enhancements */
+.unified-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    padding: 1px;
+    background: linear-gradient(180deg, var(--theme-color), transparent 60%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0.5;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.5;
+}
+
+.unified-card:hover::after {
+    opacity: 1;
 }
 
 .unified-card:hover {
@@ -39,8 +74,9 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    align-items: center;
     margin-bottom: 15px;
-    z-index: 2;
+    z-index: 20;
 }
 
 .rank-badge {
@@ -63,6 +99,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    filter: grayscale(100%);
+    /* Remove gold clash */
 }
 
 .card-type-label {
@@ -71,7 +109,7 @@
     letter-spacing: 2px;
     color: var(--theme-color);
     font-weight: 700;
-    text-shadow: 0 0 10px var(--theme-glow);
+    text-shadow: 0 0 4px var(--theme-glow);
 }
 
 /* 2. Visual Area */
@@ -82,45 +120,43 @@
     justify-content: center;
     align-items: center;
     position: relative;
-    z-index: 2;
+    z-index: 20;
     margin-bottom: 10px;
 }
 
 /* Thematic Backdrop Glow */
+/* Thematic Backdrop Glow - REMOVED per user request (was causing "golden blur") */
 .card-visual::before {
-    content: '';
-    position: absolute;
-    width: 140px;
-    height: 140px;
-    background: radial-gradient(circle, var(--theme-color) 0%, transparent 70%);
-    opacity: 0.25;
-    /* Default visibility */
-    filter: blur(20px);
-    z-index: -1;
-    transition: opacity 0.3s;
+    content: none;
+    display: none;
 }
 
 .unified-card:hover .card-visual::before {
-    opacity: 0.4;
+    opacity: 0.6;
+    transform: scale(1.1);
+    filter: blur(30px);
 }
 
-.card-visual img {
-    max-width: 90%;
+.card-visual img,
+.boss-img {
+    max-width: 85%;
     max-height: 220px;
+    width: auto;
+    height: auto;
     object-fit: contain;
-    filter: drop-shadow(0 0 20px rgba(0, 0, 0, 0.8));
+    filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.5));
     transition: transform 0.4s ease;
 }
 
 .unified-card:hover .card-visual img {
-    transform: scale(1.05);
-    filter: drop-shadow(0 0 25px var(--theme-glow));
+    transform: scale(1.08) translateY(-5px);
+    filter: drop-shadow(0 0 8px var(--theme-glow));
 }
 
 /* 3. Info Area */
 .card-info {
     text-align: center;
-    z-index: 2;
+    z-index: 20;
     width: 100%;
     padding-bottom: 10px;
 }
@@ -151,9 +187,9 @@
     font-size: 2em;
     font-family: 'Outfit', sans-serif;
     font-weight: 800;
-    background: linear-gradient(to right, #fff, var(--theme-color));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: #fff;
+    text-shadow: 0 0 15px var(--theme-glow);
+    /* Removed gradient text for better readability on dark cards, added glow */
 }
 
 /* 4. Details Footer (Hover Reveal) */
@@ -517,6 +553,7 @@
     -webkit-mask:
         linear-gradient(#fff 0 0) content-box,
         linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     opacity: 0.5;
@@ -708,16 +745,33 @@ th,
     font-weight: 300;
 }
 
+/* AI Card text readability boost */
+.ai-card-message-block {
+    padding: 14px 14px 16px;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #f7fbff;
+    text-align: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+    background: linear-gradient(180deg, rgba(6, 8, 12, 0.74) 0%, rgba(4, 6, 10, 0.9) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 82px;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
 /* PREMIUM CARD STYLING (Boss Card Style) */
 /* PREMIUM CARD STYLING (Boss Card Style) - Tech Update */
 /* PREMIUM CARD STYLING (Shadow Tech Update) */
 .premium-card {
     position: relative;
     overflow: hidden;
-    background: var(--void-card-bg);
-    /* No border on main element, necrotic-border handles it */
-    border: none;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    --pc-color: var(--theme-color, var(--neon-blue));
+    --pc-glow: var(--theme-glow, rgba(0, 212, 255, 0.25));
+    background: linear-gradient(180deg, rgba(6, 10, 14, 0.6) 0%, rgba(6, 8, 12, 0.88) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 10px 30px var(--pc-glow);
     /* Clip Path for Tech Shape */
     clip-path: polygon(0 0,
             100% 0,
@@ -745,10 +799,8 @@ th,
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
-    opacity: 0.35;
-    /* Visible but not overwhelming */
-    mix-blend-mode: luminosity;
-    /* Blend nicely */
+    opacity: 0.16;
+    /* Keep artwork visible without tinting */
     transition: transform 0.5s;
     z-index: 0;
 }
@@ -756,8 +808,8 @@ th,
 .premium-card:hover .premium-card-bg {
     transform: scale(1.05);
     /* Subtle zoom */
-    opacity: 0.5;
-    /* Brighten on hover */
+    opacity: 0.24;
+    /* Slightly brighter without color wash */
 }
 
 .premium-card-content {
@@ -770,23 +822,28 @@ th,
 
 /* Gradients for different contexts */
 .premium-card.gold {
-    border-bottom: 3px solid var(--neon-gold);
-    background: linear-gradient(to top, rgba(255, 215, 0, 0.15), rgba(10, 10, 10, 0.8));
+    /* Neutralized: rely on boss/theme colors set by card, not hardcoded gold */
+    --pc-color: var(--theme-color, var(--pc-color));
+    --pc-glow: var(--theme-glow, var(--pc-glow));
+    border-bottom: 2px solid var(--pc-color);
 }
 
 .premium-card.red {
-    border-bottom: 3px solid var(--neon-red);
-    background: linear-gradient(to top, rgba(255, 51, 51, 0.15), rgba(10, 10, 10, 0.8));
+    --pc-color: var(--neon-red);
+    --pc-glow: rgba(255, 51, 51, 0.22);
+    border-bottom: 2px solid var(--pc-color);
 }
 
 .premium-card.blue {
-    border-bottom: 3px solid var(--neon-blue);
-    background: linear-gradient(to top, rgba(0, 212, 255, 0.15), rgba(10, 10, 10, 0.8));
+    --pc-color: var(--neon-blue);
+    --pc-glow: rgba(0, 212, 255, 0.22);
+    border-bottom: 2px solid var(--pc-color);
 }
 
 .premium-card.green {
-    border-bottom: 3px solid var(--neon-green);
-    background: linear-gradient(to top, rgba(51, 255, 51, 0.15), rgba(10, 10, 10, 0.8));
+    --pc-color: var(--neon-green);
+    --pc-glow: rgba(51, 255, 51, 0.22);
+    border-bottom: 2px solid var(--pc-color);
 }
 
 .premium-stat-label {
@@ -993,6 +1050,107 @@ th,
     font-size: 1.4rem;
     font-weight: 700;
     color: #fff;
+}
+
+/* -------------------------------------------------------------------------- */
+/* NECROTIC BORDER (Updated for Dynamic Theming) */
+/* -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+/* NECROTIC BORDER (Updated for Dynamic Theming & Biomes) */
+/* -------------------------------------------------------------------------- */
+.necrotic-border {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+    /* Default Base Gradient */
+    background-image: linear-gradient(135deg,
+            var(--theme-glow, rgba(255, 255, 255, 0.05)) 0%,
+            transparent 20%,
+            transparent 80%,
+            var(--theme-glow, rgba(255, 255, 255, 0.05)) 100%);
+    opacity: 0.6;
+    mix-blend-mode: screen;
+}
+
+/* BIOME: BLOOD (Veins/Organic) */
+.biome-blood .necrotic-border {
+    background-image:
+        radial-gradient(circle at 50% 50%, transparent 60%, var(--theme-color) 120%),
+        repeating-radial-gradient(circle at 50% 50%, transparent 0, transparent 10px, rgba(255, 0, 0, 0.1) 11px, transparent 12px);
+    opacity: 0.7;
+}
+
+/* BIOME: ICE (Shard/Fracture) */
+.biome-ice .necrotic-border {
+    background-image:
+        linear-gradient(135deg, transparent 40%, var(--theme-glow) 42%, transparent 44%),
+        linear-gradient(45deg, transparent 60%, var(--theme-glow) 62%, transparent 64%);
+    background-size: 200% 200%;
+    opacity: 0.5;
+}
+
+/* BIOME: TOXIC (Bubbles/Slime) */
+.biome-toxic .necrotic-border {
+    background-image:
+        radial-gradient(circle at 20% 80%, var(--theme-glow) 0%, transparent 10%),
+        radial-gradient(circle at 80% 20%, var(--theme-glow) 0%, transparent 15%);
+    filter: blur(8px);
+    opacity: 0.6;
+}
+
+/* BIOME: DESERT (Sand/Dust) */
+.biome-desert .necrotic-border {
+    background-image:
+        radial-gradient(circle, var(--theme-glow) 1px, transparent 1px);
+    background-size: 20px 20px;
+    opacity: 0.4;
+}
+
+/* BIOME: COSMIC (Stars/Void) */
+.biome-cosmic .necrotic-border {
+    background-image:
+        radial-gradient(white, rgba(255, 255, 255, .2) 2px, transparent 3px),
+        radial-gradient(white, rgba(255, 255, 255, .15) 1px, transparent 2px),
+        radial-gradient(white, rgba(255, 255, 255, .1) 2px, transparent 3px);
+    background-size: 550px 550px, 350px 350px, 250px 250px;
+    background-position: 0 0, 40px 60px, 130px 270px;
+    opacity: 0.8;
+}
+
+/* BIOME: FIRE (Embers) */
+.biome-fire .necrotic-border {
+    background-image:
+        linear-gradient(0deg, var(--theme-glow) 0%, transparent 50%);
+    opacity: 0.6;
+}
+
+/* -------------------------------------------------------------------------- */
+/* SCANLINES (Updated for Dynamic Theming) */
+/* -------------------------------------------------------------------------- */
+.scanlines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(0deg,
+            transparent,
+            transparent 2px,
+            var(--theme-glow, rgba(0, 0, 0, 0.1)) 3px,
+            transparent 4px);
+    opacity: 0.3;
+    pointer-events: none;
+    z-index: 1;
+    mix-blend-mode: overlay;
+}
+
+.void-particles {
+    pointer-events: none;
+    z-index: 1;
 }
 
 .nav-item {

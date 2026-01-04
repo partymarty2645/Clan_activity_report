@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Card Preview</title>
+  <link rel="stylesheet" href="../assets/styles.css?v=9">
+  <link rel="stylesheet" href="../assets/dynamic_styles.css">
+  <style>
+    :root {
+      --bg: #080b12;
+      --panel: rgba(14, 18, 27, 0.92);
+      --border: #1f2b3d;
+      --accent: #38e8ff;
+      --accent-2: #7cf37c;
+      --text: #e8edf5;
+      --muted: #a8b3c7;
+      --shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+      --glow: 0 0 30px rgba(56, 232, 255, 0.25);
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Outfit', 'Inter', 'Manrope', system-ui, -apple-system, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      background: radial-gradient(circle at 20% 20%, rgba(56, 232, 255, 0.08), transparent 35%),
+                  radial-gradient(circle at 80% 10%, rgba(124, 243, 124, 0.06), transparent 32%),
+                  var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .shell {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 48px 24px 64px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      letter-spacing: 0.6px;
+    }
+
+    p.lede {
+      margin: 4px 0 0;
+      color: var(--muted);
+      max-width: 780px;
+      font-size: 15px;
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      position: relative;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      padding: 16px 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: -40% -40% auto auto;
+      width: 70%;
+      height: 70%;
+      background: radial-gradient(circle at 30% 30%, rgba(56, 232, 255, 0.12), transparent 55%);
+      filter: blur(12px);
+      z-index: 0;
+      opacity: 0.9;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .badge {
+      width: 64px;
+      height: 64px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.02);
+      display: grid;
+      place-items: center;
+      padding: 10px;
+      image-rendering: pixelated;
+      box-shadow: var(--glow);
+    }
+
+    .badge img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      image-rendering: pixelated;
+    }
+
+    .eyebrow {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .title {
+      font-size: 18px;
+      margin: 0;
+    }
+
+    .metric {
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+    }
+
+    .meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(56, 232, 255, 0.12);
+      color: #7af4ff;
+      border: 1px solid rgba(56, 232, 255, 0.35);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    .body {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+    }
+
+    .legend {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 13px;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: auto;
+      position: relative;
+      z-index: 1;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .cta {
+      padding: 8px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--accent);
+      color: var(--text);
+      background: linear-gradient(135deg, rgba(56, 232, 255, 0.18), rgba(56, 232, 255, 0.04));
+      text-decoration: none;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .cta:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 30px rgba(56, 232, 255, 0.25);
+    }
+
+    @media (max-width: 640px) {
+      h1 { font-size: 24px; }
+      .title { font-size: 17px; }
+      .metric { font-size: 26px; }
+      .footer { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div>
+        <h1>Card System Preview</h1>
+        <p class="lede">Three example cards showing the updated sizing, contrast, pixel-safe icons, and overflow handling.</p>
+      </div>
+      <a class="cta" href="index.html">Back to Dashboard</a>
+    </header>
+
+    <div class="card-grid">
+      <article class="card">
+        <div class="card-header">
+          <div class="badge"><img src="../assets/rank_minion.png" alt="rank"></div>
+          <div>
+            <div class="eyebrow">Top Messenger</div>
+            <h2 class="title">sir gowi</h2>
+          </div>
+        </div>
+        <div class="metric">709 msgs</div>
+        <div class="body">High-contrast labels and 14px+ body text keep this legible on dark backgrounds.</div>
+        <div class="legend">
+          <span><span class="dot" style="background:#38e8ff"></span>7d</span>
+          <span><span class="dot" style="background:#7cf37c"></span>30d</span>
+        </div>
+        <div class="footer">
+          <span>Activity window: 7d</span>
+          <a class="cta" href="#">View player</a>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-header">
+          <div class="badge"><img src="../assets/boss_vardorvis.png" alt="boss"></div>
+          <div>
+            <div class="eyebrow">Boss Specialist</div>
+            <h2 class="title">vardorvis grind</h2>
+          </div>
+        </div>
+        <div class="metric">+184 kills</div>
+        <div class="body">Pixelated rendering keeps retro boss icons crisp; overflow text wraps cleanly without clipping.</div>
+        <div class="legend">
+          <span><span class="dot" style="background:#f6d365"></span>7d gain</span>
+          <span><span class="dot" style="background:#ff7eb6"></span>Total</span>
+        </div>
+        <div class="footer">
+          <span>Last sync: today</span>
+          <a class="cta" href="#">Open boss log</a>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-header">
+          <div class="badge"><img src="../assets/boss_phoenix.png" alt="health"></div>
+          <div>
+            <div class="eyebrow">System Health</div>
+            <h2 class="title">Legend readability</h2>
+          </div>
+        </div>
+        <div class="metric">Good</div>
+        <div class="body">Legend text is 13px with strong contrast; glows are softened behind a solid panel to keep type crisp.</div>
+        <div class="legend">
+          <span><span class="dot" style="background:#33ff33"></span>High activity</span>
+          <span><span class="dot" style="background:#00d4ff"></span>Moderate</span>
+          <span><span class="dot" style="background:#ff3333"></span>Inactive</span>
+        </div>
+        <div class="footer">
+          <span>Pixel icons scaled nearest-neighbor</span>
+          <a class="cta" href="#">See chart</a>
+        </div>
+      </article>
+    </div>
+  </div>
+</body>
+</html>
