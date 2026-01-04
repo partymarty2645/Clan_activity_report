@@ -1979,6 +1979,17 @@ function setupSectionSearch(inputId, rowSelector) {
 // BOSS THEME ENGINE (GLOBAL)
 // ---------------------------------------------------------
 
+// Fallback boss images for AI insight types when boss resolution fails
+const insightAssetFallback = {
+    'milestone': 'boss_the_mimic.png',
+    'roast': 'boss_chaos_elemental.png',
+    'trend-positive': 'boss_phoenix.png',
+    'trend-negative': 'boss_the_nightmare.png',
+    'leadership': 'boss_tzkal-zuk.png',
+    'anomaly': 'boss_the_whisperer.png',
+    'general': 'boss_pet_rock.png'
+};
+
 // BOSS_THEMES now sourced from CSS variables (:root)
 // This creates a single source of truth for all boss colors
 function getBossThemesFromCSS() {
