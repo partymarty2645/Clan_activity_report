@@ -1023,7 +1023,7 @@ function renderAIInsights(members) {
 
             <div class="card-visual" style="text-align:center; padding-top:10px;">
                 <img class="boss-img" src="assets/${asset}" alt="${insightTitle.replace(/"/g, '&quot;')}" 
-                     style="height: 220px; width: 100%; object-fit: contain; filter: drop-shadow(0 0 15px ${theme.glow}); transition: transform 0.3s; image-rendering: pixelated;" 
+                     style="height: 297px; width: 100%; object-fit: contain; filter: drop-shadow(0 0 15px ${theme.glow}); transition: transform 0.3s; image-rendering: pixelated;" 
                      onerror="this.onerror=null; this.alt=''; this.src='assets/boss_pet_rock.png';" />
             </div>
             <div class="card-info" style="text-align:center; padding:10px 0;">
@@ -1212,7 +1212,7 @@ function renderGeneralStats(data) {
                 </div>
             </div>
             <div class="card-visual" style="text-align:center; padding-top:6px;">
-                <img src="assets/${img}" alt="${title.replace(/"/g, '&quot;')}" style="height: 380px; object-fit: contain; filter: drop-shadow(0 0 10px ${t.glow});" />
+                <img src="assets/${img}" alt="${title.replace(/"/g, '&quot;')}" style="height: 513px; object-fit: contain; filter: drop-shadow(0 0 10px ${t.glow});" />
             </div>
             <div class="card-info" style="text-align:center; padding-bottom:10px;">
                 <div class="primary-stat-val" style="font-size:2.2em;">${value}</div>
@@ -2527,7 +2527,7 @@ function openPlayerProfile(username) {
                 <div class="modal-body">
                     <div style="display:flex; gap:25px; flex-wrap:wrap; margin-bottom:25px; align-items:center;">
                         <div style="flex:0 0 150px; text-align:center;">
-                             <img id="pm-boss-img" src="" style="width:100%; max-width:120px; filter:drop-shadow(0 0 15px rgba(0,212,255,0.3));">
+                             <img id="pm-boss-img" src="" style="width:100%; max-width:162px; filter:drop-shadow(0 0 15px rgba(0,212,255,0.3));">
                              <div style="margin-top:10px;font-size:0.8rem;color:#666">Favorite Target</div>
                         </div>
                         <div style="flex:1;">
