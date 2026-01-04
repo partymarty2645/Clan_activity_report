@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=Rajdhani:wght@400;600;700&display=swap');
+
 /* --- UNIFIED CARD SYSTEM (v3) --- */
 /* Fix rank icon in header as well */
 .card-header-inner img {
@@ -342,8 +344,6 @@
     color: var(--theme-color);
     font-weight: 600;
 }
-
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=Rajdhani:wght@400;600;700&display=swap');
 
 :root {
     /* Base Colors - Deep Obsidian / Shadow Nexus */
