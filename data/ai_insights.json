@@ -1,74 +1,62 @@
 [
   {
     "type": "milestone",
-    "title": "BIG XP GAINS!",
-    "message": "drylogs just sent it with 9.1M XP! \ud83d\udca5",
+    "message": "drylogs: 93M XP gain. That's some serious commitment, meatbag.",
     "icon": "fa-trophy"
   },
   {
-    "type": "milestone",
-    "title": "Boss Slayer!",
-    "message": "arrogancee with a massive 1933 boss kills! \ud83d\udc80",
-    "icon": "fa-dragon"
-  },
-  {
     "type": "roast",
-    "title": "Silent Grinder",
-    "message": "arrogancee: 1933 boss kills, 0 messages? Bot?? \ud83e\udd16",
-    "icon": "fa-user-ninja"
+    "message": "arrogancee: 68M XP and 0 messages? Talking to yourself, much?",
+    "icon": "fa-skull"
   },
   {
-    "type": "roast",
-    "title": "XP Waste?",
-    "message": "basket15cool with 26.7M XP but only 3 messages? \ud83e\udd74",
-    "icon": "fa-comment-slash"
-  },
-  {
-    "type": "trend-positive",
-    "title": "Chat is POPPIN'!",
-    "message": "+75.5% Discord messages this week! \ud83d\ude80",
+    "type": "general",
+    "message": "Discord activity spiked 57.2% this week. Did you all find your mics?",
     "icon": "fa-chart-line"
   },
   {
-    "type": "trend-positive",
-    "title": "The Batgang is TALKING!",
-    "message": "15157 messages this week! Keep it up! \ud83c\udf82",
-    "icon": "fa-comments"
+    "type": "anomaly",
+    "message": "alprosia: 169 messages this week. Finally started talking, eh?",
+    "icon": "fa-fire"
   },
   {
     "type": "leadership",
-    "title": "Staff Spotlight",
-    "message": "Partymarty2645 is on fire with 704 messages! \ud83d\udc4c",
+    "message": "Partymarty2645 is leading. Still running things, fleshbag.",
+    "icon": "fa-crown"
+  },
+  {
+    "type": "milestone",
+    "message": "donatoosrs: 113M XP this week. Someone's been busy.",
+    "icon": "fa-trophy"
+  },
+  {
+    "type": "general",
+    "message": "Discord is blowing up, 15900 messages this week.",
+    "icon": "fa-chart-line"
+  },
+  {
+    "type": "leadership",
+    "message": "Partymarty2645 leads the clan, a true legend.",
     "icon": "fa-crown"
   },
   {
     "type": "anomaly",
-    "title": "Weird Stats Here",
-    "message": "kxntsugi: 46.6M XP gain, 141 boss kills, 0 messages. Hmm. \ud83e\udd14",
-    "icon": "fa-question-circle"
+    "message": "alprosia: 169 messages with 14M XP. Chatterbox alert!",
+    "icon": "fa-fire"
+  },
+  {
+    "type": "trend-positive",
+    "message": "sirgowi: 630 messages sent in 7d; the clan's vocal backbone, keep those callouts coming.",
+    "icon": "fa-comment"
+  },
+  {
+    "type": "trend-negative",
+    "message": "bshoff: 1,030 boss kills this window; dry streak incoming? Stay determined, the log will return.",
+    "icon": "fa-arrow-down"
   },
   {
     "type": "general",
-    "title": "Top XP Getter",
-    "message": "drylogs leads with 9.1M XP gain this week! \ud83c\udfc6",
+    "message": "kxntsugi: Balanced contributor with 47,254,242 XP and 0 messages; jack of all trades keeping the clan ecosystem thriving.",
     "icon": "fa-star"
-  },
-  {
-    "type": "general",
-    "title": "Bossing Machine",
-    "message": "samaelilith bagged 2280 boss kills! \ud83d\ude0e",
-    "icon": "fa-chess-king"
-  },
-  {
-    "type": "roast",
-    "title": "Touch Grass?",
-    "message": "drylogs with 9.1M XP and 15 messages? That's a LOT. \ud83c\udf33",
-    "icon": "fa-leaf"
-  },
-  {
-    "type": "general",
-    "title": "Chat and Chill",
-    "message": "samaelilith balances 930 messages with 15.2M XP gain. \ud83e\udd73",
-    "icon": "fa-grin-alt"
   }
 ]

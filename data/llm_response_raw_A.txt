@@ -1,0 +1,8 @@
+[
+  {"type":"milestone","message":"drylogs: 93M XP gain. That's some serious commitment, meatbag.","icon":"fa-trophy"},
+  {"type":"roast","message":"arrogancee: 68M XP and 0 messages? Talking to yourself, much?","icon":"fa-skull"},
+  {"type":"trend","message":"Discord activity spiked 57.2% this week. Did you all find your mics?","icon":"fa-chart-line"},
+  {"type":"anomaly","message":"alprosia: 169 messages this week. Finally started talking, eh?","icon":"fa-fire"},
+  {"type":"leadership","message":"Partymarty2645 is leading. Still running things, fleshbag.","icon":"fa-crown"},
+  {"type":"milestone","message":"donatoosrs: 113M XP this week. Someone's been busy.","icon":"fa-trophy"}
+]

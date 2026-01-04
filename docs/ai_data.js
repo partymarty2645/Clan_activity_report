@@ -1,74 +1,72 @@
 window.aiData = {
-  pulse: [
-    "Clan chat up 75% week-over-week—keep the comms flowing!",
-    "Leadership surge: Owners and deputies are leading by example on XP and messages."
-  ],
-  alerts: [
+  "insights": [
     {
-      type: "warning",
-      icon: "fa-skull",
-      title: "Silent grinder detected",
-      message: "Tylenolchugr posted 0 messages despite 19.8M XP and 1036 kills. Encourage squad check-in."
+      "type": "milestone",
+      "message": "drylogs: 93M XP gain. That's some serious commitment, meatbag.",
+      "icon": "fa-trophy"
     },
     {
-      type: "info",
-      icon: "fa-bullseye",
-      title: "Chat/XP imbalance",
-      message: "Jbwelly sent 117 messages with 0 XP and 0 kills—nudge toward goals."
+      "type": "roast",
+      "message": "arrogancee: 68M XP and 0 messages? Talking to yourself, much?",
+      "icon": "fa-skull"
+    },
+    {
+      "type": "general",
+      "message": "Discord activity spiked 57.2% this week. Did you all find your mics?",
+      "icon": "fa-chart-line"
+    },
+    {
+      "type": "anomaly",
+      "message": "alprosia: 169 messages this week. Finally started talking, eh?",
+      "icon": "fa-fire"
+    },
+    {
+      "type": "leadership",
+      "message": "Partymarty2645 is leading. Still running things, fleshbag.",
+      "icon": "fa-crown"
+    },
+    {
+      "type": "milestone",
+      "message": "donatoosrs: 113M XP this week. Someone's been busy.",
+      "icon": "fa-trophy"
+    },
+    {
+      "type": "general",
+      "message": "Discord is blowing up, 15900 messages this week.",
+      "icon": "fa-chart-line"
+    },
+    {
+      "type": "leadership",
+      "message": "Partymarty2645 leads the clan, a true legend.",
+      "icon": "fa-crown"
+    },
+    {
+      "type": "anomaly",
+      "message": "alprosia: 169 messages with 14M XP. Chatterbox alert!",
+      "icon": "fa-fire"
+    },
+    {
+      "type": "trend-positive",
+      "message": "sirgowi: 630 messages sent in 7d; the clan's vocal backbone, keep those callouts coming.",
+      "icon": "fa-comment"
+    },
+    {
+      "type": "trend-negative",
+      "message": "bshoff: 1,030 boss kills this window; dry streak incoming? Stay determined, the log will return.",
+      "icon": "fa-arrow-down"
+    },
+    {
+      "type": "general",
+      "message": "kxntsugi: Balanced contributor with 47,254,242 XP and 0 messages; jack of all trades keeping the clan ecosystem thriving.",
+      "icon": "fa-star"
     }
   ],
-  insights: [
-    {
-      type: "trend",
-      title: "Clan Chat Activity Surging!",
-      message: "Weekly clan messages are UP by 75.0%, from 5761 to 10080! Keep the chat alive, Nevr Lucky!"
-    },
-    {
-      type: "analysis",
-      title: "The Golden Boy Shines!",
-      message: "Deputy Owner Docofmed is truly the Golden Boy with 6.5M XP, 282 kills, and 175 messages this week! Be like Doc."
-    },
-    {
-      type: "analysis",
-      title: "Owner Leading the Charge!",
-      message: "Owner partymarty94 leads by example with 4.4M XP and 409 messages in the last 7 days! Keep up the great work!"
-    },
-    {
-      type: "warning",
-      title: "The Ghost Who Grinds!",
-      message: "Tylenolchugr, you've gained 19.8M XP and 1036 kills this week with 0 messages. Are you even real? Touch grass!"
-    },
-    {
-      type: "warning",
-      title: "All Talk, No Walk?",
-      message: "Jbwelly sent 117 messages this week but gained 0 XP and 0 kills. Are you just here for the banter, Jbwelly?"
-    },
-    {
-      type: "milestone",
-      title: "Prayer Power-Up!",
-      message: "Psilocyn gained a massive 4.6M Prayer XP this week and was active 6 out of 7 days! Impressive dedication!"
-    },
-    {
-      type: "milestone",
-      title: "100M Milestone Achieved!",
-      message: "Masexd hit 100M Strength and 100M Hitpoints! A true grind, active 6/7 days this week!"
-    },
-    {
-      type: "milestone",
-      title: "Construction King!",
-      message: "Pointndclick hammered out 6M Construction XP in the last 7 days, with peak activity around 10 PM UTC!"
-    },
-    {
-      type: "general",
-      title: "The Triple Threat!",
-      message: "Samaelilith is a powerhouse: Top 25% XP (3.4M), Top 5% Kills (736), and Top 5% Messages (585) this week!"
-    },
-    {
-      type: "general",
-      title: "Consistent Grinder!",
-      message: "Steadyon is a relentless grinder, active 7/7 days with 3.8M XP and 372 kills in the last 7 days!"
-    }
-  ],
-  generated_at: "2025-12-29 15:34:30",
-  provider: "gemini-2.5-flash"
+  "generated_at": "2026-01-04T12:33:02.062642",
+  "pulse": [
+    "drylogs: 93M XP gain. That's some serious commitment, meatbag.",
+    "arrogancee: 68M XP and 0 messages? Talking to yourself, much?",
+    "Discord activity spiked 57.2% this week. Did you all find your mics?",
+    "alprosia: 169 messages this week. Finally started talking, eh?",
+    "Partymarty2645 is leading. Still running things, fleshbag."
+  ]
 };
