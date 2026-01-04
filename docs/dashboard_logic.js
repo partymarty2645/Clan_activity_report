@@ -31,6 +31,29 @@ const SHADOW_DECORATORS = `
         <div class="void-particle"></div><div class="void-particle"></div>
     </div>`;
 
+// Normalize asset base so GitHub Pages (served from /Clan_activity_report/) loads images correctly
+const ASSET_BASE = (() => {
+    try {
+        const href = window.location.href;
+        if (href.includes('/Clan_activity_report/')) return '/Clan_activity_report/assets/';
+    } catch (_) {}
+    return 'assets/';
+})();
+
+const normalizeAssetPath = (src) => {
+    if (!src) return src;
+    return src.replace(/^(?:\.\.\/)?assets\//, ASSET_BASE);
+};
+
+const normalizeAssetTags = (root = document) => {
+    if (!root || !root.querySelectorAll) return;
+    root.querySelectorAll('img').forEach((img) => {
+        const current = img.getAttribute('src');
+        const fixed = normalizeAssetPath(current);
+        if (fixed && fixed !== current) img.setAttribute('src', fixed);
+    });
+};
+
 // Global Error Handler
 window.onerror = function (msg, url, lineNo, columnNo, error) {
     console.error("Global Error: " + msg, error);
@@ -209,6 +232,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 4. Setup Search (Header search boxes)
         safelyRun(() => renderNewsTicker(dashboardData.allMembers), "renderNewsTicker");
         safelyRun(() => setupSearch(), "setupSearch");
+
+        // Ensure any relative asset paths are normalized for the current host (e.g., GitHub Pages)
+        normalizeAssetTags();
 
     } catch (criticalError) {
         console.error("CRITICAL INIT ERROR:", criticalError);
@@ -1024,6 +1050,9 @@ function renderAIInsights(members) {
         </div>
         `;
     });
+
+    // Normalize any generated image sources to the correct base path
+    normalizeAssetTags(container);
 }
 
 // Table Sorting Logic
