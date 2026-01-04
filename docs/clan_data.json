@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-01-04T12:35:52.254779",
+  "generated_at": "2026-01-04T13:57:12.683173",
   "activity_heatmap": [
     2311,
     2447,
@@ -11,9 +11,9 @@
     735,
     1187,
     1470,
-    1238,
-    1450,
-    1213,
+    1271,
+    1530,
+    1436,
     1258,
     1450,
     1848,
@@ -193,8 +193,8 @@
       "The Royal Titans",
       "Thermonuclear Smoke Devil",
       "Yama",
-      "Scurrius",
       "Vardorvis",
+      "Scurrius",
       "Other"
     ],
     "datasets": [
@@ -203,19 +203,19 @@
           2737,
           1562,
           1543,
-          1396,
+          1349,
           1208,
-          1195,
-          986,
+          1178,
+          978,
           951,
           872,
           793,
-          720,
+          694,
           530,
           503,
-          493,
           484,
-          8286
+          478,
+          8151
         ]
       }
     ]
@@ -333,7 +333,7 @@
       "datasets": [
         {
           "data": [
-            86423,
+            87859,
             328335,
             4175,
             0,
@@ -371,7 +371,7 @@
   },
   "correlation_data": [
     {
-      "x": 1,
+      "x": 10,
       "y": 0,
       "r": 5,
       "user": "00redrum00"
@@ -413,7 +413,7 @@
       "user": "99heisman"
     },
     {
-      "x": 125,
+      "x": 127,
       "y": 85189,
       "r": 5,
       "user": "anoobpure"
@@ -449,7 +449,7 @@
       "user": "almostafz"
     },
     {
-      "x": 166,
+      "x": 171,
       "y": 0,
       "r": 5,
       "user": "alprosia"
@@ -462,7 +462,7 @@
     },
     {
       "x": 36,
-      "y": 8806428,
+      "y": 8585583,
       "r": 5,
       "user": "askalafos"
     },
@@ -485,8 +485,8 @@
       "user": "b0otyband1t"
     },
     {
-      "x": 279,
-      "y": 1717456,
+      "x": 294,
+      "y": 1469828,
       "r": 5,
       "user": "badglen"
     },
@@ -522,7 +522,7 @@
     },
     {
       "x": 18,
-      "y": 3026033,
+      "y": 2819861,
       "r": 5,
       "user": "beedlebeedle"
     },
@@ -551,7 +551,7 @@
       "user": "bigbaosj"
     },
     {
-      "x": 85,
+      "x": 100,
       "y": 1434425,
       "r": 5,
       "user": "bighugedave"
@@ -581,7 +581,7 @@
       "user": "bountyhunty"
     },
     {
-      "x": 157,
+      "x": 176,
       "y": 3409112,
       "r": 5,
       "user": "brootah"
@@ -599,7 +599,7 @@
       "user": "btgslaughter"
     },
     {
-      "x": 36,
+      "x": 37,
       "y": 0,
       "r": 5,
       "user": "budzyyy"
@@ -701,14 +701,14 @@
       "user": "ddsspeczz"
     },
     {
-      "x": 45,
+      "x": 56,
       "y": 1620905,
       "r": 5,
       "user": "deadgamefr"
     },
     {
-      "x": 281,
-      "y": 3049652,
+      "x": 333,
+      "y": 2847529,
       "r": 5,
       "user": "docofmed"
     },
@@ -756,7 +756,7 @@
     },
     {
       "x": 13,
-      "y": 637058,
+      "y": 442209,
       "r": 5,
       "user": "easyenough"
     },
@@ -785,7 +785,7 @@
       "user": "etk"
     },
     {
-      "x": 113,
+      "x": 116,
       "y": 0,
       "r": 5,
       "user": "evstwenty"
@@ -846,7 +846,7 @@
     },
     {
       "x": 0,
-      "y": 1299496,
+      "y": 884359,
       "r": 5,
       "user": "frommedellin"
     },
@@ -858,13 +858,13 @@
     },
     {
       "x": 51,
-      "y": 3198996,
+      "y": 2571488,
       "r": 5,
       "user": "geoblocks34"
     },
     {
       "x": 0,
-      "y": 535860,
+      "y": 319615,
       "r": 5,
       "user": "geordie93"
     },
@@ -942,7 +942,7 @@
     },
     {
       "x": 2,
-      "y": 2268361,
+      "y": 1816308,
       "r": 5,
       "user": "hoiiron254"
     },
@@ -966,7 +966,7 @@
     },
     {
       "x": 27,
-      "y": 1416731,
+      "y": 1008706,
       "r": 5,
       "user": "icantankyou"
     },
@@ -1014,7 +1014,7 @@
     },
     {
       "x": 4,
-      "y": 717662,
+      "y": 263105,
       "r": 5,
       "user": "itscutty"
     },
@@ -1037,7 +1037,7 @@
       "user": "jbwelly"
     },
     {
-      "x": 167,
+      "x": 173,
       "y": 1164654,
       "r": 5,
       "user": "jewsyjews"
@@ -1056,7 +1056,7 @@
     },
     {
       "x": 4,
-      "y": 701095,
+      "y": 575249,
       "r": 5,
       "user": "jokesmolnts"
     },
@@ -1110,7 +1110,7 @@
     },
     {
       "x": 28,
-      "y": 2872298,
+      "y": 2850938,
       "r": 5,
       "user": "loafy"
     },
@@ -1194,7 +1194,7 @@
     },
     {
       "x": 7,
-      "y": 682622,
+      "y": 460411,
       "r": 5,
       "user": "maxwellhall"
     },
@@ -1259,14 +1259,14 @@
       "user": "naomhpeadar"
     },
     {
-      "x": 102,
+      "x": 104,
       "y": 3574766,
       "r": 5,
       "user": "netfllxnchll"
     },
     {
       "x": 156,
-      "y": 5016892,
+      "y": 4784711,
       "r": 5,
       "user": "nethaeron"
     },
@@ -1283,13 +1283,13 @@
       "user": "onamorn899"
     },
     {
-      "x": 262,
+      "x": 298,
       "y": 4649846,
       "r": 5,
       "user": "paddiefish"
     },
     {
-      "x": 377,
+      "x": 380,
       "y": 4804170,
       "r": 5,
       "user": "partymarty94"
@@ -1374,12 +1374,12 @@
     },
     {
       "x": 19,
-      "y": 2639090,
+      "y": 2271168,
       "r": 5,
       "user": "reveratenm"
     },
     {
-      "x": 13,
+      "x": 11,
       "y": 3306768,
       "r": 5,
       "user": "rezthepali"
@@ -1446,7 +1446,7 @@
     },
     {
       "x": 3,
-      "y": 4282203,
+      "y": 3910674,
       "r": 5,
       "user": "sanepanda"
     },
@@ -1481,7 +1481,7 @@
       "user": "shaftvader"
     },
     {
-      "x": 627,
+      "x": 633,
       "y": 4841804,
       "r": 5,
       "user": "sirgowi"
@@ -1523,8 +1523,8 @@
       "user": "sonoferis"
     },
     {
-      "x": 220,
-      "y": 3498131,
+      "x": 306,
+      "y": 2241315,
       "r": 5,
       "user": "sorty121212"
     },
@@ -1536,7 +1536,7 @@
     },
     {
       "x": 14,
-      "y": 1107706,
+      "y": 989041,
       "r": 5,
       "user": "speedpeen"
     },
@@ -1547,7 +1547,7 @@
       "user": "spl0wsi"
     },
     {
-      "x": 244,
+      "x": 245,
       "y": 3664536,
       "r": 5,
       "user": "steadyon"
@@ -1559,13 +1559,13 @@
       "user": "stiffblickey"
     },
     {
-      "x": 6,
+      "x": 7,
       "y": 276009,
       "r": 5,
       "user": "strixter"
     },
     {
-      "x": 27,
+      "x": 25,
       "y": 1166449,
       "r": 5,
       "user": "suckmybean"
@@ -1596,13 +1596,13 @@
     },
     {
       "x": 0,
-      "y": 5285,
+      "y": 3623,
       "r": 5,
       "user": "thebaldyy"
     },
     {
       "x": 215,
-      "y": 5309984,
+      "y": 3918585,
       "r": 5,
       "user": "theforgegod"
     },
@@ -1620,7 +1620,7 @@
     },
     {
       "x": 0,
-      "y": 2557194,
+      "y": 1827324,
       "r": 5,
       "user": "tommygunn"
     },
@@ -1655,7 +1655,7 @@
       "user": "tyche33"
     },
     {
-      "x": 246,
+      "x": 237,
       "y": 2868294,
       "r": 5,
       "user": "vanvolterii"
@@ -1739,7 +1739,7 @@
       "user": "xterminater"
     },
     {
-      "x": 56,
+      "x": 62,
       "y": 1996920,
       "r": 5,
       "user": "ydooby"
@@ -2297,7 +2297,7 @@
       "rank_img": "rank_law.png",
       "joined_at": "2025-10-31",
       "days_in_clan": 65,
-      "xp_7d": 8806428,
+      "xp_7d": 8585583,
       "boss_7d": 38,
       "xp_30d": 11092084,
       "boss_30d": 63,
@@ -2567,31 +2567,6 @@
       "context_class": "context-pvm"
     },
     {
-      "username": "theforgegod",
-      "role": "saviour",
-      "rank_img": "rank_saviour.png",
-      "joined_at": "2025-02-14",
-      "days_in_clan": 323,
-      "xp_7d": 5309984,
-      "boss_7d": 507,
-      "xp_30d": 27840584,
-      "boss_30d": 1415,
-      "boss_30d_top": "Vetion",
-      "boss_30d_top_img": "boss_pet_rock.png",
-      "boss_30d_top_delta": 460,
-      "xp_year": 402968025,
-      "favorite_boss": "Vetion",
-      "favorite_boss_img": "boss_tztok_jad.png",
-      "favorite_boss_all_time": "The Whisperer",
-      "favorite_boss_all_time_img": "boss_the_whisperer.png",
-      "total_xp": 585157692,
-      "total_boss": 27286,
-      "msgs_7d": 208,
-      "msgs_30d": 887,
-      "msgs_total": 7426,
-      "context_class": "context-pvm"
-    },
-    {
       "username": "kxntsugi",
       "role": "prospector",
       "rank_img": "rank_prospector.png",
@@ -2642,36 +2617,11 @@
       "context_class": "context-pvm"
     },
     {
-      "username": "nethaeron",
-      "role": "brassican",
-      "rank_img": "rank_brassican.png",
-      "joined_at": "2025-09-03",
-      "days_in_clan": 122,
-      "xp_7d": 5016892,
-      "boss_7d": 202,
-      "xp_30d": 17021123,
-      "boss_30d": 1224,
-      "boss_30d_top": "Cerberus",
-      "boss_30d_top_img": "boss_cerberus.png",
-      "boss_30d_top_delta": 333,
-      "xp_year": 77612301,
-      "favorite_boss": "Cerberus",
-      "favorite_boss_img": "boss_cerberus.png",
-      "favorite_boss_all_time": "Kraken",
-      "favorite_boss_all_time_img": "boss_kraken.png",
-      "total_xp": 92720430,
-      "total_boss": 4572,
-      "msgs_7d": 107,
-      "msgs_30d": 636,
-      "msgs_total": 1759,
-      "context_class": "context-pvm"
-    },
-    {
       "username": "1ynez",
       "role": "death",
       "rank_img": "rank_death.png",
       "joined_at": "2025-03-04",
-      "days_in_clan": 305,
+      "days_in_clan": 306,
       "xp_7d": 4990687,
       "boss_7d": 90,
       "xp_30d": 10244508,
@@ -2761,9 +2711,9 @@
       "favorite_boss_all_time_img": "boss_callisto.png",
       "total_xp": 145964868,
       "total_boss": 4272,
-      "msgs_7d": 627,
-      "msgs_30d": 2167,
-      "msgs_total": 15264,
+      "msgs_7d": 633,
+      "msgs_30d": 2173,
+      "msgs_total": 15270,
       "context_class": "context-pvm"
     },
     {
@@ -2771,7 +2721,7 @@
       "role": "owner",
       "rank_img": "rank_owner.png",
       "joined_at": "2025-02-14",
-      "days_in_clan": 323,
+      "days_in_clan": 324,
       "xp_7d": 4804170,
       "boss_7d": 438,
       "xp_30d": 20227627,
@@ -2786,9 +2736,34 @@
       "favorite_boss_all_time_img": "boss_thermonuclear_smoke_devil.png",
       "total_xp": 468767535,
       "total_boss": 25655,
-      "msgs_7d": 350,
-      "msgs_30d": 1376,
-      "msgs_total": 16691,
+      "msgs_7d": 359,
+      "msgs_30d": 1385,
+      "msgs_total": 16700,
+      "context_class": "context-pvm"
+    },
+    {
+      "username": "nethaeron",
+      "role": "brassican",
+      "rank_img": "rank_brassican.png",
+      "joined_at": "2025-09-03",
+      "days_in_clan": 123,
+      "xp_7d": 4784711,
+      "boss_7d": 176,
+      "xp_30d": 17021123,
+      "boss_30d": 1224,
+      "boss_30d_top": "Cerberus",
+      "boss_30d_top_img": "boss_cerberus.png",
+      "boss_30d_top_delta": 333,
+      "xp_year": 77612301,
+      "favorite_boss": "Cerberus",
+      "favorite_boss_img": "boss_cerberus.png",
+      "favorite_boss_all_time": "Kraken",
+      "favorite_boss_all_time_img": "boss_kraken.png",
+      "total_xp": 92720430,
+      "total_boss": 4572,
+      "msgs_7d": 107,
+      "msgs_30d": 636,
+      "msgs_total": 1759,
       "context_class": "context-pvm"
     },
     {
@@ -2811,9 +2786,9 @@
       "favorite_boss_all_time_img": "boss_amoxliatl.png",
       "total_xp": 102192557,
       "total_boss": 813,
-      "msgs_7d": 234,
-      "msgs_30d": 866,
-      "msgs_total": 9067,
+      "msgs_7d": 279,
+      "msgs_30d": 911,
+      "msgs_total": 9112,
       "context_class": "context-pvm"
     },
     {
@@ -2865,31 +2840,6 @@
       "msgs_30d": 30,
       "msgs_total": 546,
       "context_class": "context-pvm"
-    },
-    {
-      "username": "sanepanda",
-      "role": "dragon",
-      "rank_img": "rank_dragon.png",
-      "joined_at": "2025-03-13",
-      "days_in_clan": 297,
-      "xp_7d": 4282203,
-      "boss_7d": 0,
-      "xp_30d": 8093916,
-      "boss_30d": 0,
-      "boss_30d_top": "Abyssal Sire",
-      "boss_30d_top_img": "boss_abyssal_sire.png",
-      "boss_30d_top_delta": 0,
-      "xp_year": 364965243,
-      "favorite_boss": "None",
-      "favorite_boss_img": "boss_pet_rock.png",
-      "favorite_boss_all_time": "Alchemical Hydra",
-      "favorite_boss_all_time_img": "boss_alchemical_hydra.png",
-      "total_xp": 494798447,
-      "total_boss": 18850,
-      "msgs_7d": 3,
-      "msgs_30d": 4,
-      "msgs_total": 43,
-      "context_class": "context-skills"
     },
     {
       "username": "daddyo545",
@@ -2967,6 +2917,56 @@
       "context_class": "context-skills"
     },
     {
+      "username": "theforgegod",
+      "role": "saviour",
+      "rank_img": "rank_saviour.png",
+      "joined_at": "2025-02-14",
+      "days_in_clan": 323,
+      "xp_7d": 3918585,
+      "boss_7d": 391,
+      "xp_30d": 27840584,
+      "boss_30d": 1415,
+      "boss_30d_top": "Vetion",
+      "boss_30d_top_img": "boss_pet_rock.png",
+      "boss_30d_top_delta": 460,
+      "xp_year": 402968025,
+      "favorite_boss": "Vetion",
+      "favorite_boss_img": "boss_tztok_jad.png",
+      "favorite_boss_all_time": "The Whisperer",
+      "favorite_boss_all_time_img": "boss_the_whisperer.png",
+      "total_xp": 585157692,
+      "total_boss": 27286,
+      "msgs_7d": 208,
+      "msgs_30d": 887,
+      "msgs_total": 7426,
+      "context_class": "context-pvm"
+    },
+    {
+      "username": "sanepanda",
+      "role": "dragon",
+      "rank_img": "rank_dragon.png",
+      "joined_at": "2025-03-13",
+      "days_in_clan": 297,
+      "xp_7d": 3910674,
+      "boss_7d": 0,
+      "xp_30d": 8093916,
+      "boss_30d": 0,
+      "boss_30d_top": "Abyssal Sire",
+      "boss_30d_top_img": "boss_abyssal_sire.png",
+      "boss_30d_top_delta": 0,
+      "xp_year": 364965243,
+      "favorite_boss": "None",
+      "favorite_boss_img": "boss_pet_rock.png",
+      "favorite_boss_all_time": "Alchemical Hydra",
+      "favorite_boss_all_time_img": "boss_alchemical_hydra.png",
+      "total_xp": 494798447,
+      "total_boss": 18850,
+      "msgs_7d": 3,
+      "msgs_30d": 4,
+      "msgs_total": 43,
+      "context_class": "context-skills"
+    },
+    {
       "username": "tdm06",
       "role": "law",
       "rank_img": "rank_law.png",
@@ -3021,7 +3021,7 @@
       "role": "prospector",
       "rank_img": "rank_prospector.png",
       "joined_at": "2025-12-20",
-      "days_in_clan": 14,
+      "days_in_clan": 15,
       "xp_7d": 3795325,
       "boss_7d": 175,
       "xp_30d": 6998368,
@@ -3061,9 +3061,9 @@
       "favorite_boss_all_time_img": "boss_araxxor.png",
       "total_xp": 200736763,
       "total_boss": 10217,
-      "msgs_7d": 236,
-      "msgs_30d": 392,
-      "msgs_total": 2760,
+      "msgs_7d": 240,
+      "msgs_30d": 396,
+      "msgs_total": 2764,
       "context_class": "context-pvm"
     },
     {
@@ -3096,7 +3096,7 @@
       "role": "saviour",
       "rank_img": "rank_saviour.png",
       "joined_at": "2025-02-14",
-      "days_in_clan": 323,
+      "days_in_clan": 324,
       "xp_7d": 3574766,
       "boss_7d": 148,
       "xp_30d": 15925118,
@@ -3111,35 +3111,10 @@
       "favorite_boss_all_time_img": "boss_callisto.png",
       "total_xp": 348114744,
       "total_boss": 32276,
-      "msgs_7d": 97,
-      "msgs_30d": 307,
-      "msgs_total": 5135,
+      "msgs_7d": 99,
+      "msgs_30d": 309,
+      "msgs_total": 5137,
       "context_class": "context-pvm"
-    },
-    {
-      "username": "sorty121212",
-      "role": "soul",
-      "rank_img": "rank_soul.png",
-      "joined_at": "2025-12-23",
-      "days_in_clan": 11,
-      "xp_7d": 3498131,
-      "boss_7d": 311,
-      "xp_30d": 4410892,
-      "boss_30d": 313,
-      "boss_30d_top": null,
-      "boss_30d_top_img": null,
-      "boss_30d_top_delta": 0,
-      "xp_year": 4410892,
-      "favorite_boss": "None",
-      "favorite_boss_img": "boss_pet_rock.png",
-      "favorite_boss_all_time": "Scurrius",
-      "favorite_boss_all_time_img": "boss_scurrius.png",
-      "total_xp": 11419911,
-      "total_boss": 313,
-      "msgs_7d": 211,
-      "msgs_30d": 268,
-      "msgs_total": 268,
-      "context_class": "context-social"
     },
     {
       "username": "bagyy",
@@ -3261,9 +3236,9 @@
       "favorite_boss_all_time_img": "boss_wintertodt.png",
       "total_xp": 34661106,
       "total_boss": 842,
-      "msgs_7d": 157,
-      "msgs_30d": 157,
-      "msgs_total": 157,
+      "msgs_7d": 176,
+      "msgs_30d": 176,
+      "msgs_total": 176,
       "context_class": "context-pvm"
     },
     {
@@ -3417,31 +3392,6 @@
       "context_class": "context-skills"
     },
     {
-      "username": "geoblocks34",
-      "role": "death",
-      "rank_img": "rank_death.png",
-      "joined_at": "2025-02-16",
-      "days_in_clan": 321,
-      "xp_7d": 3198996,
-      "boss_7d": 0,
-      "xp_30d": 11294089,
-      "boss_30d": 0,
-      "boss_30d_top": "Abyssal Sire",
-      "boss_30d_top_img": "boss_abyssal_sire.png",
-      "boss_30d_top_delta": 0,
-      "xp_year": 87616082,
-      "favorite_boss": "None",
-      "favorite_boss_img": "boss_pet_rock.png",
-      "favorite_boss_all_time": "Sarachnis",
-      "favorite_boss_all_time_img": "boss_sarachnis.png",
-      "total_xp": 93614622,
-      "total_boss": 570,
-      "msgs_7d": 40,
-      "msgs_30d": 206,
-      "msgs_total": 2218,
-      "context_class": "context-skills"
-    },
-    {
       "username": "taibwovinny",
       "role": "wrath",
       "rank_img": "rank_wrath.png",
@@ -3492,31 +3442,6 @@
       "context_class": "context-pvm"
     },
     {
-      "username": "docofmed",
-      "role": "deputy_owner",
-      "rank_img": "rank_deputy_owner.png",
-      "joined_at": "2025-02-14",
-      "days_in_clan": 323,
-      "xp_7d": 3049652,
-      "boss_7d": 365,
-      "xp_30d": 22817908,
-      "boss_30d": 451,
-      "boss_30d_top": "The Leviathan",
-      "boss_30d_top_img": "boss_the_leviathan.png",
-      "boss_30d_top_delta": 288,
-      "xp_year": 273197070,
-      "favorite_boss": "The Leviathan",
-      "favorite_boss_img": "boss_the_leviathan.png",
-      "favorite_boss_all_time": "Cerberus",
-      "favorite_boss_all_time_img": "boss_cerberus.png",
-      "total_xp": 287763048,
-      "total_boss": 15222,
-      "msgs_7d": 281,
-      "msgs_30d": 692,
-      "msgs_total": 7163,
-      "context_class": "context-pvm"
-    },
-    {
       "username": "roadking6",
       "role": "wizard",
       "rank_img": "rank_wizard.png",
@@ -3540,31 +3465,6 @@
       "msgs_30d": 5,
       "msgs_total": 1230,
       "context_class": "context-skills"
-    },
-    {
-      "username": "beedlebeedle",
-      "role": "goblin",
-      "rank_img": "rank_goblin.png",
-      "joined_at": "2025-12-18",
-      "days_in_clan": 17,
-      "xp_7d": 3026033,
-      "boss_7d": 105,
-      "xp_30d": 12833524,
-      "boss_30d": 401,
-      "boss_30d_top": "Lunar Chests",
-      "boss_30d_top_img": "boss_lunar_chests.png",
-      "boss_30d_top_delta": 100,
-      "xp_year": 17757571,
-      "favorite_boss": "Lunar Chests",
-      "favorite_boss_img": "boss_lunar_chests.png",
-      "favorite_boss_all_time": "Lunar Chests",
-      "favorite_boss_all_time_img": "boss_lunar_chests.png",
-      "total_xp": 20687815,
-      "total_boss": 491,
-      "msgs_7d": 18,
-      "msgs_30d": 29,
-      "msgs_total": 29,
-      "context_class": "context-milestone"
     },
     {
       "username": "bmandabking",
@@ -3642,31 +3542,6 @@
       "context_class": "context-pvm"
     },
     {
-      "username": "loafy",
-      "role": "goblin",
-      "rank_img": "rank_goblin.png",
-      "joined_at": "2025-03-17",
-      "days_in_clan": 292,
-      "xp_7d": 2872298,
-      "boss_7d": 0,
-      "xp_30d": 9902102,
-      "boss_30d": 189,
-      "boss_30d_top": "Shellbane Gryphon",
-      "boss_30d_top_img": "boss_shellbane_gryphon.png",
-      "boss_30d_top_delta": 151,
-      "xp_year": 275982986,
-      "favorite_boss": "Shellbane Gryphon",
-      "favorite_boss_img": "boss_shellbane_gryphon.png",
-      "favorite_boss_all_time": "Giant Mole",
-      "favorite_boss_all_time_img": "boss_giant_mole.png",
-      "total_xp": 324631226,
-      "total_boss": 15996,
-      "msgs_7d": 28,
-      "msgs_30d": 72,
-      "msgs_total": 584,
-      "context_class": "context-skills"
-    },
-    {
       "username": "vanvolterii",
       "role": "dragonstone",
       "rank_img": "rank_dragonstone.png",
@@ -3717,6 +3592,56 @@
       "context_class": "context-social"
     },
     {
+      "username": "loafy",
+      "role": "goblin",
+      "rank_img": "rank_goblin.png",
+      "joined_at": "2025-03-17",
+      "days_in_clan": 292,
+      "xp_7d": 2850938,
+      "boss_7d": 0,
+      "xp_30d": 9902102,
+      "boss_30d": 189,
+      "boss_30d_top": "Shellbane Gryphon",
+      "boss_30d_top_img": "boss_shellbane_gryphon.png",
+      "boss_30d_top_delta": 151,
+      "xp_year": 275982986,
+      "favorite_boss": "Shellbane Gryphon",
+      "favorite_boss_img": "boss_shellbane_gryphon.png",
+      "favorite_boss_all_time": "Giant Mole",
+      "favorite_boss_all_time_img": "boss_giant_mole.png",
+      "total_xp": 324631226,
+      "total_boss": 15996,
+      "msgs_7d": 28,
+      "msgs_30d": 72,
+      "msgs_total": 584,
+      "context_class": "context-skills"
+    },
+    {
+      "username": "docofmed",
+      "role": "deputy_owner",
+      "rank_img": "rank_deputy_owner.png",
+      "joined_at": "2025-02-14",
+      "days_in_clan": 324,
+      "xp_7d": 2847529,
+      "boss_7d": 345,
+      "xp_30d": 22730553,
+      "boss_30d": 451,
+      "boss_30d_top": "The Leviathan",
+      "boss_30d_top_img": "boss_the_leviathan.png",
+      "boss_30d_top_delta": 288,
+      "xp_year": 273197070,
+      "favorite_boss": "The Leviathan",
+      "favorite_boss_img": "boss_the_leviathan.png",
+      "favorite_boss_all_time": "Cerberus",
+      "favorite_boss_all_time_img": "boss_cerberus.png",
+      "total_xp": 287763048,
+      "total_boss": 15222,
+      "msgs_7d": 333,
+      "msgs_30d": 744,
+      "msgs_total": 7215,
+      "context_class": "context-pvm"
+    },
+    {
       "username": "rngbr3wz",
       "role": "short_green_guy",
       "rank_img": "rank_short_green_guy.png",
@@ -3740,6 +3665,31 @@
       "msgs_30d": 1,
       "msgs_total": 60,
       "context_class": "context-pvm"
+    },
+    {
+      "username": "beedlebeedle",
+      "role": "goblin",
+      "rank_img": "rank_goblin.png",
+      "joined_at": "2025-12-18",
+      "days_in_clan": 17,
+      "xp_7d": 2819861,
+      "boss_7d": 105,
+      "xp_30d": 12833524,
+      "boss_30d": 401,
+      "boss_30d_top": "Lunar Chests",
+      "boss_30d_top_img": "boss_lunar_chests.png",
+      "boss_30d_top_delta": 100,
+      "xp_year": 17757571,
+      "favorite_boss": "Lunar Chests",
+      "favorite_boss_img": "boss_lunar_chests.png",
+      "favorite_boss_all_time": "Lunar Chests",
+      "favorite_boss_all_time_img": "boss_lunar_chests.png",
+      "total_xp": 20687815,
+      "total_boss": 491,
+      "msgs_7d": 18,
+      "msgs_30d": 29,
+      "msgs_total": 29,
+      "context_class": "context-milestone"
     },
     {
       "username": "du0scythe",
@@ -3846,7 +3796,7 @@
       "role": "saradominist",
       "rank_img": "rank_saradominist.png",
       "joined_at": "2025-02-14",
-      "days_in_clan": 323,
+      "days_in_clan": 324,
       "xp_7d": 2665080,
       "boss_7d": 0,
       "xp_30d": 0,
@@ -3890,31 +3840,6 @@
       "msgs_30d": 296,
       "msgs_total": 296,
       "context_class": "context-social"
-    },
-    {
-      "username": "reveratenm",
-      "role": "wrath",
-      "rank_img": "rank_wrath.png",
-      "joined_at": "2025-06-28",
-      "days_in_clan": 190,
-      "xp_7d": 2639090,
-      "boss_7d": 0,
-      "xp_30d": 7218312,
-      "boss_30d": 0,
-      "boss_30d_top": "Abyssal Sire",
-      "boss_30d_top_img": "boss_abyssal_sire.png",
-      "boss_30d_top_delta": 0,
-      "xp_year": 152892759,
-      "favorite_boss": "None",
-      "favorite_boss_img": "boss_pet_rock.png",
-      "favorite_boss_all_time": "Wintertodt",
-      "favorite_boss_all_time_img": "boss_wintertodt.png",
-      "total_xp": 212386024,
-      "total_boss": 1363,
-      "msgs_7d": 19,
-      "msgs_30d": 47,
-      "msgs_total": 270,
-      "context_class": "context-skills"
     },
     {
       "username": "hundredeuro",
@@ -4017,28 +3942,28 @@
       "context_class": "context-pvm"
     },
     {
-      "username": "tommygunn",
-      "role": "prospector",
-      "rank_img": "rank_prospector.png",
-      "joined_at": "2025-12-15",
-      "days_in_clan": 19,
-      "xp_7d": 2557194,
+      "username": "geoblocks34",
+      "role": "death",
+      "rank_img": "rank_death.png",
+      "joined_at": "2025-02-16",
+      "days_in_clan": 321,
+      "xp_7d": 2571488,
       "boss_7d": 0,
-      "xp_30d": 0,
+      "xp_30d": 11294089,
       "boss_30d": 0,
-      "boss_30d_top": "Giant Mole",
-      "boss_30d_top_img": "boss_giant_mole.png",
-      "boss_30d_top_delta": 2668,
-      "xp_year": 28842898,
-      "favorite_boss": "Giant Mole",
-      "favorite_boss_img": "boss_giant_mole.png",
-      "favorite_boss_all_time": "Kraken",
-      "favorite_boss_all_time_img": "boss_kraken.png",
-      "total_xp": 201547060,
-      "total_boss": 12669,
-      "msgs_7d": 0,
-      "msgs_30d": 1,
-      "msgs_total": 1,
+      "boss_30d_top": "Abyssal Sire",
+      "boss_30d_top_img": "boss_abyssal_sire.png",
+      "boss_30d_top_delta": 0,
+      "xp_year": 87616082,
+      "favorite_boss": "None",
+      "favorite_boss_img": "boss_pet_rock.png",
+      "favorite_boss_all_time": "Sarachnis",
+      "favorite_boss_all_time_img": "boss_sarachnis.png",
+      "total_xp": 93614622,
+      "total_boss": 570,
+      "msgs_7d": 40,
+      "msgs_30d": 206,
+      "msgs_total": 2218,
       "context_class": "context-skills"
     },
     {
@@ -4096,7 +4021,7 @@
       "role": "dragon",
       "rank_img": "rank_dragon.png",
       "joined_at": "2025-09-03",
-      "days_in_clan": 122,
+      "days_in_clan": 123,
       "xp_7d": 2494065,
       "boss_7d": 3,
       "xp_30d": 7195427,
@@ -4292,29 +4217,29 @@
       "context_class": "context-pvm"
     },
     {
-      "username": "hoiiron254",
-      "role": "death",
-      "rank_img": "rank_death.png",
-      "joined_at": "2025-12-14",
-      "days_in_clan": 20,
-      "xp_7d": 2268361,
-      "boss_7d": 59,
-      "xp_30d": 5667915,
-      "boss_30d": 88,
-      "boss_30d_top": null,
-      "boss_30d_top_img": null,
+      "username": "reveratenm",
+      "role": "wrath",
+      "rank_img": "rank_wrath.png",
+      "joined_at": "2025-06-28",
+      "days_in_clan": 190,
+      "xp_7d": 2271168,
+      "boss_7d": 0,
+      "xp_30d": 7218312,
+      "boss_30d": 0,
+      "boss_30d_top": "Abyssal Sire",
+      "boss_30d_top_img": "boss_abyssal_sire.png",
       "boss_30d_top_delta": 0,
-      "xp_year": 5667915,
+      "xp_year": 152892759,
       "favorite_boss": "None",
       "favorite_boss_img": "boss_pet_rock.png",
-      "favorite_boss_all_time": "Scurrius",
-      "favorite_boss_all_time_img": "boss_scurrius.png",
-      "total_xp": 22671046,
-      "total_boss": 359,
-      "msgs_7d": 2,
-      "msgs_30d": 23,
-      "msgs_total": 23,
-      "context_class": "context-milestone"
+      "favorite_boss_all_time": "Wintertodt",
+      "favorite_boss_all_time_img": "boss_wintertodt.png",
+      "total_xp": 212386024,
+      "total_boss": 1363,
+      "msgs_7d": 19,
+      "msgs_30d": 47,
+      "msgs_total": 270,
+      "context_class": "context-skills"
     },
     {
       "username": "bashfulnuke",
@@ -4340,6 +4265,31 @@
       "msgs_30d": 0,
       "msgs_total": 0,
       "context_class": "context-skills"
+    },
+    {
+      "username": "sorty121212",
+      "role": "soul",
+      "rank_img": "rank_soul.png",
+      "joined_at": "2025-12-23",
+      "days_in_clan": 11,
+      "xp_7d": 2241315,
+      "boss_7d": 300,
+      "xp_30d": 4410892,
+      "boss_30d": 313,
+      "boss_30d_top": null,
+      "boss_30d_top_img": null,
+      "boss_30d_top_delta": 0,
+      "xp_year": 4410892,
+      "favorite_boss": "None",
+      "favorite_boss_img": "boss_pet_rock.png",
+      "favorite_boss_all_time": "Scurrius",
+      "favorite_boss_all_time_img": "boss_scurrius.png",
+      "total_xp": 11419911,
+      "total_boss": 313,
+      "msgs_7d": 297,
+      "msgs_30d": 354,
+      "msgs_total": 354,
+      "context_class": "context-social"
     },
     {
       "username": "plorix",
@@ -4424,8 +4374,8 @@
       "days_in_clan": 221,
       "xp_7d": 1996920,
       "boss_7d": 17,
-      "xp_30d": 12862927,
-      "boss_30d": 199,
+      "xp_30d": 12674046,
+      "boss_30d": 193,
       "boss_30d_top": "Dagannoth Rex",
       "boss_30d_top_img": "boss_dagannoth_rex.png",
       "boss_30d_top_delta": 100,
@@ -4436,9 +4386,9 @@
       "favorite_boss_all_time_img": "boss_dagannoth_rex.png",
       "total_xp": 44521609,
       "total_boss": 522,
-      "msgs_7d": 56,
-      "msgs_30d": 195,
-      "msgs_total": 195,
+      "msgs_7d": 62,
+      "msgs_30d": 201,
+      "msgs_total": 201,
       "context_class": "context-pvm"
     },
     {
@@ -4617,6 +4567,31 @@
       "context_class": "context-milestone"
     },
     {
+      "username": "tommygunn",
+      "role": "prospector",
+      "rank_img": "rank_prospector.png",
+      "joined_at": "2025-12-15",
+      "days_in_clan": 19,
+      "xp_7d": 1827324,
+      "boss_7d": 0,
+      "xp_30d": 0,
+      "boss_30d": 0,
+      "boss_30d_top": "Giant Mole",
+      "boss_30d_top_img": "boss_giant_mole.png",
+      "boss_30d_top_delta": 2668,
+      "xp_year": 28842898,
+      "favorite_boss": "Giant Mole",
+      "favorite_boss_img": "boss_giant_mole.png",
+      "favorite_boss_all_time": "Kraken",
+      "favorite_boss_all_time_img": "boss_kraken.png",
+      "total_xp": 201547060,
+      "total_boss": 12669,
+      "msgs_7d": 0,
+      "msgs_30d": 1,
+      "msgs_total": 1,
+      "context_class": "context-skills"
+    },
+    {
       "username": "1cywe1ner",
       "role": "artillery",
       "rank_img": "rank_artillery.png",
@@ -4640,6 +4615,31 @@
       "msgs_30d": 97,
       "msgs_total": 102,
       "context_class": "context-pvm"
+    },
+    {
+      "username": "hoiiron254",
+      "role": "death",
+      "rank_img": "rank_death.png",
+      "joined_at": "2025-12-14",
+      "days_in_clan": 20,
+      "xp_7d": 1816308,
+      "boss_7d": 58,
+      "xp_30d": 5667915,
+      "boss_30d": 88,
+      "boss_30d_top": null,
+      "boss_30d_top_img": null,
+      "boss_30d_top_delta": 0,
+      "xp_year": 5667915,
+      "favorite_boss": "None",
+      "favorite_boss_img": "boss_pet_rock.png",
+      "favorite_boss_all_time": "Scurrius",
+      "favorite_boss_all_time_img": "boss_scurrius.png",
+      "total_xp": 22671046,
+      "total_boss": 359,
+      "msgs_7d": 2,
+      "msgs_30d": 23,
+      "msgs_total": 23,
+      "context_class": "context-milestone"
     },
     {
       "username": "miikaielii",
@@ -4690,31 +4690,6 @@
       "msgs_30d": 0,
       "msgs_total": 0,
       "context_class": "context-milestone"
-    },
-    {
-      "username": "badglen",
-      "role": "soul",
-      "rank_img": "rank_soul.png",
-      "joined_at": "2025-02-14",
-      "days_in_clan": 323,
-      "xp_7d": 1717456,
-      "boss_7d": 0,
-      "xp_30d": 21274206,
-      "boss_30d": 273,
-      "boss_30d_top": "Kraken",
-      "boss_30d_top_img": "boss_kraken.png",
-      "boss_30d_top_delta": 237,
-      "xp_year": 208527612,
-      "favorite_boss": "Kraken",
-      "favorite_boss_img": "boss_kraken.png",
-      "favorite_boss_all_time": "Kraken",
-      "favorite_boss_all_time_img": "boss_kraken.png",
-      "total_xp": 302121335,
-      "total_boss": 10173,
-      "msgs_7d": 271,
-      "msgs_30d": 851,
-      "msgs_total": 5340,
-      "context_class": "context-social"
     },
     {
       "username": "lilithsdemon",
@@ -4861,10 +4836,10 @@
       "favorite_boss_all_time_img": "boss_wintertodt.png",
       "total_xp": 35943726,
       "total_boss": 23,
-      "msgs_7d": 45,
-      "msgs_30d": 91,
-      "msgs_total": 91,
-      "context_class": "context-skills"
+      "msgs_7d": 56,
+      "msgs_30d": 102,
+      "msgs_total": 102,
+      "context_class": "context-social"
     },
     {
       "username": "ilikekebabs",
@@ -4942,6 +4917,31 @@
       "context_class": "context-social"
     },
     {
+      "username": "badglen",
+      "role": "soul",
+      "rank_img": "rank_soul.png",
+      "joined_at": "2025-02-14",
+      "days_in_clan": 323,
+      "xp_7d": 1469828,
+      "boss_7d": 0,
+      "xp_30d": 21274206,
+      "boss_30d": 273,
+      "boss_30d_top": "Kraken",
+      "boss_30d_top_img": "boss_kraken.png",
+      "boss_30d_top_delta": 237,
+      "xp_year": 208527612,
+      "favorite_boss": "Kraken",
+      "favorite_boss_img": "boss_kraken.png",
+      "favorite_boss_all_time": "Kraken",
+      "favorite_boss_all_time_img": "boss_kraken.png",
+      "total_xp": 302121335,
+      "total_boss": 10173,
+      "msgs_7d": 287,
+      "msgs_30d": 867,
+      "msgs_total": 5356,
+      "context_class": "context-social"
+    },
+    {
       "username": "12ob",
       "role": "myth",
       "rank_img": "rank_myth.png",
@@ -5011,9 +5011,9 @@
       "favorite_boss_all_time_img": "boss_tempoross.png",
       "total_xp": 15568814,
       "total_boss": 43,
-      "msgs_7d": 72,
-      "msgs_30d": 325,
-      "msgs_total": 325,
+      "msgs_7d": 91,
+      "msgs_30d": 344,
+      "msgs_total": 344,
       "context_class": "context-social"
     },
     {
@@ -5039,31 +5039,6 @@
       "msgs_7d": 2,
       "msgs_30d": 22,
       "msgs_total": 678,
-      "context_class": "context-pvm"
-    },
-    {
-      "username": "icantankyou",
-      "role": "wrath",
-      "rank_img": "rank_wrath.png",
-      "joined_at": "2025-02-20",
-      "days_in_clan": 318,
-      "xp_7d": 1416731,
-      "boss_7d": 25,
-      "xp_30d": 5057694,
-      "boss_30d": 185,
-      "boss_30d_top": "The Royal Titans",
-      "boss_30d_top_img": "boss_pet_rock.png",
-      "boss_30d_top_delta": 88,
-      "xp_year": 155510362,
-      "favorite_boss": "The Royal Titans",
-      "favorite_boss_img": "boss_tztok_jad.png",
-      "favorite_boss_all_time": "The Royal Titans",
-      "favorite_boss_all_time_img": "boss_tztok_jad.png",
-      "total_xp": 233036428,
-      "total_boss": 2245,
-      "msgs_7d": 27,
-      "msgs_30d": 91,
-      "msgs_total": 1132,
       "context_class": "context-pvm"
     },
     {
@@ -5217,31 +5192,6 @@
       "context_class": "context-pvm"
     },
     {
-      "username": "frommedellin",
-      "role": "prospector",
-      "rank_img": "rank_prospector.png",
-      "joined_at": "2025-12-17",
-      "days_in_clan": 17,
-      "xp_7d": 1299496,
-      "boss_7d": 127,
-      "xp_30d": 5636126,
-      "boss_30d": 312,
-      "boss_30d_top": null,
-      "boss_30d_top_img": null,
-      "boss_30d_top_delta": 0,
-      "xp_year": 5636126,
-      "favorite_boss": "None",
-      "favorite_boss_img": "boss_tztok_jad.png",
-      "favorite_boss_all_time": "Barrows Chests",
-      "favorite_boss_all_time_img": "boss_barrows_chests.png",
-      "total_xp": 193929380,
-      "total_boss": 4086,
-      "msgs_7d": 0,
-      "msgs_30d": 0,
-      "msgs_total": 0,
-      "context_class": "context-pvm"
-    },
-    {
       "username": "serkmulat0r",
       "role": "prospector",
       "rank_img": "rank_prospector.png",
@@ -5346,7 +5296,7 @@
       "role": "smiter",
       "rank_img": "rank_smiter.png",
       "joined_at": "2025-10-17",
-      "days_in_clan": 78,
+      "days_in_clan": 79,
       "xp_7d": 1189064,
       "boss_7d": 111,
       "xp_30d": 7368109,
@@ -5411,9 +5361,9 @@
       "favorite_boss_all_time_img": "boss_sarachnis.png",
       "total_xp": 103193218,
       "total_boss": 5012,
-      "msgs_7d": 18,
-      "msgs_30d": 137,
-      "msgs_total": 2134,
+      "msgs_7d": 22,
+      "msgs_30d": 141,
+      "msgs_total": 2138,
       "context_class": "context-skills"
     },
     {
@@ -5436,9 +5386,9 @@
       "favorite_boss_all_time_img": "boss_kraken.png",
       "total_xp": 300751143,
       "total_boss": 32173,
-      "msgs_7d": 167,
-      "msgs_30d": 167,
-      "msgs_total": 167,
+      "msgs_7d": 173,
+      "msgs_30d": 173,
+      "msgs_total": 173,
       "context_class": "context-pvm"
     },
     {
@@ -5464,31 +5414,6 @@
       "msgs_7d": 11,
       "msgs_30d": 131,
       "msgs_total": 848,
-      "context_class": "context-pvm"
-    },
-    {
-      "username": "speedpeen",
-      "role": "dragon",
-      "rank_img": "rank_dragon.png",
-      "joined_at": "2025-03-23",
-      "days_in_clan": 287,
-      "xp_7d": 1107706,
-      "boss_7d": 126,
-      "xp_30d": 3797726,
-      "boss_30d": 149,
-      "boss_30d_top": "Shellbane Gryphon",
-      "boss_30d_top_img": "boss_shellbane_gryphon.png",
-      "boss_30d_top_delta": 96,
-      "xp_year": 106677772,
-      "favorite_boss": "Shellbane Gryphon",
-      "favorite_boss_img": "boss_shellbane_gryphon.png",
-      "favorite_boss_all_time": "Kraken",
-      "favorite_boss_all_time_img": "boss_kraken.png",
-      "total_xp": 269591747,
-      "total_boss": 8532,
-      "msgs_7d": 14,
-      "msgs_30d": 97,
-      "msgs_total": 2485,
       "context_class": "context-pvm"
     },
     {
@@ -5567,6 +5492,31 @@
       "context_class": "context-pvm"
     },
     {
+      "username": "icantankyou",
+      "role": "wrath",
+      "rank_img": "rank_wrath.png",
+      "joined_at": "2025-02-20",
+      "days_in_clan": 318,
+      "xp_7d": 1008706,
+      "boss_7d": 21,
+      "xp_30d": 5057694,
+      "boss_30d": 185,
+      "boss_30d_top": "The Royal Titans",
+      "boss_30d_top_img": "boss_pet_rock.png",
+      "boss_30d_top_delta": 88,
+      "xp_year": 155510362,
+      "favorite_boss": "The Royal Titans",
+      "favorite_boss_img": "boss_tztok_jad.png",
+      "favorite_boss_all_time": "The Royal Titans",
+      "favorite_boss_all_time_img": "boss_tztok_jad.png",
+      "total_xp": 233036428,
+      "total_boss": 2245,
+      "msgs_7d": 27,
+      "msgs_30d": 91,
+      "msgs_total": 1132,
+      "context_class": "context-pvm"
+    },
+    {
       "username": "swespy0157",
       "role": "prospector",
       "rank_img": "rank_prospector.png",
@@ -5590,6 +5540,31 @@
       "msgs_30d": 1,
       "msgs_total": 1,
       "context_class": "context-skills"
+    },
+    {
+      "username": "speedpeen",
+      "role": "dragon",
+      "rank_img": "rank_dragon.png",
+      "joined_at": "2025-03-23",
+      "days_in_clan": 287,
+      "xp_7d": 989041,
+      "boss_7d": 120,
+      "xp_30d": 3797726,
+      "boss_30d": 149,
+      "boss_30d_top": "Shellbane Gryphon",
+      "boss_30d_top_img": "boss_shellbane_gryphon.png",
+      "boss_30d_top_delta": 96,
+      "xp_year": 106677772,
+      "favorite_boss": "Shellbane Gryphon",
+      "favorite_boss_img": "boss_shellbane_gryphon.png",
+      "favorite_boss_all_time": "Kraken",
+      "favorite_boss_all_time_img": "boss_kraken.png",
+      "total_xp": 269591747,
+      "total_boss": 8532,
+      "msgs_7d": 14,
+      "msgs_30d": 97,
+      "msgs_total": 2485,
+      "context_class": "context-pvm"
     },
     {
       "username": "kingofmaga",
@@ -5621,7 +5596,7 @@
       "role": "prospector",
       "rank_img": "rank_prospector.png",
       "joined_at": "2025-12-20",
-      "days_in_clan": 14,
+      "days_in_clan": 15,
       "xp_7d": 958642,
       "boss_7d": 19,
       "xp_30d": 1634498,
@@ -5671,7 +5646,7 @@
       "role": "prospector",
       "rank_img": "rank_prospector.png",
       "joined_at": "2025-12-20",
-      "days_in_clan": 14,
+      "days_in_clan": 15,
       "xp_7d": 957675,
       "boss_7d": 0,
       "xp_30d": 0,
@@ -5696,7 +5671,7 @@
       "role": "saviour",
       "rank_img": "rank_saviour.png",
       "joined_at": "2025-02-14",
-      "days_in_clan": 323,
+      "days_in_clan": 324,
       "xp_7d": 926159,
       "boss_7d": 45,
       "xp_30d": 2783925,
@@ -5746,7 +5721,7 @@
       "role": "dragonstone",
       "rank_img": "rank_dragonstone.png",
       "joined_at": "2025-02-14",
-      "days_in_clan": 323,
+      "days_in_clan": 324,
       "xp_7d": 888009,
       "boss_7d": 114,
       "xp_30d": 1696139,
@@ -5764,6 +5739,31 @@
       "msgs_7d": 98,
       "msgs_30d": 1158,
       "msgs_total": 7711,
+      "context_class": "context-pvm"
+    },
+    {
+      "username": "frommedellin",
+      "role": "prospector",
+      "rank_img": "rank_prospector.png",
+      "joined_at": "2025-12-17",
+      "days_in_clan": 17,
+      "xp_7d": 884359,
+      "boss_7d": 80,
+      "xp_30d": 5636126,
+      "boss_30d": 312,
+      "boss_30d_top": null,
+      "boss_30d_top_img": null,
+      "boss_30d_top_delta": 0,
+      "xp_year": 5636126,
+      "favorite_boss": "None",
+      "favorite_boss_img": "boss_tztok_jad.png",
+      "favorite_boss_all_time": "Barrows Chests",
+      "favorite_boss_all_time_img": "boss_barrows_chests.png",
+      "total_xp": 193929380,
+      "total_boss": 4086,
+      "msgs_7d": 0,
+      "msgs_30d": 0,
+      "msgs_total": 0,
       "context_class": "context-pvm"
     },
     {
@@ -5796,7 +5796,7 @@
       "role": "prospector",
       "rank_img": "rank_prospector.png",
       "joined_at": "2025-12-20",
-      "days_in_clan": 14,
+      "days_in_clan": 15,
       "xp_7d": 839647,
       "boss_7d": 0,
       "xp_30d": 2242093,
@@ -5892,31 +5892,6 @@
       "context_class": "context-skills"
     },
     {
-      "username": "itscutty",
-      "role": "saradominist",
-      "rank_img": "rank_saradominist.png",
-      "joined_at": "2025-06-03",
-      "days_in_clan": 214,
-      "xp_7d": 717662,
-      "boss_7d": 6,
-      "xp_30d": 2192244,
-      "boss_30d": 14,
-      "boss_30d_top": "The Corrupted Gauntlet",
-      "boss_30d_top_img": "boss_the_corrupted_gauntlet.png",
-      "boss_30d_top_delta": 13,
-      "xp_year": 166775441,
-      "favorite_boss": "The Corrupted Gauntlet",
-      "favorite_boss_img": "boss_the_corrupted_gauntlet.png",
-      "favorite_boss_all_time": "Kraken",
-      "favorite_boss_all_time_img": "boss_kraken.png",
-      "total_xp": 286605917,
-      "total_boss": 10102,
-      "msgs_7d": 4,
-      "msgs_30d": 6,
-      "msgs_total": 177,
-      "context_class": "context-milestone"
-    },
-    {
       "username": "khnumkhufu",
       "role": "prospector",
       "rank_img": "rank_prospector.png",
@@ -5967,31 +5942,6 @@
       "context_class": "context-skills"
     },
     {
-      "username": "jokesmolnts",
-      "role": "serenist",
-      "rank_img": "rank_serenist.png",
-      "joined_at": "2025-02-20",
-      "days_in_clan": 318,
-      "xp_7d": 701095,
-      "boss_7d": 0,
-      "xp_30d": 1745391,
-      "boss_30d": 30,
-      "boss_30d_top": "General Graardor",
-      "boss_30d_top_img": "boss_general_graardor.png",
-      "boss_30d_top_delta": 30,
-      "xp_year": 95952779,
-      "favorite_boss": "General Graardor",
-      "favorite_boss_img": "boss_general_graardor.png",
-      "favorite_boss_all_time": "Artio",
-      "favorite_boss_all_time_img": "boss_artio.png",
-      "total_xp": 100137669,
-      "total_boss": 500,
-      "msgs_7d": 4,
-      "msgs_30d": 11,
-      "msgs_total": 485,
-      "context_class": "context-skills"
-    },
-    {
       "username": "macncheezus",
       "role": "wizard",
       "rank_img": "rank_wizard.png",
@@ -6014,31 +5964,6 @@
       "msgs_7d": 1,
       "msgs_30d": 16,
       "msgs_total": 57,
-      "context_class": "context-skills"
-    },
-    {
-      "username": "maxwellhall",
-      "role": "short_green_guy",
-      "rank_img": "rank_short_green_guy.png",
-      "joined_at": "2025-05-11",
-      "days_in_clan": 238,
-      "xp_7d": 682622,
-      "boss_7d": 0,
-      "xp_30d": 2991318,
-      "boss_30d": 51,
-      "boss_30d_top": "Dagannoth Rex",
-      "boss_30d_top_img": "boss_dagannoth_rex.png",
-      "boss_30d_top_delta": 48,
-      "xp_year": 52510213,
-      "favorite_boss": "Dagannoth Rex",
-      "favorite_boss_img": "boss_dagannoth_rex.png",
-      "favorite_boss_all_time": "Barrows Chests",
-      "favorite_boss_all_time_img": "boss_barrows_chests.png",
-      "total_xp": 55777603,
-      "total_boss": 1012,
-      "msgs_7d": 7,
-      "msgs_30d": 129,
-      "msgs_total": 2550,
       "context_class": "context-skills"
     },
     {
@@ -6092,36 +6017,11 @@
       "context_class": "context-skills"
     },
     {
-      "username": "easyenough",
-      "role": "death",
-      "rank_img": "rank_death.png",
-      "joined_at": "2025-02-14",
-      "days_in_clan": 323,
-      "xp_7d": 637058,
-      "boss_7d": 58,
-      "xp_30d": 4500219,
-      "boss_30d": 81,
-      "boss_30d_top": "Vorkath",
-      "boss_30d_top_img": "boss_vorkath.png",
-      "boss_30d_top_delta": 66,
-      "xp_year": 111235888,
-      "favorite_boss": "Vorkath",
-      "favorite_boss_img": "boss_vorkath.png",
-      "favorite_boss_all_time": "Vorkath",
-      "favorite_boss_all_time_img": "boss_vorkath.png",
-      "total_xp": 219523074,
-      "total_boss": 2201,
-      "msgs_7d": 11,
-      "msgs_30d": 45,
-      "msgs_total": 1036,
-      "context_class": "context-pvm"
-    },
-    {
       "username": "mtndck",
       "role": "deputy_owner",
       "rank_img": "rank_deputy_owner.png",
       "joined_at": "2025-02-14",
-      "days_in_clan": 323,
+      "days_in_clan": 324,
       "xp_7d": 618753,
       "boss_7d": 12,
       "xp_30d": 1420638,
@@ -6217,6 +6117,31 @@
       "context_class": "context-skills"
     },
     {
+      "username": "jokesmolnts",
+      "role": "serenist",
+      "rank_img": "rank_serenist.png",
+      "joined_at": "2025-02-20",
+      "days_in_clan": 318,
+      "xp_7d": 575249,
+      "boss_7d": 0,
+      "xp_30d": 1745391,
+      "boss_30d": 30,
+      "boss_30d_top": "General Graardor",
+      "boss_30d_top_img": "boss_general_graardor.png",
+      "boss_30d_top_delta": 30,
+      "xp_year": 95952779,
+      "favorite_boss": "General Graardor",
+      "favorite_boss_img": "boss_general_graardor.png",
+      "favorite_boss_all_time": "Artio",
+      "favorite_boss_all_time_img": "boss_artio.png",
+      "total_xp": 100137669,
+      "total_boss": 500,
+      "msgs_7d": 4,
+      "msgs_30d": 11,
+      "msgs_total": 485,
+      "context_class": "context-skills"
+    },
+    {
       "username": "lordisenham",
       "role": "myth",
       "rank_img": "rank_myth.png",
@@ -6289,31 +6214,6 @@
       "msgs_7d": 3,
       "msgs_30d": 7,
       "msgs_total": 392,
-      "context_class": "context-skills"
-    },
-    {
-      "username": "geordie93",
-      "role": "herbologist",
-      "rank_img": "rank_herbologist.png",
-      "joined_at": "2025-02-20",
-      "days_in_clan": 318,
-      "xp_7d": 535860,
-      "boss_7d": 0,
-      "xp_30d": 1049990,
-      "boss_30d": 4,
-      "boss_30d_top": "Kalphite Queen",
-      "boss_30d_top_img": "boss_kalphite_queen.png",
-      "boss_30d_top_delta": 3,
-      "xp_year": 43743920,
-      "favorite_boss": "Kalphite Queen",
-      "favorite_boss_img": "boss_kalphite_queen.png",
-      "favorite_boss_all_time": "Giant Mole",
-      "favorite_boss_all_time_img": "boss_giant_mole.png",
-      "total_xp": 45203930,
-      "total_boss": 797,
-      "msgs_7d": 0,
-      "msgs_30d": 7,
-      "msgs_total": 1164,
       "context_class": "context-skills"
     },
     {
@@ -6442,6 +6342,31 @@
       "context_class": "context-skills"
     },
     {
+      "username": "maxwellhall",
+      "role": "short_green_guy",
+      "rank_img": "rank_short_green_guy.png",
+      "joined_at": "2025-05-11",
+      "days_in_clan": 238,
+      "xp_7d": 460411,
+      "boss_7d": 0,
+      "xp_30d": 2991318,
+      "boss_30d": 51,
+      "boss_30d_top": "Dagannoth Rex",
+      "boss_30d_top_img": "boss_dagannoth_rex.png",
+      "boss_30d_top_delta": 48,
+      "xp_year": 52510213,
+      "favorite_boss": "Dagannoth Rex",
+      "favorite_boss_img": "boss_dagannoth_rex.png",
+      "favorite_boss_all_time": "Barrows Chests",
+      "favorite_boss_all_time_img": "boss_barrows_chests.png",
+      "total_xp": 55777603,
+      "total_boss": 1012,
+      "msgs_7d": 7,
+      "msgs_30d": 129,
+      "msgs_total": 2550,
+      "context_class": "context-skills"
+    },
+    {
       "username": "imkieft",
       "role": "prospector",
       "rank_img": "rank_prospector.png",
@@ -6465,6 +6390,31 @@
       "msgs_30d": 7,
       "msgs_total": 7,
       "context_class": "context-skills"
+    },
+    {
+      "username": "easyenough",
+      "role": "death",
+      "rank_img": "rank_death.png",
+      "joined_at": "2025-02-14",
+      "days_in_clan": 323,
+      "xp_7d": 442209,
+      "boss_7d": 41,
+      "xp_30d": 4500219,
+      "boss_30d": 81,
+      "boss_30d_top": "Vorkath",
+      "boss_30d_top_img": "boss_vorkath.png",
+      "boss_30d_top_delta": 66,
+      "xp_year": 111235888,
+      "favorite_boss": "Vorkath",
+      "favorite_boss_img": "boss_vorkath.png",
+      "favorite_boss_all_time": "Vorkath",
+      "favorite_boss_all_time_img": "boss_vorkath.png",
+      "total_xp": 219523074,
+      "total_boss": 2201,
+      "msgs_7d": 11,
+      "msgs_30d": 45,
+      "msgs_total": 1036,
+      "context_class": "context-pvm"
     },
     {
       "username": "shaftvader",
@@ -6742,6 +6692,31 @@
       "context_class": "context-pvm"
     },
     {
+      "username": "geordie93",
+      "role": "herbologist",
+      "rank_img": "rank_herbologist.png",
+      "joined_at": "2025-02-20",
+      "days_in_clan": 318,
+      "xp_7d": 319615,
+      "boss_7d": 0,
+      "xp_30d": 1049990,
+      "boss_30d": 4,
+      "boss_30d_top": "Kalphite Queen",
+      "boss_30d_top_img": "boss_kalphite_queen.png",
+      "boss_30d_top_delta": 3,
+      "xp_year": 43743920,
+      "favorite_boss": "Kalphite Queen",
+      "favorite_boss_img": "boss_kalphite_queen.png",
+      "favorite_boss_all_time": "Giant Mole",
+      "favorite_boss_all_time_img": "boss_giant_mole.png",
+      "total_xp": 45203930,
+      "total_boss": 797,
+      "msgs_7d": 0,
+      "msgs_30d": 7,
+      "msgs_total": 1164,
+      "context_class": "context-skills"
+    },
+    {
       "username": "f1shmagician",
       "role": "wrath",
       "rank_img": "rank_wrath.png",
@@ -6886,9 +6861,9 @@
       "favorite_boss_all_time_img": "boss_vorkath.png",
       "total_xp": 170752260,
       "total_boss": 2184,
-      "msgs_7d": 5,
-      "msgs_30d": 25,
-      "msgs_total": 336,
+      "msgs_7d": 6,
+      "msgs_30d": 26,
+      "msgs_total": 337,
       "context_class": "context-skills"
     },
     {
@@ -6940,6 +6915,31 @@
       "msgs_30d": 69,
       "msgs_total": 69,
       "context_class": "context-skills"
+    },
+    {
+      "username": "itscutty",
+      "role": "saradominist",
+      "rank_img": "rank_saradominist.png",
+      "joined_at": "2025-06-03",
+      "days_in_clan": 214,
+      "xp_7d": 263105,
+      "boss_7d": 6,
+      "xp_30d": 2192244,
+      "boss_30d": 14,
+      "boss_30d_top": "The Corrupted Gauntlet",
+      "boss_30d_top_img": "boss_the_corrupted_gauntlet.png",
+      "boss_30d_top_delta": 13,
+      "xp_year": 166775441,
+      "favorite_boss": "The Corrupted Gauntlet",
+      "favorite_boss_img": "boss_the_corrupted_gauntlet.png",
+      "favorite_boss_all_time": "Kraken",
+      "favorite_boss_all_time_img": "boss_kraken.png",
+      "total_xp": 286605917,
+      "total_boss": 10102,
+      "msgs_7d": 4,
+      "msgs_30d": 6,
+      "msgs_total": 177,
+      "context_class": "context-general"
     },
     {
       "username": "frigginnumb",
@@ -7321,7 +7321,7 @@
       "role": "artillery",
       "rank_img": "rank_artillery.png",
       "joined_at": "2025-10-17",
-      "days_in_clan": 78,
+      "days_in_clan": 79,
       "xp_7d": 93180,
       "boss_7d": 0,
       "xp_30d": 239224,
@@ -7346,7 +7346,7 @@
       "role": "tztok",
       "rank_img": "rank_tztok.png",
       "joined_at": "2025-03-04",
-      "days_in_clan": 305,
+      "days_in_clan": 306,
       "xp_7d": 87276,
       "boss_7d": 0,
       "xp_30d": 87276,
@@ -7386,9 +7386,9 @@
       "favorite_boss_all_time_img": "boss_pet_rock.png",
       "total_xp": 33481596,
       "total_boss": 0,
-      "msgs_7d": 124,
-      "msgs_30d": 276,
-      "msgs_total": 606,
+      "msgs_7d": 126,
+      "msgs_30d": 278,
+      "msgs_total": 608,
       "context_class": "context-social"
     },
     {
@@ -7521,7 +7521,7 @@
       "role": "law",
       "rank_img": "rank_law.png",
       "joined_at": "2025-07-27",
-      "days_in_clan": 160,
+      "days_in_clan": 161,
       "xp_7d": 17517,
       "boss_7d": 0,
       "xp_30d": 4338167,
@@ -7571,7 +7571,7 @@
       "role": "prospector",
       "rank_img": "rank_prospector.png",
       "joined_at": "2025-12-20",
-      "days_in_clan": 14,
+      "days_in_clan": 15,
       "xp_7d": 10871,
       "boss_7d": 0,
       "xp_30d": 4568863,
@@ -7647,7 +7647,7 @@
       "rank_img": "rank_myth.png",
       "joined_at": "2025-06-21",
       "days_in_clan": 196,
-      "xp_7d": 5285,
+      "xp_7d": 3623,
       "boss_7d": 0,
       "xp_30d": 285273,
       "boss_30d": 23,
@@ -7971,7 +7971,7 @@
       "role": "shaman",
       "rank_img": "rank_shaman.png",
       "joined_at": "2025-02-14",
-      "days_in_clan": 323,
+      "days_in_clan": 324,
       "xp_7d": 0,
       "boss_7d": 0,
       "xp_30d": 0,
@@ -8171,7 +8171,7 @@
       "role": "administrator",
       "rank_img": "rank_administrator.png",
       "joined_at": "2025-02-14",
-      "days_in_clan": 323,
+      "days_in_clan": 324,
       "xp_7d": 0,
       "boss_7d": 5,
       "xp_30d": 0,
@@ -8371,7 +8371,7 @@
       "role": "destroyer",
       "rank_img": "rank_destroyer.png",
       "joined_at": "2025-03-04",
-      "days_in_clan": 305,
+      "days_in_clan": 306,
       "xp_7d": 0,
       "boss_7d": 0,
       "xp_30d": 0,
@@ -8686,9 +8686,9 @@
       "favorite_boss_all_time_img": "boss_pet_rock.png",
       "total_xp": 260076,
       "total_boss": 0,
-      "msgs_7d": 1,
-      "msgs_30d": 163,
-      "msgs_total": 238,
+      "msgs_7d": 10,
+      "msgs_30d": 172,
+      "msgs_total": 247,
       "context_class": "context-general"
     },
     {
@@ -8796,7 +8796,7 @@
       "role": "soul",
       "rank_img": "rank_soul.png",
       "joined_at": "2025-09-09",
-      "days_in_clan": 116,
+      "days_in_clan": 117,
       "xp_7d": 0,
       "boss_7d": 0,
       "xp_30d": 35,
@@ -9686,9 +9686,9 @@
       "favorite_boss_all_time_img": "boss_the_corrupted_gauntlet.png",
       "total_xp": 133294308,
       "total_boss": 3293,
-      "msgs_7d": 36,
-      "msgs_30d": 36,
-      "msgs_total": 36,
+      "msgs_7d": 37,
+      "msgs_30d": 37,
+      "msgs_total": 37,
       "context_class": "context-general"
     },
     {
@@ -9811,9 +9811,9 @@
       "favorite_boss_all_time_img": "boss_kraken.png",
       "total_xp": 113667707,
       "total_boss": 6717,
-      "msgs_7d": 143,
-      "msgs_30d": 341,
-      "msgs_total": 341,
+      "msgs_7d": 148,
+      "msgs_30d": 346,
+      "msgs_total": 346,
       "context_class": "context-social"
     },
     {
@@ -9861,9 +9861,9 @@
       "favorite_boss_all_time_img": "boss_callisto.png",
       "total_xp": 82493046,
       "total_boss": 630,
-      "msgs_7d": 75,
-      "msgs_30d": 113,
-      "msgs_total": 113,
+      "msgs_7d": 78,
+      "msgs_30d": 116,
+      "msgs_total": 116,
       "context_class": "context-social"
     },
     {
@@ -9994,31 +9994,6 @@
       "context_class": "context-pvm"
     },
     {
-      "username": "theforgegod",
-      "role": "saviour",
-      "rank_img": "rank_saviour.png",
-      "joined_at": "2025-02-14",
-      "days_in_clan": 323,
-      "xp_7d": 5309984,
-      "boss_7d": 507,
-      "xp_30d": 27840584,
-      "boss_30d": 1415,
-      "boss_30d_top": "Vetion",
-      "boss_30d_top_img": "boss_pet_rock.png",
-      "boss_30d_top_delta": 460,
-      "xp_year": 402968025,
-      "favorite_boss": "Vetion",
-      "favorite_boss_img": "boss_tztok_jad.png",
-      "favorite_boss_all_time": "The Whisperer",
-      "favorite_boss_all_time_img": "boss_the_whisperer.png",
-      "total_xp": 585157692,
-      "total_boss": 27286,
-      "msgs_7d": 208,
-      "msgs_30d": 887,
-      "msgs_total": 7426,
-      "context_class": "context-pvm"
-    },
-    {
       "username": "steadyon",
       "role": "maple",
       "rank_img": "rank_maple.png",
@@ -10038,9 +10013,9 @@
       "favorite_boss_all_time_img": "boss_araxxor.png",
       "total_xp": 200736763,
       "total_boss": 10217,
-      "msgs_7d": 236,
-      "msgs_30d": 392,
-      "msgs_total": 2760,
+      "msgs_7d": 240,
+      "msgs_30d": 396,
+      "msgs_total": 2764,
       "context_class": "context-pvm"
     },
     {
@@ -10048,7 +10023,7 @@
       "role": "owner",
       "rank_img": "rank_owner.png",
       "joined_at": "2025-02-14",
-      "days_in_clan": 323,
+      "days_in_clan": 324,
       "xp_7d": 4804170,
       "boss_7d": 438,
       "xp_30d": 20227627,
@@ -10063,9 +10038,9 @@
       "favorite_boss_all_time_img": "boss_thermonuclear_smoke_devil.png",
       "total_xp": 468767535,
       "total_boss": 25655,
-      "msgs_7d": 350,
-      "msgs_30d": 1376,
-      "msgs_total": 16691,
+      "msgs_7d": 359,
+      "msgs_30d": 1385,
+      "msgs_total": 16700,
       "context_class": "context-pvm"
     },
     {
@@ -10144,14 +10119,39 @@
       "context_class": "context-pvm"
     },
     {
+      "username": "theforgegod",
+      "role": "saviour",
+      "rank_img": "rank_saviour.png",
+      "joined_at": "2025-02-14",
+      "days_in_clan": 323,
+      "xp_7d": 3918585,
+      "boss_7d": 391,
+      "xp_30d": 27840584,
+      "boss_30d": 1415,
+      "boss_30d_top": "Vetion",
+      "boss_30d_top_img": "boss_pet_rock.png",
+      "boss_30d_top_delta": 460,
+      "xp_year": 402968025,
+      "favorite_boss": "Vetion",
+      "favorite_boss_img": "boss_tztok_jad.png",
+      "favorite_boss_all_time": "The Whisperer",
+      "favorite_boss_all_time_img": "boss_the_whisperer.png",
+      "total_xp": 585157692,
+      "total_boss": 27286,
+      "msgs_7d": 208,
+      "msgs_30d": 887,
+      "msgs_total": 7426,
+      "context_class": "context-pvm"
+    },
+    {
       "username": "docofmed",
       "role": "deputy_owner",
       "rank_img": "rank_deputy_owner.png",
       "joined_at": "2025-02-14",
-      "days_in_clan": 323,
-      "xp_7d": 3049652,
-      "boss_7d": 365,
-      "xp_30d": 22817908,
+      "days_in_clan": 324,
+      "xp_7d": 2847529,
+      "boss_7d": 345,
+      "xp_30d": 22730553,
       "boss_30d": 451,
       "boss_30d_top": "The Leviathan",
       "boss_30d_top_img": "boss_the_leviathan.png",
@@ -10163,9 +10163,9 @@
       "favorite_boss_all_time_img": "boss_cerberus.png",
       "total_xp": 287763048,
       "total_boss": 15222,
-      "msgs_7d": 281,
-      "msgs_30d": 692,
-      "msgs_total": 7163,
+      "msgs_7d": 333,
+      "msgs_30d": 744,
+      "msgs_total": 7215,
       "context_class": "context-pvm"
     }
   ],
@@ -10251,7 +10251,7 @@
       "rank_img": "rank_law.png",
       "joined_at": "2025-10-31",
       "days_in_clan": 65,
-      "xp_7d": 8806428,
+      "xp_7d": 8585583,
       "boss_7d": 38,
       "xp_30d": 11092084,
       "boss_30d": 63,
@@ -10453,8 +10453,8 @@
       "rank_img": "rank_saviour.png",
       "joined_at": "2025-02-14",
       "days_in_clan": 323,
-      "xp_7d": 5309984,
-      "boss_7d": 507,
+      "xp_7d": 3918585,
+      "boss_7d": 391,
       "xp_30d": 27840584,
       "boss_30d": 1415,
       "boss_30d_top": "Vetion",
@@ -10477,7 +10477,7 @@
       "role": "owner",
       "rank_img": "rank_owner.png",
       "joined_at": "2025-02-14",
-      "days_in_clan": 323,
+      "days_in_clan": 324,
       "xp_7d": 4804170,
       "boss_7d": 438,
       "xp_30d": 20227627,
@@ -10492,9 +10492,9 @@
       "favorite_boss_all_time_img": "boss_thermonuclear_smoke_devil.png",
       "total_xp": 468767535,
       "total_boss": 25655,
-      "msgs_7d": 350,
-      "msgs_30d": 1376,
-      "msgs_total": 16691,
+      "msgs_7d": 359,
+      "msgs_30d": 1385,
+      "msgs_total": 16700,
       "context_class": "context-pvm"
     },
     {
@@ -10503,7 +10503,7 @@
       "rank_img": "rank_dragon.png",
       "joined_at": "2025-03-13",
       "days_in_clan": 297,
-      "xp_7d": 4282203,
+      "xp_7d": 3910674,
       "boss_7d": 0,
       "xp_30d": 8093916,
       "boss_30d": 0,
@@ -10678,7 +10678,7 @@
       "rank_img": "rank_goblin.png",
       "joined_at": "2025-03-17",
       "days_in_clan": 292,
-      "xp_7d": 2872298,
+      "xp_7d": 2850938,
       "boss_7d": 0,
       "xp_30d": 9902102,
       "boss_30d": 189,
@@ -10727,10 +10727,10 @@
       "role": "deputy_owner",
       "rank_img": "rank_deputy_owner.png",
       "joined_at": "2025-02-14",
-      "days_in_clan": 323,
-      "xp_7d": 3049652,
-      "boss_7d": 365,
-      "xp_30d": 22817908,
+      "days_in_clan": 324,
+      "xp_7d": 2847529,
+      "boss_7d": 345,
+      "xp_30d": 22730553,
       "boss_30d": 451,
       "boss_30d_top": "The Leviathan",
       "boss_30d_top_img": "boss_the_leviathan.png",
@@ -10742,9 +10742,9 @@
       "favorite_boss_all_time_img": "boss_cerberus.png",
       "total_xp": 287763048,
       "total_boss": 15222,
-      "msgs_7d": 281,
-      "msgs_30d": 692,
-      "msgs_total": 7163,
+      "msgs_7d": 333,
+      "msgs_30d": 744,
+      "msgs_total": 7215,
       "context_class": "context-pvm"
     },
     {
@@ -10977,7 +10977,7 @@
       "role": "saviour",
       "rank_img": "rank_saviour.png",
       "joined_at": "2025-02-14",
-      "days_in_clan": 323,
+      "days_in_clan": 324,
       "xp_7d": 926159,
       "boss_7d": 45,
       "xp_30d": 2783925,
@@ -11033,62 +11033,37 @@
   },
   "topMessenger": {
     "name": "partymarty94",
-    "messages": 16691
+    "messages": 16700
   },
   "risingStar": {
     "name": "sirgowi",
-    "msgs": 627
+    "msgs": 633
   },
   "ai": {
     "insights": [
       {
         "type": "milestone",
-        "message": "drylogs: 93M XP gain. That's some serious commitment, meatbag.",
+        "message": "donatoosrs: 113M XP gain this week is bonkers. Stop touching grass, nerd.",
         "icon": "fa-trophy"
       },
       {
         "type": "roast",
-        "message": "arrogancee: 68M XP and 0 messages? Talking to yourself, much?",
+        "message": "arrogancee: 68M XP this week with zero messages? Clearly a bot, you are.",
         "icon": "fa-skull"
       },
       {
         "type": "general",
-        "message": "Discord activity spiked 57.2% this week. Did you all find your mics?",
+        "message": "Discord is poppin: 16236 msgs this week, +60.5% trend.",
         "icon": "fa-chart-line"
       },
       {
         "type": "anomaly",
-        "message": "alprosia: 169 messages this week. Finally started talking, eh?",
-        "icon": "fa-fire"
-      },
-      {
-        "type": "leadership",
-        "message": "Partymarty2645 is leading. Still running things, fleshbag.",
-        "icon": "fa-crown"
-      },
-      {
-        "type": "milestone",
-        "message": "donatoosrs: 113M XP this week. Someone's been busy.",
-        "icon": "fa-trophy"
-      },
-      {
-        "type": "general",
-        "message": "Discord is blowing up, 15900 messages this week.",
-        "icon": "fa-chart-line"
-      },
-      {
-        "type": "leadership",
-        "message": "Partymarty2645 leads the clan, a true legend.",
-        "icon": "fa-crown"
-      },
-      {
-        "type": "anomaly",
-        "message": "alprosia: 169 messages with 14M XP. Chatterbox alert!",
+        "message": "alprosia: 174 messages and 1480 boss gain? Interesting.",
         "icon": "fa-fire"
       },
       {
         "type": "trend-positive",
-        "message": "sirgowi: 630 messages sent in 7d; the clan's vocal backbone, keep those callouts coming.",
+        "message": "sirgowi: 636 messages sent in 7d; the clan's vocal backbone, keep those callouts coming.",
         "icon": "fa-comment"
       },
       {
@@ -11100,18 +11075,44 @@
         "type": "general",
         "message": "kxntsugi: Balanced contributor with 47,254,242 XP and 0 messages; jack of all trades keeping the clan ecosystem thriving.",
         "icon": "fa-star"
+      },
+      {
+        "type": "milestone",
+        "message": "swespy0157: Achieved 24,848,818 XP and 178 kills in 7d; milestone progress confirmed.",
+        "icon": "fa-star"
+      },
+      {
+        "type": "general",
+        "message": "Clan reporting system active. Insight #9 placeholder. Go grind!",
+        "icon": "fa-server"
+      },
+      {
+        "type": "general",
+        "message": "Clan reporting system active. Insight #10 placeholder. Go grind!",
+        "icon": "fa-server"
+      },
+      {
+        "type": "general",
+        "message": "Clan reporting system active. Insight #11 placeholder. Go grind!",
+        "icon": "fa-server"
+      },
+      {
+        "type": "general",
+        "message": "Clan reporting system active. Insight #12 placeholder. Go grind!",
+        "icon": "fa-server"
       }
     ],
     "pulse": [
-      "drylogs: 93M XP gain",
-      "arrogancee: 68M XP and 0 messages? Talking to yourself, much?",
-      "Discord activity spiked 57.2% this week",
-      "Partymarty2645 is leading",
-      "donatoosrs: 113M XP this week",
-      "Discord is blowing up, 15900 messages this week",
-      "Partymarty2645 leads the clan, a true legend",
+      "donatoosrs: 113M XP gain this week is bonkers",
+      "arrogancee: 68M XP this week with zero messages? Clearly a bot, you are",
+      "Discord is poppin: 16236 msgs this week, +60.5% trend",
       "kxntsugi: Balanced contributor with 47,254,242 XP and 0 messages; jack of all trades keeping the clan ecosystem thriving",
-      "Clan gained 459M XP this week"
+      "swespy0157: Achieved 24,848,818 XP and 178 kills in 7d; milestone progress confirmed",
+      "Clan reporting system active",
+      "Clan reporting system active",
+      "Clan reporting system active",
+      "Clan reporting system active",
+      "Clan gained 451M XP this week"
     ]
   },
   "config": {
